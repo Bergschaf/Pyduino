@@ -11,3 +11,13 @@
 237	325	6856638685460967	Pyduino.exe	c2290ad9bf062a3e
 2	231	6856639129164232	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
 232	314	6856639129974224	Pyduino.exe	c2290ad9bf062a3e
+2	233	6856696578133001	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+233	321	6856696578973006	PyduinoCompiled.exe	d1f64cc3623fae5c
+2	227	6856697259793674	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+227	394	6856697261223676	PyduinoCompiled.exe	d1f64cc3623fae5c
+2	234	6856699267572344	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+234	346	6856699268332356	PyduinoCompiled.exe	d1f64cc3623fae5c
+2	231	6856701206967626	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+231	318	6856701207687652	PyduinoCompiled.exe	d1f64cc3623fae5c
+2	221	6856701585915284	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+222	357	6856701586945299	PyduinoCompiled.exe	d1f64cc3623fae5c

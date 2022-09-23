@@ -1,6 +1,9 @@
 
 #main
-print((),"Hel lo",(),[]);
-print("Hello");
+int y = 12
+float z = 1.111
+char x = 'a'
+print(x,y)
+print(z)
 #board
 print("Hello");
