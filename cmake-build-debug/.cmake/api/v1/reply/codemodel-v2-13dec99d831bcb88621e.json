@@ -15,7 +15,8 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						0
+						0,
+						1
 					]
 				}
 			],
@@ -30,7 +31,8 @@
 					"name" : "Pyduino",
 					"targetIndexes" : 
 					[
-						0
+						0,
+						1
 					]
 				}
 			],
@@ -41,6 +43,13 @@
 					"id" : "Pyduino::@6890427a1f51a3e7e1df",
 					"jsonFile" : "target-Pyduino-Debug-7c3bb99f9fff41b52e04.json",
 					"name" : "Pyduino",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "PyduinoCompiled::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-PyduinoCompiled-Debug-b214e49f4b31bbb89a35.json",
+					"name" : "PyduinoCompiled",
 					"projectIndex" : 0
 				}
 			]

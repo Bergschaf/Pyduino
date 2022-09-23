@@ -5,3 +5,5 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_executable(Pyduino
         test.cpp)
+add_executable(PyduinoCompiled
+        testPyduino.cpp)

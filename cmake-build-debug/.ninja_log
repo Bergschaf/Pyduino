@@ -1,3 +1,13 @@
 # ninja log v5
 0	246	6856563634126901	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
 247	328	6856563634926884	Pyduino.exe	c2290ad9bf062a3e
+1	300	6856582128506870	CMakeFiles/PyduinoCompiled.dir/testPyduino.cpp.obj	df2fc50ef731dbcf
+300	413	6856582129616869	PyduinoCompiled.exe	d1f64cc3623fae5c
+2	217	6856590190681626	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
+218	292	6856590191411641	Pyduino.exe	c2290ad9bf062a3e
+2	339	6856635150105709	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
+340	601	6856635152725700	Pyduino.exe	c2290ad9bf062a3e
+2	237	6856638684610964	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
+237	325	6856638685460967	Pyduino.exe	c2290ad9bf062a3e
+2	231	6856639129164232	CMakeFiles/Pyduino.dir/test.cpp.obj	47b7e5417540d571
+232	314	6856639129974224	Pyduino.exe	c2290ad9bf062a3e
