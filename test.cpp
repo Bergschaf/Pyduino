@@ -13,7 +13,11 @@ int main() { //main function
     int n = sizeof(arr)/sizeof(arr[0]);
     // print array
     cout << "Array: ";
+    int i;
+    int j = NULL;
     cout << arr;
+    float f = .1;
+    bool x = true;
     test(new int[] {1,1,1});
 
     cout << "Hello World \n" << "h1" << 1; // first object

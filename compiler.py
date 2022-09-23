@@ -7,6 +7,8 @@ BRACKETS = ["(", ")", "[", "]", "{", "}"]
 
 PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
 
+NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
 code_pc = None
 code_board = None
 with open("testPyduino.pino", "r") as f:
@@ -26,25 +28,110 @@ with open("testPyduino.pino", "r") as f:
 
 # main code
 main_cpp = ["#include <iostream>", "using namespace std;", "int main() {"]
-scopes = {} # variables
+scopes = {}  # variables Format: key: (beginning_row,end_row) value: list of variables: variable: (name, datatype)
+
 
 # functions
-
 
 
 def do_line(index, line):
     pass
 
+
 def do_arguments(start_row_index, start_col_index, end_row_index, end_col_index):
     pass
 
-def do_variable(line):
-    pass
 
-def do_value(value):
-    pass
+def in_scope(line_index, name):
+    """Returns the Variable with the name if it is in the current scope"""
+    for scope in scopes:
+        if scope[0] <= line_index <= scope[1]:
+            for variable in scopes[scope]:
+                if variable.name == name:
+                    return variable
+    return None
 
-def do_print(line,row_index):
+
+def add_to_scope(line_index, variable):
+    for scope in scopes:
+        if scope[0] <= line_index <= scope[1]:
+            scopes[scope].append(variable)
+            return
+
+
+def do_variable(l: str, line_index: int):
+    l = l.lstrip()
+    datatype = l.split(" ")[0]
+    if datatype in PRIMITIVE_TYPES:
+        name = l.split(" ")[1]
+        if in_scope(line_index, name) is None:
+            add_to_scope(line_index, (name, datatype))
+            try:
+                value = l.split("=")[1]
+            except IndexError:
+                raise SyntaxError(f"Variable '{name}' has no value at line {line_index}")
+            done_value, dt = do_value(value)
+            if dt == "int":
+                return f"{datatype} {name}={done_value};"
+            else:
+                raise SyntaxError(
+                    f"Wrong Data Type at line {line_index}. Variable of type '{datatype}' can't be assigned to a value of type '{dt}'")
+        else:
+            raise SyntaxError(f"Variable '{name}' already exists in current scope")
+    else:
+        raise NotImplementedError(f"Datatype '{datatype}' might not be implemented yet")
+
+
+def do_value(value, line_index) -> (str, str):
+    value = value.strip()
+    if value[0] in NUMBERS:
+        for i in range(len(value)):
+            if value[i] not in NUMBERS and value[i] != ".":
+                break
+        else:
+            if "." in value:
+                return value, "float"
+            else:
+                return value, "int"
+        raise SyntaxError(f"Value {value} at line {line_index} is not a number")
+
+    elif value[0] == '"':
+        if value[-1] == '"':
+            return value, "string"
+        raise SyntaxError(f"Value {value} at line {line_index} is not a string")
+    elif value[0] == "'":
+        if value[2] == "'" and len(value) == 3:
+            return value, "char"
+        raise SyntaxError(f"Value {value} at line {line_index} is not a char")
+
+    elif value[0] == "[":
+        raise NotImplementedError("Lists are not implemented yet")
+
+    elif value[0] == "{":
+        raise NotImplementedError("Dictionaries are not implemented yet")
+
+    elif value[0] == "(":
+        raise NotImplementedError("Tuples are not implemented yet")
+
+    elif value[0] == "T" and value[1] == "r" and value[2] == "u" and value[3] == "e" and len(value) == 4:
+        return "true", "bool"
+
+    elif value[0] == "F" and value[1] == "a" and value[2] == "l" and value[3] == "s" and value[4] == "e" and len(value) == 5:
+        return "false", "bool"
+
+    elif value[0] == "n" and value[1] == "o" and value[2] == "n" and value[3] == "e" and len(value) == 4:
+        return "nullptr", "none"
+
+    elif (scope := in_scope(line_index, value)) is not None:
+        return value, scope[1]
+
+    else:
+        raise SyntaxError(f"Value {value} at line {line_index} is not valid")
+
+
+
+
+def do_print(line, row_index):
     col_index = line.find("print") + 5
     if line[col_index] == "(":
         row, col = find_closing_bracket("(", row_index, col_index)
