@@ -1,20 +1,12 @@
 #include <iostream>
+# include "Arduino.hpp"
 using namespace std;
 int main() {
-int y=( 2 + 3 ) * 4;
-float z=1.111;
-char x='a';
-bool b=y > z;
-if (y > z) {
-cout << "y is greater than z" << endl;
+for (int i = 0; i < 10 ; i++) {
+for (int j = 0; j < 10 ; j++) {
+cout << i<< " " <<j << endl;
+
 }
-int count=0;
-while (count < 10000) {
-cout << count << endl;
-count++;
 }
-cout << y << endl;
-cout << z << endl;
-cout << b << endl;
 return 0;
 }

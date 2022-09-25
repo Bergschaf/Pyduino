@@ -49,8 +49,14 @@ cmake_ninja_workdir = C$:/Users/Christian/CLionProjects/Pyduino/cmake-build-debu
 
 build cmake_object_order_depends_target_Pyduino: phony || CMakeFiles/Pyduino.dir
 
-build CMakeFiles/Pyduino.dir/test.cpp.obj: CXX_COMPILER__Pyduino_Debug C$:/Users/Christian/CLionProjects/Pyduino/test.cpp || cmake_object_order_depends_target_Pyduino
-  DEP_FILE = CMakeFiles\Pyduino.dir\test.cpp.obj.d
+build CMakeFiles/Pyduino.dir/Arduino.cpp.obj: CXX_COMPILER__Pyduino_Debug C$:/Users/Christian/CLionProjects/Pyduino/Arduino.cpp || cmake_object_order_depends_target_Pyduino
+  DEP_FILE = CMakeFiles\Pyduino.dir\Arduino.cpp.obj.d
+  FLAGS = -g -std=gnu++14
+  OBJECT_DIR = CMakeFiles\Pyduino.dir
+  OBJECT_FILE_DIR = CMakeFiles\Pyduino.dir
+
+build CMakeFiles/Pyduino.dir/SerialPortTest.cpp.obj: CXX_COMPILER__Pyduino_Debug C$:/Users/Christian/CLionProjects/Pyduino/SerialPortTest.cpp || cmake_object_order_depends_target_Pyduino
+  DEP_FILE = CMakeFiles\Pyduino.dir\SerialPortTest.cpp.obj.d
   FLAGS = -g -std=gnu++14
   OBJECT_DIR = CMakeFiles\Pyduino.dir
   OBJECT_FILE_DIR = CMakeFiles\Pyduino.dir
@@ -63,7 +69,7 @@ build CMakeFiles/Pyduino.dir/test.cpp.obj: CXX_COMPILER__Pyduino_Debug C$:/Users
 #############################################
 # Link the executable Pyduino.exe
 
-build Pyduino.exe: CXX_EXECUTABLE_LINKER__Pyduino_Debug CMakeFiles/Pyduino.dir/test.cpp.obj
+build Pyduino.exe: CXX_EXECUTABLE_LINKER__Pyduino_Debug CMakeFiles/Pyduino.dir/Arduino.cpp.obj CMakeFiles/Pyduino.dir/SerialPortTest.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\Pyduino.dir

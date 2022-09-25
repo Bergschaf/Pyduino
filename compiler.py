@@ -9,13 +9,17 @@ PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 ARITHMETIC_OPERATORS = ["+", "-", "*", "/", "%"]
-CONDITION_OPERATORS = ["==", "!=", "<", ">", "<=", ">=", "&&", "||"]
+CONDITION_OPERATORS_LEN1 = ["<", ">"]
+CONDITION_OPERATORS_LEN2 = ["==", "!=", "<=", ">=", "&&", "||"]
 
-OPERATORS = ARITHMETIC_OPERATORS + CONDITION_OPERATORS
+OPERATORS = ARITHMETIC_OPERATORS + CONDITION_OPERATORS_LEN1 + CONDITION_OPERATORS_LEN2
 
 CONDITION_CONDITIONS = ["and", "or"]
 
 WHITESPACE = '" "'
+
+IteratorLineIndex = 0
+SysVariableIndex = 0
 
 code_pc = None
 code_board = None
@@ -43,7 +47,6 @@ identation_levels = [0 for i in range(len(code_pc))]
 
 # functions
 
-
 def do_line(row_index, l):
     instruction = l.strip()
     if instruction[0] == "#":
@@ -56,6 +59,8 @@ def do_line(row_index, l):
         return do_if(row_index, instruction)
     elif instruction[:5] == "while":
         return do_while(row_index, instruction)
+    elif instruction[:3] == "for":
+        return do_for(row_index, instruction)
     # TODO: das am ende
     elif "=" in instruction:
         return do_assignment(row_index, instruction)
@@ -162,7 +167,11 @@ def do_value(value, line_index) -> (str, str):
                 splitlist.append(values[i][last_index:j])
                 splitlist.append(values[i][j])
                 last_index = j + 1
-            elif j + 1 < len(values[i]) and values[i][j:j + 2] in CONDITION_OPERATORS:
+            elif values[i][j] in CONDITION_OPERATORS_LEN1:
+                splitlist.append(values[i][last_index:j])
+                splitlist.append(values[i][j])
+                last_index = j + 1
+            elif j + 1 < len(values[i]) and values[i][j:j + 2] in CONDITION_OPERATORS_LEN2:
                 splitlist.append(values[i][last_index:j])
                 splitlist.append(values[i][j:j + 2])
                 last_index = j + 2
@@ -185,7 +194,6 @@ def do_value(value, line_index) -> (str, str):
                 datatypes.append(None)
         # TODO check if datatypes are correct
         return " ".join(values), datatypes[0]
-
     if value[0] in NUMBERS:
         for i in range(len(value)):
             if value[i] not in NUMBERS and value[i] != ".":
@@ -229,7 +237,7 @@ def do_value(value, line_index) -> (str, str):
         return value, scope[1]
 
     else:
-        raise SyntaxError(f"Variable '{value}' at line {line_index} is not defined")
+        raise SyntaxError(f"Variable '{value}' at line {line_index} is not defined ({line})")
 
 
 def do_print(row_index, line):
@@ -248,7 +256,7 @@ def do_print(row_index, line):
         #    raise SyntaxError(f"Unexpected keyword argument(s) at line {row_index}")
         return f"cout << {f'<< {WHITESPACE} <<'.join([a[0] for a in args])} {newline};"
     else:
-        raise SyntaxError(f"Expected '(' at line {index} col {index} after 'print' statement")
+        raise SyntaxError(f"Expected '(' at line {row_index} col {col_index} after 'print' statement")
 
 
 def find_closing_bracket(bracket, start_row, start_col):
@@ -287,25 +295,28 @@ def find_closing_bracket(bracket, start_row, start_col):
 
 
 def do_if(row_index, line):
-    col_index = code_pc[row_index].index("if") + 2
+    global IteratorLineIndex
+    col_index = line.index("if") + 2
     if line.strip()[-1] == ":":
         row = row_index
         col = len(line) - 1
         condition = do_value(line[col_index + 1:col], row_index)[0]
+        print(condition, row_index)
         if get_indentation_level(row_index) + 1 != get_indentation_level(row + 1):
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, len(code_pc)):
             if get_indentation_level(i) <= get_indentation_level(row_index):
-                end_indentation_index = i
+                end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = len(code_pc)
+            end_indentation_index = len(code_pc) - 1
+        print(condition, row_index, end_indentation_index)
         current_indentation_level = get_indentation_level(row_index)
         if_code = [f"if ({condition}) {{"]
-        for i in range(row + 1, end_indentation_index):
+        while IteratorLineIndex < end_indentation_index:
             identation_levels[i] = current_indentation_level + 1
-            x, y = next(main_it)
-            if_code.append(do_line(x, y))
+            IteratorLineIndex, y = next(main_it)
+            if_code.append(do_line(IteratorLineIndex, y))
         if_code.append("}")
         return "\n".join(if_code)
     else:
@@ -313,7 +324,8 @@ def do_if(row_index, line):
 
 
 def do_while(row_index, line):
-    col_index = code_pc[row_index].index("while") + 5
+    global IteratorLineIndex
+    col_index = line.index("while") + 5
     if line.strip()[-1] == ":":
         row = row_index
         col = len(line) - 1
@@ -322,35 +334,98 @@ def do_while(row_index, line):
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, len(code_pc)):
             if get_indentation_level(i) <= get_indentation_level(row_index):
-                end_indentation_index = i
+                end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = len(code_pc)
+            end_indentation_index = len(code_pc) - 1
         current_indentation_level = get_indentation_level(row_index)
+        print(end_indentation_index)
         while_code = [f"while ({condition}) {{"]
-        for i in range(row + 1, end_indentation_index):
+        while IteratorLineIndex < end_indentation_index:
             identation_levels[i] = current_indentation_level + 1
-            x, y = next(main_it)
-            while_code.append(do_line(x, y))
+            IteratorLineIndex, y = next(main_it)
+            while_code.append(do_line(IteratorLineIndex, y))
         while_code.append("}")
-        print(while_code)
         return "\n".join(while_code)
     else:
         raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
 
+
+def do_for(row_index, line):
+    global IteratorLineIndex
+    col_index = line.index("for") + 3
+    if line.strip()[-1] == ":":
+        row = row_index
+        col = len(line) - 1
+        elements = [x.strip() for x in line[col_index + 1:-1].split("in")]
+
+        if len(elements) != 2:
+            raise SyntaxError(f"Expected 'in' at line {row_index} col {col_index}")
+        counter_variable = elements[0]
+        if get_indentation_level(row_index) + 1 != get_indentation_level(row + 1):
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, len(code_pc)):
+            if get_indentation_level(i) <= get_indentation_level(row_index):
+                end_indentation_index = i - 1
+                break
+        else:
+            end_indentation_index = len(code_pc) - 1
+        current_indentation_level = get_indentation_level(row_index)
+        if elements[1][:5] == "range":
+            if elements[1][5] != "(":
+                raise SyntaxError(f"Expected '(' at line {row_index} col {col_index}")
+            end_col = find_closing_bracket("(", row_index, code_pc[row_index].index("range") + 6)
+            range_arguments, range_kwargs = do_arguments(row_index, code_pc[row_index].index("range") + 6, row_index,
+                                                         end_col[1])
+            if any([x[1] != "int" for x in range_arguments]):
+                raise SyntaxError(f"Expected type int as range argument in line {row_index}")
+            if len(range_kwargs) != 0:
+                raise SyntaxError(f"Unexpected keyword arguments in range function in line {row_index}")
+
+            if len(range_arguments) == 1:
+                for_code = [f"for (int {counter_variable} = 0; {counter_variable} < {range_arguments[0][0]} ; {counter_variable}++) {{"]
+            elif len(range_arguments) == 2:
+                for_code = [f"for (int {counter_variable} = {range_arguments[0][0]}; {counter_variable} < {range_arguments[1][0]} ; {counter_variable}++) {{"]
+            elif len(range_arguments) == 3:
+                for_code = [
+                    f"for (int {counter_variable} = {range_arguments[0][0]}; {counter_variable} < {range_arguments[1][0]} ; {counter_variable} += {range_arguments[2][0]}) {{"]
+            else:
+                raise SyntaxError(f"Expected 1, 2 or 3 arguments in range() at line {row_index} col {col_index}")
+
+        else:
+            for_code = [f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < {do_value(elements[1], row_index)[0]}.size(); {sys_var}++) {{",f"auto {counter_variable} = {do_value(elements[1], row_index)[0]}[{sys_var}];"]
+        add_to_scope(row_index,(counter_variable, "auto"))
+        while IteratorLineIndex < end_indentation_index:
+            identation_levels[i] = current_indentation_level + 1
+            IteratorLineIndex, y = next(main_it)
+            for_code.append(do_line(IteratorLineIndex, y))
+        for_code.append("}")
+        return "\n".join(for_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
+
+
+def do_function(row_index,line):
+    pass
+
+def next_sys_variable():
+    global SysVariableIndex
+    SysVariableIndex += 1
+    return f"__sys_var_{324987 * SysVariableIndex}"
 
 def do_assignment(row_index, line):
     variable, value = line.split("=")
     return f"{variable}={do_value(value, row_index)[0]};"
 
 
+
+
 main_it = enumerate(code_pc)
 print("\n\n------\n")
-for index, line in main_it:
-    main_cpp.append(do_line(index, line))
+for IteratorLineIndex, line in main_it:
+    main_cpp.append(do_line(IteratorLineIndex, line))
 # main end
 main_cpp += ["return 0;", "}"]
-print(main_cpp)
 with open(FILENAME[:-5] + ".cpp", "w") as f:
     f.write("\n".join(main_cpp))
 

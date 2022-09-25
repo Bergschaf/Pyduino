@@ -4,6 +4,6 @@ project(Pyduino)
 set(CMAKE_CXX_STANDARD 14)
 
 add_executable(Pyduino
-        test.cpp)
+        Arduino.c Arduino.hpp)
 add_executable(PyduinoCompiled
         testPyduino.cpp)
