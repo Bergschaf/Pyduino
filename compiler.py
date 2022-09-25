@@ -8,6 +8,12 @@ BRACKETS = ["(", ")", "[", "]", "{", "}"]
 PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+ARITHMETIC_OPERATORS = ["+", "-", "*", "/", "%"]
+CONDITION_OPERATORS = ["==", "!=", "<", ">", "<=", ">=", "&&", "||"]
+
+OPERATORS = ARITHMETIC_OPERATORS + CONDITION_OPERATORS
+
+CONDITION_CONDITIONS = ["and", "or"]
 
 WHITESPACE = '" "'
 
@@ -32,6 +38,7 @@ with open("testPyduino.pino", "r") as f:
 main_cpp = ["#include <iostream>", "using namespace std;", "int main() {"]
 scopes = {(0,
            len(code_pc)): []}  # variables Format: key: (beginning_row,end_row) value: list of variables: variable: (name, datatype)
+identation_levels = [0 for i in range(len(code_pc))]
 
 
 # functions
@@ -45,6 +52,16 @@ def do_line(row_index, l):
         return do_variable(instruction, row_index)
     elif instruction[:5] == "print":
         return do_print(row_index, instruction[5:])
+    elif instruction[:2] == "if":
+        return do_if(row_index, instruction)
+    elif instruction[:5] == "while":
+        return do_while(row_index, instruction)
+    # TODO: das am ende
+    elif "=" in instruction:
+        return do_assignment(row_index, instruction)
+    # TODO ggf fix
+    elif "++" in instruction:
+        return instruction + ";"
 
 
 def do_arguments(start_row_index, start_col_index, end_row_index, end_col_index):
@@ -83,10 +100,15 @@ def in_scope(line_index, name):
 
 
 def add_to_scope(line_index, variable):
+    """Fix this"""
     for scope in scopes:
         if scope[0] <= line_index <= scope[1]:
             scopes[scope].append(variable)
             return
+
+
+def get_indentation_level(row_index):
+    return (len(code_pc[row_index]) - len(code_pc[row_index].lstrip())) / 4
 
 
 def do_variable(l: str, line_index: int):
@@ -104,8 +126,10 @@ def do_variable(l: str, line_index: int):
             if dt == datatype:
                 return f"{datatype} {name}={done_value};"
             else:
-                raise SyntaxError(
-                    f"Wrong Data Type at line {line_index}. Variable of type '{datatype}' can't be assigned to a value of type '{dt}'")
+                return f"{datatype} {name}={done_value};"
+            # else:
+            #    raise SyntaxError(
+            #        f"Wrong Data Type at line {line_index}. Variable of type '{datatype}' can't be assigned to a value of type '{dt}'")
         else:
             raise SyntaxError(f"Variable '{name}' already exists in current scope")
     else:
@@ -113,7 +137,55 @@ def do_variable(l: str, line_index: int):
 
 
 def do_value(value, line_index) -> (str, str):
+    if value[0] == '"' == value[-1]:
+        return value, "string"
     value = value.strip()
+    # remove double Whitespaces from value
+    while "  " in value:
+        value = value.replace("  ", " ")
+    while "and" in value:
+        value = value.replace("and", "&&")
+    while "or" in value:
+        value = value.replace("or", "||")
+    while "not" in value:
+        value = value.replace("not", "!")
+    values = value.split(" ")
+    for i in range(len(values)):
+        splitlist = []
+        last_index = 0
+        for j in range(len(values[i])):
+            if values[i][j] in ARITHMETIC_OPERATORS:
+                splitlist.append(values[i][last_index:j])
+                splitlist.append(values[i][j])
+                last_index = j + 1
+            elif values[i][j] in BRACKETS:
+                splitlist.append(values[i][last_index:j])
+                splitlist.append(values[i][j])
+                last_index = j + 1
+            elif j + 1 < len(values[i]) and values[i][j:j + 2] in CONDITION_OPERATORS:
+                splitlist.append(values[i][last_index:j])
+                splitlist.append(values[i][j:j + 2])
+                last_index = j + 2
+            elif values[i][j] == "!":
+                splitlist.append(values[i][last_index:j])
+                splitlist.append(values[i][j])
+                last_index = j + 1
+
+        splitlist.append(values[i][last_index:])
+        values[i] = splitlist
+
+    values = [i for j in values for i in j if i != ""]
+    if len(values) > 1:
+        datatypes = []
+        for i in range(len(values)):
+            if not values[i] in OPERATORS + BRACKETS:
+                values[i], dt = do_value(values[i], line_index)
+                datatypes.append(dt)
+            else:
+                datatypes.append(None)
+        # TODO check if datatypes are correct
+        return " ".join(values), datatypes[0]
+
     if value[0] in NUMBERS:
         for i in range(len(value)):
             if value[i] not in NUMBERS and value[i] != ".":
@@ -166,13 +238,14 @@ def do_print(row_index, line):
     if line[0] == "(":
         row, col = find_closing_bracket("(", row_index, col_index)
         args, kwargs = do_arguments(row_index, col_index + 1, row, col)
-        if "newline" in kwargs:
-            if kwargs["newline"] == "False":
-                newline = ""
-            if len(kwargs.keys()) > 1:
-                raise SyntaxError(f"Unexpected keyword argument(s) at line {row_index}")
-        elif len(kwargs.keys()) > 0:
-            raise SyntaxError(f"Unexpected keyword argument(s) at line {row_index}")
+        # if "newline" in kwargs.keys():
+        #    print(kwargs["newline"])
+        #    if kwargs["newline"] == "false":
+        #        newline = ""
+        #    if len(kwargs.keys()) > 1:
+        #        raise SyntaxError(f"Unexpected keyword argument(s) at line {row_index}")
+        # elif len(kwargs.keys()) > 0:
+        #    raise SyntaxError(f"Unexpected keyword argument(s) at line {row_index}")
         return f"cout << {f'<< {WHITESPACE} <<'.join([a[0] for a in args])} {newline};"
     else:
         raise SyntaxError(f"Expected '(' at line {index} col {index} after 'print' statement")
@@ -213,12 +286,71 @@ def find_closing_bracket(bracket, start_row, start_col):
     raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
 
 
+def do_if(row_index, line):
+    col_index = code_pc[row_index].index("if") + 2
+    if line.strip()[-1] == ":":
+        row = row_index
+        col = len(line) - 1
+        condition = do_value(line[col_index + 1:col], row_index)[0]
+        if get_indentation_level(row_index) + 1 != get_indentation_level(row + 1):
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, len(code_pc)):
+            if get_indentation_level(i) <= get_indentation_level(row_index):
+                end_indentation_index = i
+                break
+        else:
+            end_indentation_index = len(code_pc)
+        current_indentation_level = get_indentation_level(row_index)
+        if_code = [f"if ({condition}) {{"]
+        for i in range(row + 1, end_indentation_index):
+            identation_levels[i] = current_indentation_level + 1
+            x, y = next(main_it)
+            if_code.append(do_line(x, y))
+        if_code.append("}")
+        return "\n".join(if_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
+
+
+def do_while(row_index, line):
+    col_index = code_pc[row_index].index("while") + 5
+    if line.strip()[-1] == ":":
+        row = row_index
+        col = len(line) - 1
+        condition = do_value(line[col_index + 1:col], row_index)[0]
+        if get_indentation_level(row_index) + 1 != get_indentation_level(row + 1):
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, len(code_pc)):
+            if get_indentation_level(i) <= get_indentation_level(row_index):
+                end_indentation_index = i
+                break
+        else:
+            end_indentation_index = len(code_pc)
+        current_indentation_level = get_indentation_level(row_index)
+        while_code = [f"while ({condition}) {{"]
+        for i in range(row + 1, end_indentation_index):
+            identation_levels[i] = current_indentation_level + 1
+            x, y = next(main_it)
+            while_code.append(do_line(x, y))
+        while_code.append("}")
+        print(while_code)
+        return "\n".join(while_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
+
+
+def do_assignment(row_index, line):
+    variable, value = line.split("=")
+    return f"{variable}={do_value(value, row_index)[0]};"
+
+
 main_it = enumerate(code_pc)
 print("\n\n------\n")
-for index, line in enumerate(code_pc):
+for index, line in main_it:
     main_cpp.append(do_line(index, line))
 # main end
 main_cpp += ["return 0;", "}"]
+print(main_cpp)
 with open(FILENAME[:-5] + ".cpp", "w") as f:
     f.write("\n".join(main_cpp))
 

@@ -1,9 +1,17 @@
 
 #main
-int y = 12
+int y =  (2 + 3) * 4
 float z = 1.111
 char x = 'a'
-print(x,y)
+bool b = y > z
+if y > z:
+    print("y is greater than z")
+int count = 0
+while count < 10000:
+    print(count)
+    count++
+print(y)
 print(z)
+print(b)
 #board
 print("Hello");
