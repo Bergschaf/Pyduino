@@ -2,10 +2,10 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "PyduinoCompiled.exe"
+			"path" : "executable.cpp.exe"
 		},
 		{
-			"path" : "PyduinoCompiled.pdb"
+			"path" : "executable.cpp.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -27,7 +27,7 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 8,
+				"line" : 3,
 				"parent" : 0
 			}
 		]
@@ -39,27 +39,17 @@
 			[
 				{
 					"fragment" : "-g"
-				},
-				{
-					"fragment" : "-std=gnu++14"
 				}
 			],
 			"language" : "CXX",
-			"languageStandard" : 
-			{
-				"backtraces" : 
-				[
-					1
-				],
-				"standard" : "14"
-			},
 			"sourceIndexes" : 
 			[
-				0
+				0,
+				1
 			]
 		}
 	],
-	"id" : "PyduinoCompiled::@6890427a1f51a3e7e1df",
+	"id" : "executable.cpp::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -79,8 +69,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "PyduinoCompiled",
-	"nameOnDisk" : "PyduinoCompiled.exe",
+	"name" : "executable.cpp",
+	"nameOnDisk" : "executable.cpp.exe",
 	"paths" : 
 	{
 		"build" : ".",
@@ -92,7 +82,15 @@
 			"name" : "Source Files",
 			"sourceIndexes" : 
 			[
-				0
+				0,
+				1
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				2
 			]
 		}
 	],
@@ -101,8 +99,19 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "testPyduino.cpp",
+			"path" : "SerialCommunication/SerialPc.cpp",
 			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "SerialCommunication/Serial.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "SerialCommunication/SerialClass.h",
+			"sourceGroupIndex" : 1
 		}
 	],
 	"type" : "EXECUTABLE"

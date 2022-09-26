@@ -1,9 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
-project(Pyduino)
+project(SerialCommunication)
 
-set(CMAKE_CXX_STANDARD 14)
+add_executable(executable.cpp SerialCommunication/SerialPc.cpp SerialCommunication/Serial.cpp SerialCommunication/SerialClass.h)
 
-add_executable(Pyduino
-        Arduino.c Arduino.hpp)
-add_executable(PyduinoCompiled
-        testPyduino.cpp)
