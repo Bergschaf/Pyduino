@@ -35,3 +35,8 @@ delay(millis)
 analogRead(analogPort): value von 1 bis 0
 
 math modul für sin cost tan wurzel etc
+
+Jeder (globalen) Variable auf dem Arduino und auf dem Pc wird ein index zugewiesen.\
+GetVariable(index) gibt den Wert zurück
+
+
