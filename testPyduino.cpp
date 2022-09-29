@@ -4,9 +4,8 @@
 using namespace std;
 
 int main() {
-    char x = 100;
-    int y = '9';
-    cout << x << endl << y << endl;
+    int a = 100000;
+    cout << int(char(a)) << endl;
     return 0;
 
 }

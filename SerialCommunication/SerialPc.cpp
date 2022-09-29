@@ -5,9 +5,19 @@
 #include "SerialClass.h"
 #include <chrono>
 #include <thread>
+
 using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
+
+const int StartCharacter = 60; // <
+const int EndCharacter = 62; // >
+const int SpaceCharacter = 124; // |
+const int MaxDataLength = 100;
+const int MaxRequests = 50;
+const int MaxMillisecondsToWaitForData = 2000;
+char Requests[MaxRequests];
+char Responses[MaxRequests][MaxDataLength];
 
 bool Handshake(Serial *SP) {
     char outgoingData[2] = "*";
@@ -26,9 +36,102 @@ bool Handshake(Serial *SP) {
         }
 
     }
+}
 
+char getNextRequestId() {
+    for (uint8_t i = 0; i < MaxRequests; i++) {
+        if (Requests[i] == 0) {
+            return (char) i;
+        }
+    }
+}
+
+// TODO implement asynchronous waiting for data
+void sendRequest(char instruction, const char *value, int valueSize, Serial *SP) {
+    char outgoingData[8 + valueSize];
+    outgoingData[0] = StartCharacter;
+
+    char requestId = getNextRequestId();
+    outgoingData[1] = requestId;
+    Requests[requestId] = instruction;
+
+    outgoingData[2] = SpaceCharacter;
+
+    outgoingData[3] = (char) valueSize;
+
+    outgoingData[4] = SpaceCharacter;
+
+    outgoingData[5] = instruction;
+
+    outgoingData[6] = SpaceCharacter;
+
+    for (int i = 0; i < valueSize; i++) {
+        outgoingData[7 + i] = value[i];
+    }
+
+    outgoingData[7 + valueSize] = EndCharacter;
+
+    SP->WriteData(outgoingData, 8 + valueSize);
+}
+
+void sendResponse(char requestID, const char *response, int responseSize, Serial *SP) {
+    char outgoingData[6 + responseSize];
+    outgoingData[0] = StartCharacter;
+
+    outgoingData[1] = requestID;
+
+    outgoingData[2] = SpaceCharacter;
+
+    outgoingData[3] = (char) responseSize;
+
+    outgoingData[4] = SpaceCharacter;
+
+    for (int i = 0; i < responseSize; i++) {
+        outgoingData[5 + i] = response[i];
+    }
+
+    outgoingData[6 + responseSize] = EndCharacter;
+
+    SP->WriteData(outgoingData, 6 + responseSize);
+}
+
+void decodeResponse(const char *data, int size) {
+    char requestID = data[1];
+    char instruction = Requests[requestID];
+    int responseSize = int(uint8_t(data[3]));
+    if(responseSize > MaxDataLength){
+        cout << "Warning: response size is bigger than MaxDataLength" << endl;
+        responseSize = MaxDataLength;
+    }
+    else if (responseSize == 0) {
+        Requests[requestID] = 0;
+        cout << "Warning: response size is 0" << endl;
+        return;
+    }
+    if(data[3] != SpaceCharacter || data[5] != SpaceCharacter){
+        Requests[requestID] = 0;
+        cout << "Error: Invalid response format" << endl;
+        return;
+    }
+    for (int i = 0; i < responseSize; i++) {
+        Responses[requestID][i] = data[5 + i];
+    }
+}
+
+void decodeRequest(const char *data, int size) {
 
 }
+
+void decodeSerial(const char *data, int size) {
+    char requestID = data[1];
+    if (int(requestID) < MaxRequests) {
+        decodeResponse(data, size);
+    } else {
+        decodeRequest(data, size);
+    }
+
+}
+
 
 int main() {
     auto *SP = new Serial(R"(\\.\COM5)");

@@ -39,4 +39,7 @@ math modul für sin cost tan wurzel etc
 Jeder (globalen) Variable auf dem Arduino und auf dem Pc wird ein index zugewiesen.\
 GetVariable(name) gibt den Wert zurück
 
+Promise?
+Asynchorer Datenaustausch mit dem Arduino
+
 
