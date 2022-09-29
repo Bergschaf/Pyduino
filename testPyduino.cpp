@@ -1,12 +1,12 @@
 #include <iostream>
-# include "Arduino.hpp"
-using namespace std;
-int main() {
-for (int i = 0; i < 10 ; i++) {
-for (int j = 0; j < 10 ; j++) {
-cout << i<< " " <<j << endl;
 
-}
-}
-return 0;
+
+using namespace std;
+
+int main() {
+    char x = 100;
+    int y = '9';
+    cout << x << endl << y << endl;
+    return 0;
+
 }

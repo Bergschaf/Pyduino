@@ -41,6 +41,39 @@ include CMakeFiles/rules.ninja
 
 cmake_ninja_workdir = C$:/Users/Christian/CLionProjects/Pyduino/cmake-build-debug/
 # =============================================================================
+# Object build statements for EXECUTABLE target executable2.cpp
+
+
+#############################################
+# Order-only phony target for executable2.cpp
+
+build cmake_object_order_depends_target_executable2.cpp: phony || CMakeFiles/executable2.cpp.dir
+
+build CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj: CXX_COMPILER__executable2.2ecpp_Debug C$:/Users/Christian/CLionProjects/Pyduino/testPyduino.cpp || cmake_object_order_depends_target_executable2.cpp
+  DEP_FILE = CMakeFiles\executable2.cpp.dir\testPyduino.cpp.obj.d
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles\executable2.cpp.dir
+  OBJECT_FILE_DIR = CMakeFiles\executable2.cpp.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target executable2.cpp
+
+
+#############################################
+# Link the executable executable2.cpp.exe
+
+build executable2.cpp.exe: CXX_EXECUTABLE_LINKER__executable2.2ecpp_Debug CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = CMakeFiles\executable2.cpp.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = executable2.cpp.exe
+  TARGET_IMPLIB = libexecutable2.cpp.dll.a
+  TARGET_PDB = executable2.cpp.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target executable.cpp
 
 
@@ -107,6 +140,8 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 
 build executable.cpp: phony executable.cpp.exe
 
+build executable2.cpp: phony executable2.cpp.exe
+
 # =============================================================================
 # Folder targets.
 
@@ -115,7 +150,7 @@ build executable.cpp: phony executable.cpp.exe
 #############################################
 # Folder: C:/Users/Christian/CLionProjects/Pyduino/cmake-build-debug
 
-build all: phony executable.cpp.exe
+build all: phony executable2.cpp.exe executable.cpp.exe
 
 # =============================================================================
 # Unknown Build Time Dependencies.

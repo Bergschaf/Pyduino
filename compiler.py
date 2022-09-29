@@ -1,3 +1,5 @@
+from functions import do_function
+
 FILENAME = "testPyduino.pino"
 
 DEFAULT_INDEX_LEVEL = 4  # spaces
@@ -405,8 +407,7 @@ def do_for(row_index, line):
         raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
 
 
-def do_function(row_index,line):
-    pass
+
 
 def next_sys_variable():
     global SysVariableIndex
