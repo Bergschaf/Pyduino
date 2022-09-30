@@ -24,15 +24,21 @@ bool Handshake(Serial *SP) {
     char incomingData[2] = "";
     int readResult = 0;
     while (true) {
-        SP->WriteData(outgoingData, 1);
-        sleep_for(milliseconds(1));
-        readResult = SP->ReadData(incomingData, 1);
-        std::cout << "Bytes read: (" << readResult << ") -" << incomingData[0] << "-" << std::endl;
+        SP->WriteData(outgoingData, 2);
+        sleep_for(milliseconds(2));
+        readResult = SP->ReadData(incomingData, 2);
+        if (readResult > 0) {
+            std::cout << "Bytes read: (" << readResult << ") -" << incomingData[0] << "-" << std::endl;
 
-        if (incomingData[0] == '*') {
-            outgoingData[0] = 'T';
-            SP->WriteData(outgoingData, 1);
-            return true;
+            if (incomingData[0] == '*') {
+                outgoingData[0] = 'T';
+                SP->WriteData(outgoingData, 1);
+                readResult = SP->ReadData(incomingData, 1);
+                while (readResult > 0) {
+                    readResult = SP->ReadData(incomingData, 1);
+                }
+                return true;
+            }
         }
 
     }
@@ -44,6 +50,7 @@ char getNextRequestId() {
             return (char) i;
         }
     }
+    return -1;
 }
 
 // TODO implement asynchronous waiting for data
@@ -70,7 +77,11 @@ void sendRequest(char instruction, const char *value, int valueSize, Serial *SP)
     }
 
     outgoingData[7 + valueSize] = EndCharacter;
-
+    cout << "Sending request: " << int(outgoingData[0]);
+    for (int i = 1; i < 7 + valueSize; ++i) {
+        cout << " " << int(outgoingData[i]) << " ";
+    }
+    cout << int(outgoingData[7 + valueSize]) << endl;
     SP->WriteData(outgoingData, 8 + valueSize);
 }
 
@@ -99,16 +110,15 @@ void decodeResponse(const char *data, int size) {
     char requestID = data[1];
     char instruction = Requests[requestID];
     int responseSize = int(uint8_t(data[3]));
-    if(responseSize > MaxDataLength){
+    if (responseSize > MaxDataLength) {
         cout << "Warning: response size is bigger than MaxDataLength" << endl;
         responseSize = MaxDataLength;
-    }
-    else if (responseSize == 0) {
+    } else if (responseSize == 0) {
         Requests[requestID] = 0;
         cout << "Warning: response size is 0" << endl;
         return;
     }
-    if(data[3] != SpaceCharacter || data[5] != SpaceCharacter){
+    if (data[3] != SpaceCharacter || data[5] != SpaceCharacter) {
         Requests[requestID] = 0;
         cout << "Error: Invalid response format" << endl;
         return;
@@ -124,17 +134,19 @@ void decodeRequest(const char *data, int size) {
 
 void decodeSerial(const char *data, int size) {
     char requestID = data[1];
-    if (int(requestID) < MaxRequests) {
+    if (int(requestID) <= MaxRequests) {
         decodeResponse(data, size);
-    } else {
+    } else if (int(requestID <= MaxRequests * 2)) {
         decodeRequest(data, size);
+    } else {
+        cout << "Error: Invalid Request ID";
     }
 
 }
 
 
 int main() {
-    auto *SP = new Serial(R"(\\.\COM5)");
+    auto *SP = new Serial(R"(\\.\COM8)");
     if (SP->IsConnected()) {
         cout << "We're connected" << endl;
         cout << "________________" << endl;
@@ -142,6 +154,7 @@ int main() {
 
     char incomingData[256] = "";
     int readResult = 0;
+
     if (!Handshake(SP)) {
         cout << "Handshake failed" << endl;
         return 0;
@@ -149,9 +162,15 @@ int main() {
         cout << "Handshake successful" << endl;
     }
 
-    while (SP->IsConnected()) {
-        readResult = SP->ReadData(incomingData, 255);
-        incomingData[readResult] = 0;
-        cout << incomingData << endl;
+    sendRequest('a',new char[1] {0}, 1, SP);
+
+
+
+    while (true) {
+        readResult = SP->ReadData(incomingData, 1);
+        if (readResult > 0) {
+            cout << "Bytes read: (" << readResult << ") -" << incomingData[0] << "-" << endl;
+        }
     }
+
 }

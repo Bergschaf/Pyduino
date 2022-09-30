@@ -6,7 +6,6 @@
 			[
 				{
 					"build" : ".",
-					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
 					"projectIndex" : 0,
 					"source" : ".",
 					"targetIndexes" : 
@@ -54,12 +53,12 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/Christian/CLionProjects/Pyduino/cmake-build-debug",
-		"source" : "C:/Users/Christian/CLionProjects/Pyduino"
+		"build" : "C:/Users/info/CLionProjects/cmake-build-debug",
+		"source" : "C:/Users/info/CLionProjects"
 	},
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 3
+		"minor" : 2
 	}
 }
