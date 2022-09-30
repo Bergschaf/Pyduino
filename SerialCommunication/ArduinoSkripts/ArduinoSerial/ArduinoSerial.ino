@@ -4,6 +4,7 @@ const int SpaceCharacter = 124;  // |
 const int MaxDataLength = 100;
 const int MaxRequests = 50;
 const int MaxMillisecondsToWaitForData = 2000;
+const byte analogPorts[6] = {A0, A1, A2, A3, A4, A5};
 char Requests[MaxRequests];
 char Responses[MaxRequests][MaxDataLength];
 
@@ -103,7 +104,7 @@ void sendResponse(char requestID, const char *response, int responseSize) {
         outgoingData[5 + i] = response[i];
     }
 
-    outgoingData[6 + responseSize] = EndCharacter;
+    outgoingData[5 + responseSize] = EndCharacter;
 
     Serial.write(outgoingData, 6 + responseSize);
 }
@@ -159,14 +160,13 @@ void decodeRequest(const char *data, int size) {
     }
     switch (instruction) {
         case 'a':
-          if(valueSize == 1){
-              int r = analogRead(int(value[0]));
-              const char values[2] = {char(r >> 8), char(r)};
-              sendResponse(requestID, values, 2);
-          }
-          else{
-              Serial.write("E4");
-          }
+            if (valueSize == 1) {
+                short read = analogRead(analogPorts[value[0]]);
+                char r1 = read >> 8;
+                char r2 = read;
+                const char response[2] = {r1, r2};
+                sendResponse(requestID, response , 2);
+            }
         case 'd':
             if (valueSize == 1) {
                 digitalWrite(int(value[0]), 1);

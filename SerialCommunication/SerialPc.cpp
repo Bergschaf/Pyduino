@@ -77,11 +77,11 @@ void sendRequest(char instruction, const char *value, int valueSize, Serial *SP)
     }
 
     outgoingData[7 + valueSize] = EndCharacter;
-    cout << "Sending request: " << int(outgoingData[0]);
+    /*cout << "Sending request: " << int(outgoingData[0]);
     for (int i = 1; i < 7 + valueSize; ++i) {
         cout << " " << int(outgoingData[i]) << " ";
     }
-    cout << int(outgoingData[7 + valueSize]) << endl;
+    cout << int(outgoingData[7 + valueSize]) << endl;*/
     SP->WriteData(outgoingData, 8 + valueSize);
 }
 
@@ -110,6 +110,7 @@ void decodeResponse(const char *data, int size) {
     char requestID = data[1];
     char instruction = Requests[requestID];
     int responseSize = int(uint8_t(data[3]));
+
     if (responseSize > MaxDataLength) {
         cout << "Warning: response size is bigger than MaxDataLength" << endl;
         responseSize = MaxDataLength;
@@ -118,14 +119,24 @@ void decodeResponse(const char *data, int size) {
         cout << "Warning: response size is 0" << endl;
         return;
     }
-    if (data[3] != SpaceCharacter || data[5] != SpaceCharacter) {
+    if (data[2] != SpaceCharacter || data[4] != SpaceCharacter) {
         Requests[requestID] = 0;
         cout << "Error: Invalid response format" << endl;
         return;
     }
     for (int i = 0; i < responseSize; i++) {
         Responses[requestID][i] = data[5 + i];
+
     }
+    char chars[2] = {Responses[requestID][0], Responses[requestID][1]};
+    int v1 = int(uint8_t(chars[0])) ;
+    int v2 = int(uint8_t(chars[1]));
+    cout << "Response: " <<(v1 * 256) + v2 << endl;
+    Requests[requestID] = 0;
+
+    // convert the two chars at Responses[requestID] to one int
+
+    Requests[requestID] = 0;
 }
 
 void decodeRequest(const char *data, int size) {
@@ -152,7 +163,7 @@ int main() {
         cout << "________________" << endl;
     }
 
-    char incomingData[256] = "";
+    char incomingData[1] = "";
     int readResult = 0;
 
     if (!Handshake(SP)) {
@@ -169,7 +180,25 @@ int main() {
     while (true) {
         readResult = SP->ReadData(incomingData, 1);
         if (readResult > 0) {
-            cout << "Bytes read: (" << readResult << ") -" << incomingData[0] << "-" << endl;
+            if(incomingData[0] == StartCharacter){
+                char data[MaxDataLength];
+                data[0] = StartCharacter;
+                int i = 1;
+
+                while (true){
+                    readResult = SP->ReadData(incomingData, 1);
+                    if(readResult > 0){
+                        data[i] = incomingData[0];
+                        i++;
+                        if(incomingData[0] == EndCharacter){
+                            decodeSerial(data, i);
+                            break;
+                        }
+                    }
+                }
+                sendRequest('a',new char[1] {0}, 1, SP);
+                sleep_for(milliseconds(50));
+            }
         }
     }
 
