@@ -42,4 +42,8 @@ GetVariable(name) gibt den Wert zurück
 Promise?
 Asynchorer Datenaustausch mit dem Arduino
 
+Await Syntax:
+Alle Funktion um Daten vom Arduino zu bekommen sind asynchron,|\
+wenn await for dem Funktionsaufruf steht, wird erst weitergemacht, wenn die Daten da sind|\
+sonst muss async davor stehen
 
