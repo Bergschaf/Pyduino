@@ -15,7 +15,7 @@ const int EndCharacter = 62; // >
 const int SpaceCharacter = 124; // |
 const int MaxDataLength = 100;
 const int MaxRequests = 50;
-const int MaxMillisecondsToWaitForData = 5000;
+const int MaxMillisecondsToWaitForData = 500;
 
 
 
@@ -35,6 +35,7 @@ public:
             }
         }
         *targetVariable = bytesToType(Responses[requestID]);
+        Responses[requestID][0] = 0;
     }
 
     Promise(T* targetVariable,bytesToType bytesToType, int requestID, char Responses[MaxRequests][MaxDataLength]) {
@@ -62,8 +63,6 @@ class Arduino {
             sleep_for(milliseconds(2));
             readResult = SP->ReadData(incomingData, 2);
             if (readResult > 0) {
-                std::cout << "Bytes read: (" << readResult << ") -" << incomingData[0] << "-" << std::endl;
-
                 if (incomingData[0] == '*') {
                     outgoingData[0] = 'T';
                     SP->WriteData(outgoingData, 1);
@@ -88,7 +87,7 @@ class Arduino {
     }
 
 // TODO implement asynchronous waiting for data
-    char sendRequest(char instruction, const char *value, int valueSize, Serial *SP) {
+    char sendRequest(char instruction, const char *value, int valueSize) {
         char outgoingData[8 + valueSize];
         outgoingData[0] = StartCharacter;
 
@@ -111,16 +110,11 @@ class Arduino {
         }
 
         outgoingData[7 + valueSize] = EndCharacter;
-        /*cout << "Sending request: " << int(outgoingData[0]);
-        for (int i = 1; i < 7 + valueSize; ++i) {
-            cout << " " << int(outgoingData[i]) << " ";
-        }
-        cout << int(outgoingData[7 + valueSize]) << endl;*/
         SP->WriteData(outgoingData, 8 + valueSize);
         return requestId;
     }
 
-    void sendResponse(char requestID, const char *response, int responseSize, Serial *SP) {
+    void sendResponse(char requestID, const char *response, int responseSize) {
         char outgoingData[6 + responseSize];
         outgoingData[0] = StartCharacter;
 
@@ -160,18 +154,11 @@ class Arduino {
             return;
         }
         for (int i = 0; i < responseSize; i++) {
-            Responses[requestID][i] = data[5 + i];
+            Responses[requestID][i+ 1] = data[5 + i];
 
         }
-        char chars[2] = {Responses[requestID][0], Responses[requestID][1]};
-        int v1 = int(uint8_t(chars[0]));
-        int v2 = int(uint8_t(chars[1]));
-        cout << "Response: " << (v1 * 256) + v2 << endl;
-        Requests[requestID] = 0;
+        Responses[requestID][0] = 1;
 
-        // convert the two chars at Responses[requestID] to one int
-
-        Requests[requestID] = 0;
     }
 
     void decodeRequest(const char *data, int size) {
@@ -189,10 +176,11 @@ class Arduino {
         }
     }
 
-
+     // TODO VERY IMPORTANT KEEP 1 BYYTE OFFSET WHEN READING DATA, BECAUSE THE FIRST BYTE IS ALWAYS 1 as an indicator that the message is ready
     static short bytesToShort(char *bytes) {
-        return (short) ((int(uint8_t(bytes[0])) * 256) + int(uint8_t(bytes[1])));
+        return (short) ((uint8_t(bytes[2]) << 8) | uint8_t(bytes[1]));
     }
+
 
     static int bytesToTypeInt(const char* bytes) {
         int v1 = int(uint8_t(bytes[0]));
@@ -201,7 +189,33 @@ class Arduino {
         int v4 = int(uint8_t(bytes[3]));
         return (v1 * 256 * 256 * 256) + (v2 * 256 * 256) + (v3 * 256) + v4;
     }
+    [[noreturn]]static void listener(Arduino *arduino, Serial *SP) {
+        char incomingData[MaxDataLength];
+        int readResult = 0;
+        char dataBuffer[2];
+        while(true){
+            readResult = SP->ReadData(dataBuffer, 1);
+            if (readResult > 0) {
+                if (dataBuffer[0] == StartCharacter) {
+                    int i = 1;
+                    incomingData[0] = dataBuffer[0];
+                    while (true) {
+                        readResult = SP->ReadData(dataBuffer, 1);
+                        if (readResult > 0) {
+                            // TODO cout here
+                            incomingData[i] = dataBuffer[0];
+                            if (dataBuffer[0] == EndCharacter) {
+                                arduino->decodeSerial(incomingData, i);
+                                break;
+                            }
+                            i++;
+                        }
+                    }
+                }
+            }
 
+        }
+    }
 
 
 public:
@@ -209,9 +223,9 @@ public:
     char Requests[MaxRequests]{};
     char Responses[MaxRequests][MaxDataLength]{};
     Serial *SP;
-    typedef void(* listener)(Serial *serial,Arduino *arduino);
-    explicit Arduino(listener listener){
-        this->SP = new Serial(R"(\\.\COM8)");
+    thread *listenerThread{};
+    explicit Arduino(){
+        this->SP = new Serial(R"(\\.\COM5)");
         if (!SP->IsConnected()) {
                 cout << "Connection Error" << endl;
         }
@@ -219,12 +233,16 @@ public:
             cout << "Handshake Failed" << endl;
             return;
         }
+        listenerThread = new thread(listener, this, SP);
     }
 
-    void AnalogRead(char pin, short *targetVariable) {
+    void analogRead(char pin, short *targetVariable) {
         char value[1] = {pin};
-        char requestID = sendRequest('a', value, 1, this->SP);
+        char requestID = sendRequest('a', value, 1);
         delete new Promise<short>(targetVariable, bytesToShort, requestID, Responses);
+        // TODO wichtig
+        Requests[requestID] = 0;
     }
+
 
 };

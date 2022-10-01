@@ -55,6 +55,18 @@ build CMakeFiles/executable2.cpp.dir/main.cpp.obj: CXX_COMPILER__executable2.2ec
   OBJECT_DIR = CMakeFiles\executable2.cpp.dir
   OBJECT_FILE_DIR = CMakeFiles\executable2.cpp.dir
 
+build CMakeFiles/executable2.cpp.dir/SerialCommunication/SerialPc.cpp.obj: CXX_COMPILER__executable2.2ecpp_Debug C$:/Users/Christian/CLionProjects/Pyduino/SerialCommunication/SerialPc.cpp || cmake_object_order_depends_target_executable2.cpp
+  DEP_FILE = CMakeFiles\executable2.cpp.dir\SerialCommunication\SerialPc.cpp.obj.d
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles\executable2.cpp.dir
+  OBJECT_FILE_DIR = CMakeFiles\executable2.cpp.dir\SerialCommunication
+
+build CMakeFiles/executable2.cpp.dir/SerialCommunication/Serial.cpp.obj: CXX_COMPILER__executable2.2ecpp_Debug C$:/Users/Christian/CLionProjects/Pyduino/SerialCommunication/Serial.cpp || cmake_object_order_depends_target_executable2.cpp
+  DEP_FILE = CMakeFiles\executable2.cpp.dir\SerialCommunication\Serial.cpp.obj.d
+  FLAGS = -g
+  OBJECT_DIR = CMakeFiles\executable2.cpp.dir
+  OBJECT_FILE_DIR = CMakeFiles\executable2.cpp.dir\SerialCommunication
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target executable2.cpp
@@ -63,7 +75,7 @@ build CMakeFiles/executable2.cpp.dir/main.cpp.obj: CXX_COMPILER__executable2.2ec
 #############################################
 # Link the executable executable2.cpp.exe
 
-build executable2.cpp.exe: CXX_EXECUTABLE_LINKER__executable2.2ecpp_Debug CMakeFiles/executable2.cpp.dir/main.cpp.obj
+build executable2.cpp.exe: CXX_EXECUTABLE_LINKER__executable2.2ecpp_Debug CMakeFiles/executable2.cpp.dir/main.cpp.obj CMakeFiles/executable2.cpp.dir/SerialCommunication/SerialPc.cpp.obj CMakeFiles/executable2.cpp.dir/SerialCommunication/Serial.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\executable2.cpp.dir
