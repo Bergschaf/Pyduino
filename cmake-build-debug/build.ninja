@@ -49,8 +49,8 @@ cmake_ninja_workdir = C$:/Users/Christian/CLionProjects/Pyduino/cmake-build-debu
 
 build cmake_object_order_depends_target_executable2.cpp: phony || CMakeFiles/executable2.cpp.dir
 
-build CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj: CXX_COMPILER__executable2.2ecpp_Debug C$:/Users/Christian/CLionProjects/Pyduino/testPyduino.cpp || cmake_object_order_depends_target_executable2.cpp
-  DEP_FILE = CMakeFiles\executable2.cpp.dir\testPyduino.cpp.obj.d
+build CMakeFiles/executable2.cpp.dir/main.cpp.obj: CXX_COMPILER__executable2.2ecpp_Debug C$:/Users/Christian/CLionProjects/Pyduino/main.cpp || cmake_object_order_depends_target_executable2.cpp
+  DEP_FILE = CMakeFiles\executable2.cpp.dir\main.cpp.obj.d
   FLAGS = -g
   OBJECT_DIR = CMakeFiles\executable2.cpp.dir
   OBJECT_FILE_DIR = CMakeFiles\executable2.cpp.dir
@@ -63,7 +63,7 @@ build CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj: CXX_COMPILER__executab
 #############################################
 # Link the executable executable2.cpp.exe
 
-build executable2.cpp.exe: CXX_EXECUTABLE_LINKER__executable2.2ecpp_Debug CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj
+build executable2.cpp.exe: CXX_EXECUTABLE_LINKER__executable2.2ecpp_Debug CMakeFiles/executable2.cpp.dir/main.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\executable2.cpp.dir
