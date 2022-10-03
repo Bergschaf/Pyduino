@@ -54,49 +54,6 @@ def do_line(row_index, l):
         return instruction + ";"
 
 
-def do_arguments(start_row_index, start_col_index, end_row_index, end_col_index):
-    args = []  # Format: (name, datatype)
-    kwargs = {}
-    if start_row_index == end_row_index:
-        argstring = code_pc[start_row_index][start_col_index:end_col_index]
-    else:
-        argstring = code_pc[start_row_index:end_row_index]
-        argstring[0] = argstring[0][start_col_index:]
-        argstring[-1] = argstring[-1][:end_col_index]
-    argstring = "".join(argstring)
-    all_args = argstring.split(",")
-    for arg in all_args:
-        arg = arg.strip()
-        if "=" not in arg:
-            if kwargs:
-                raise SyntaxError(f"Positional argument after keyword argument at line {start_row_index}")
-            args.append(do_value(arg, start_row_index))
-        else:
-            name, value = arg.split("=")
-            name = name.strip()
-            value = value.strip()
-            kwargs[name] = do_value(value, start_row_index)
-    return args, kwargs
-
-
-def in_scope(line_index, name):
-    """Returns the Variable with the name if it is in the current scope"""
-    for scope in scopes.keys():
-        if scope[0] <= line_index <= scope[1]:
-            for variable in scopes[scope]:
-                if variable[0] == name:
-                    return variable
-    return None
-
-
-def add_to_scope(line_index, variable):
-    """Fix this"""
-    for scope in scopes:
-        if scope[0] <= line_index <= scope[1]:
-            scopes[scope].append(variable)
-            return
-
-
 def get_indentation_level(row_index):
     return (len(code_pc[row_index]) - len(code_pc[row_index].lstrip())) / 4
 
@@ -292,13 +249,6 @@ def do_for(row_index, line):
     else:
         raise SyntaxError(f"Expected ':' at line {row_index} col {col_index}")
 
-
-
-
-def next_sys_variable():
-    global SysVariableIndex
-    SysVariableIndex += 1
-    return f"__sys_var_{324987 * SysVariableIndex}"
 
 def do_assignment(row_index, line):
     variable, value = line.split("=")

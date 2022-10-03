@@ -1,4 +1,7 @@
 totalLineCount = 0
-scope = {(0, totalLineCount): [[], []]}  # [[variables], [functions]]
+scope = None  # [[variables], [functions]]
+identations = []
 iterator = None
+code = None
 currentLineIndex = 0
+sysVariableIndex = 1

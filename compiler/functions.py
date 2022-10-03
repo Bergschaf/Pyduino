@@ -1,13 +1,14 @@
 from builtins import check_builtin
 from utils import *
 
-
-def do_function_definition(row_index, line):
+def check_function_definition(line, line_index):
     pass
 
 
-def do_function_execution(row_index, line):
-    builtin = check_builtin(line)
+def check_function_execution(value, line_index):
 
-def check_function(line):
+    """
+    :return: (function translated to C++, return type, False here if the C++ representation works not as a function
+    call with return type else True)
+    """
     pass
