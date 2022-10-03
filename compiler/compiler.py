@@ -1,31 +1,14 @@
-from functions import do_function
+from utils import *
+from constants import *
 
-FILENAME = "testPyduino.pino"
-
-DEFAULT_INDEX_LEVEL = 4  # spaces
-
-CLOSING_BRACKETS = {"(": ")", "[": "]", "{": "}"}
-BRACKETS = ["(", ")", "[", "]", "{", "}"]
-
-PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
-
-NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-ARITHMETIC_OPERATORS = ["+", "-", "*", "/", "%"]
-CONDITION_OPERATORS_LEN1 = ["<", ">"]
-CONDITION_OPERATORS_LEN2 = ["==", "!=", "<=", ">=", "&&", "||"]
-
-OPERATORS = ARITHMETIC_OPERATORS + CONDITION_OPERATORS_LEN1 + CONDITION_OPERATORS_LEN2
-
-CONDITION_CONDITIONS = ["and", "or"]
-
-WHITESPACE = '" "'
+Variables = []
 
 IteratorLineIndex = 0
 SysVariableIndex = 0
 
 code_pc = None
 code_board = None
-with open("testPyduino.pino", "r") as f:
+with open("../testPyduino.pino", "r") as f:
     code = [l.strip("\n").rstrip() for l in f.readlines() if l.strip("\n").replace(" ", "") != ""]
     if code[0] == "#main":
         for i in range(len(code)):
@@ -143,103 +126,6 @@ def do_variable(l: str, line_index: int):
         raise NotImplementedError(f"Datatype '{datatype}' might not be implemented yet")
 
 
-def do_value(value, line_index) -> (str, str):
-    if value[0] == '"' == value[-1]:
-        return value, "string"
-    value = value.strip()
-    # remove double Whitespaces from value
-    while "  " in value:
-        value = value.replace("  ", " ")
-    while "and" in value:
-        value = value.replace("and", "&&")
-    while "or" in value:
-        value = value.replace("or", "||")
-    while "not" in value:
-        value = value.replace("not", "!")
-    values = value.split(" ")
-    for i in range(len(values)):
-        splitlist = []
-        last_index = 0
-        for j in range(len(values[i])):
-            if values[i][j] in ARITHMETIC_OPERATORS:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif values[i][j] in BRACKETS:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif values[i][j] in CONDITION_OPERATORS_LEN1:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif j + 1 < len(values[i]) and values[i][j:j + 2] in CONDITION_OPERATORS_LEN2:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j:j + 2])
-                last_index = j + 2
-            elif values[i][j] == "!":
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-
-        splitlist.append(values[i][last_index:])
-        values[i] = splitlist
-
-    values = [i for j in values for i in j if i != ""]
-    if len(values) > 1:
-        datatypes = []
-        for i in range(len(values)):
-            if not values[i] in OPERATORS + BRACKETS:
-                values[i], dt = do_value(values[i], line_index)
-                datatypes.append(dt)
-            else:
-                datatypes.append(None)
-        # TODO check if datatypes are correct
-        return " ".join(values), datatypes[0]
-    if value[0] in NUMBERS:
-        for i in range(len(value)):
-            if value[i] not in NUMBERS and value[i] != ".":
-                break
-        else:
-            if "." in value:
-                return value, "float"
-            else:
-                return value, "int"
-        raise SyntaxError(f"Value {value} at line {line_index} is not a number")
-
-    elif value[0] == '"':
-        if value[-1] == '"':
-            return value, "string"
-        raise SyntaxError(f"Value {value} at line {line_index} is not a string")
-    elif value[0] == "'":
-        if value[2] == "'" and len(value) == 3:
-            return value, "char"
-        raise SyntaxError(f"Value {value} at line {line_index} is not a char")
-
-    elif value[0] == "[":
-        raise NotImplementedError("Lists are not implemented yet")
-
-    elif value[0] == "{":
-        raise NotImplementedError("Dictionaries are not implemented yet")
-
-    elif value[0] == "(":
-        raise NotImplementedError("Tuples are not implemented yet")
-
-    elif value[0] == "T" and value[1] == "r" and value[2] == "u" and value[3] == "e" and len(value) == 4:
-        return "true", "bool"
-
-    elif value[0] == "F" and value[1] == "a" and value[2] == "l" and value[3] == "s" and value[4] == "e" and len(
-            value) == 5:
-        return "false", "bool"
-
-    elif value[0] == "n" and value[1] == "o" and value[2] == "n" and value[3] == "e" and len(value) == 4:
-        return "nullptr", "none"
-
-    elif (scope := in_scope(line_index, value)) is not None:
-        return value, scope[1]
-
-    else:
-        raise SyntaxError(f"Variable '{value}' at line {line_index} is not defined ({line})")
 
 
 def do_print(row_index, line):
