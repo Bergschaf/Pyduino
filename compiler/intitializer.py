@@ -1,5 +1,6 @@
 import variables
 from constants import *
+from utils import get_line_identation
 
 
 def intialize(code):
@@ -29,11 +30,4 @@ def intialize(code):
                 break
         current_id_level = i
     variables.iterator = enumerate(variables.code)
-
-
-def get_line_identation(line):
-    """
-    :return: Indentation level of the line ALWAYS ROUNDS DOWN
-    """
-    return (len(line) - len(line.lstrip())) // DEFAULT_INDEX_LEVEL
 

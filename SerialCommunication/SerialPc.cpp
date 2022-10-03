@@ -187,6 +187,7 @@ class Arduino {
         int v2 = int(uint8_t(bytes[1]));
         int v3 = int(uint8_t(bytes[2]));
         int v4 = int(uint8_t(bytes[3]));
+        int x[2];
         return (v1 * 256 * 256 * 256) + (v2 * 256 * 256) + (v3 * 256) + v4;
     }
     [[noreturn]]static void listener(Arduino *arduino, Serial *SP) {

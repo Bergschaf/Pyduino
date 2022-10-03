@@ -40,6 +40,115 @@ def do_variable_assignment(line):
     return f"{name} = {value};"
 
 
+def do_if(line):
+    col_index = line.index("if") + 2
+    if line.strip()[-1] == ":":
+        row = variables.currentLineIndex
+        col = len(line) - 1
+        condition = do_value(line[col_index + 1:col])[0]
+        if variables.identations[row] + 1 != variables.identations[row + 1]:
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, variables.totalLineCount):
+            if variables.identations[i] <= variables.identations[i]:
+                end_indentation_index = i - 1
+                break
+        else:
+            end_indentation_index = variables.totalLineCount - 1
+        if_code = [f"if ({condition}) {{"]
+        while variables.currentLineIndex < end_indentation_index:
+            variables.currentLineIndex, l = next(variables.iterator)
+            if_code.append(do_line(l))
+        if_code.append("}")
+        return "\n".join(if_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+
+
+def do_while(line):
+    col_index = line.index("while") + 5
+    if line.strip()[-1] == ":":
+        row = variables.currentLineIndex
+        col = len(line) - 1
+        condition = do_value(line[col_index + 1:col])[0]
+        if variables.identations[row] + 1 != variables.identations[row + 1]:
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, variables.totalLineCount):
+            if variables.identations[i] <= variables.identations[i]:
+                end_indentation_index = i - 1
+                break
+        else:
+            end_indentation_index = variables.totalLineCount - 1
+        while_code = [f"while ({condition}) {{"]
+        while variables.currentLineIndex < end_indentation_index:
+            variables.currentLineIndex, l = next(variables.iterator)
+            while_code.append(do_line(l))
+        while_code.append("}")
+        return "\n".join(while_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+
+
+def do_for(line):
+    col_index = line.index("for") + 3
+    if line.strip()[-1] == ":":
+        row = variables.currentLineIndex
+        elements = [x.strip() for x in line[col_index + 1:-1].split("in")]
+
+        if len(elements) != 2:
+            raise SyntaxError(f"Expected 'in' at line {variables.currentLineIndex} col {col_index}")
+        counter_variable = elements[0]
+        if variables.identations[row] + 1 != variables.identations[row + 1]:
+            raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
+        for i in range(row + 1, variables.totalLineCount):
+            if variables.identations[i] <= variables.identations[i]:
+                end_indentation_index = i - 1
+                break
+        else:
+            end_indentation_index = variables.totalLineCount - 1
+
+        if elements[1][:5] == "range":
+            if elements[1][5] != "(":
+                raise SyntaxError(f"Expected '(' at line {variables.currentLineIndex} col {col_index}")
+            end_row, end_col = find_closing_bracket("(", row, variables.code[row].index("range") + 6)
+            if end_row != row:
+                raise SyntaxError(f"Expected ')' at line {end_row + 1} col {end_col + 1}")
+            range_arguments, range_kwargs = do_arguments(elements[1][6:end_col])
+            if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
+                    range_arguments]):
+                raise SyntaxError(f"Expected type int as range argument in line {variables.currentLineIndex}")
+            if len(range_kwargs) != 0:
+                raise SyntaxError(
+                    f"Unexpected keyword arguments in range function in line {variables.currentLineIndex}")
+
+            if len(range_arguments) == 1:
+                for_code = [
+                    f"for (int {counter_variable} = 0; {counter_variable} < {range_arguments[0][0]} ; {counter_variable}++) {{"]
+            elif len(range_arguments) == 2:
+                for_code = [
+                    f"for (int {counter_variable} = {range_arguments[0][0]}; {counter_variable} < {range_arguments[1][0]} ; {counter_variable}++) {{"]
+            elif len(range_arguments) == 3:
+                for_code = [
+                    f"for (int {counter_variable} = {range_arguments[0][0]}; {counter_variable} < {range_arguments[1][0]} ; {counter_variable} += {range_arguments[2][0]}) {{"]
+            else:
+                raise SyntaxError(
+                    f"Expected 1, 2 or 3 arguments in range() at line {variables.currentLineIndex} col {col_index}")
+
+        else:
+            for_code = [
+                # TODO Here not size
+                f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < {do_value(elements[1])[0]}.size(); {sys_var}++) {{",
+                f"auto {counter_variable} = {do_value(elements[1], row_index)[0]}[{sys_var}];"]
+        add_to_scope(row_index, (counter_variable, "auto"))
+        while IteratorLineIndex < end_indentation_index:
+            identation_levels[i] = current_indentation_level + 1
+            IteratorLineIndex, y = next(main_it)
+            for_code.append(do_line(IteratorLineIndex, y))
+        for_code.append("}")
+        return "\n".join(for_code)
+    else:
+        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+
+
 def do_value(value) -> (str, str):
     if value[0] == '"' == value[-1]:
         return value, "string"
@@ -153,7 +262,8 @@ def do_arguments(argstring):
         arg = arg.strip()
         if "=" not in arg:
             if kwargs:
-                raise SyntaxError(f"Positional (=normal) argument after keyword argument at line {variables.currentLineIndex}")
+                raise SyntaxError(
+                    f"Positional (=normal) argument after keyword argument at line {variables.currentLineIndex}")
             args.append(do_value(arg))
         else:
             name, value = arg.split("=")
@@ -161,6 +271,41 @@ def do_arguments(argstring):
             value = value.strip()
             kwargs[name] = do_value(value)
     return args, kwargs
+
+
+def find_closing_bracket(bracket, start_row, start_col):
+    closing_bracket = CLOSING_BRACKETS[bracket]
+    bracket_level_1 = 0
+    bracket_level_2 = 0
+    bracket_level_3 = 0
+    if bracket == "(":
+        bracket_level_1 = 1
+    elif bracket == "[":
+        bracket_level_2 = 1
+    elif bracket == "{":
+        bracket_level_3 = 1
+    row = start_row
+    col = start_col + 1
+    while row < len(variables.code):
+        while col < len(variables.code[row]):
+            if variables.code[row][col] == BRACKETS[0]:
+                bracket_level_1 += 1
+            elif variables.code[row][col] == BRACKETS[1]:
+                bracket_level_1 -= 1
+            elif variables.code[row][col] == BRACKETS[2]:
+                bracket_level_2 += 1
+            elif variables.code[row][col] == BRACKETS[3]:
+                bracket_level_2 -= 1
+            elif variables.code[row][col] == BRACKETS[4]:
+                bracket_level_3 += 1
+            elif variables.code[row][col] == BRACKETS[5]:
+                bracket_level_3 -= 1
+            if variables.code[row][
+                col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
+                return row, col
+            col += 1
+        row += 1
+    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
 
 
 def add_variable_to_scope(name, datatype, line_index):
@@ -185,3 +330,10 @@ def next_sys_variable():
     global sysVariableIndex
     sysVariableIndex += 1
     return f"__sys_var_{324987 * sysVariableIndex}"
+
+
+def get_line_identation(line):
+    """
+    :return: Indentation level of the line ALWAYS ROUNDS DOWN
+    """
+    return (len(line) - len(line.lstrip())) // DEFAULT_INDEX_LEVEL
