@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/info/CLionProjects/SerialCommunication/SerialClass.h
+windows.h
+-
+stdio.h
+-
+stdlib.h
+-
+
+C:/Users/info/CLionProjects/SerialCommunication/SerialPc.cpp
+iostream
+-
+SerialClass.h
+C:/Users/info/CLionProjects/SerialCommunication/SerialClass.h
+chrono
+-
+thread
+-
+
+C:/Users/info/CLionProjects/main.cpp
+iostream
+-
+SerialCommunication/SerialPc.cpp
+C:/Users/info/CLionProjects/SerialCommunication/SerialPc.cpp
+

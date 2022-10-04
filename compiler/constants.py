@@ -6,6 +6,7 @@ CLOSING_BRACKETS = {"(": ")", "[": "]", "{": "}"}
 BRACKETS = ["(", ")", "[", "]", "{", "}"]
 
 PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
+PRIMITIVE_ARRAY_TYPES = ["int[]", "float[]", "char[]", "bool[]"]
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 ARITHMETIC_OPERATORS = ["+", "-", "*", "/", "%"]

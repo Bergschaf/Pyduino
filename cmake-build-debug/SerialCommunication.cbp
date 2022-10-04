@@ -123,15 +123,18 @@
 			</Target>
 		</Build>
 		<Unit filename="C:/Users/info/CLionProjects/SerialCommunication/Serial.cpp">
+			<Option target="executable2.cpp"/>
 			<Option target="executable.cpp"/>
 		</Unit>
 		<Unit filename="C:/Users/info/CLionProjects/SerialCommunication/SerialClass.h">
+			<Option target="executable2.cpp"/>
 			<Option target="executable.cpp"/>
 		</Unit>
 		<Unit filename="C:/Users/info/CLionProjects/SerialCommunication/SerialPc.cpp">
+			<Option target="executable2.cpp"/>
 			<Option target="executable.cpp"/>
 		</Unit>
-		<Unit filename="C:/Users/info/CLionProjects/testPyduino.cpp">
+		<Unit filename="C:/Users/info/CLionProjects/main.cpp">
 			<Option target="executable2.cpp"/>
 		</Unit>
 		<Unit filename="C:/Users/info/CLionProjects/CMakeLists.txt">

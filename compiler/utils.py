@@ -1,6 +1,129 @@
 from constants import *
 import variables
-from functions import *
+
+
+def next_sys_variable():
+    variables.sysVariableIndex += 1
+    return f"__sys_var_{324987 * variables.sysVariableIndex}"
+
+
+def find_closing_bracket_in_value(value, bracket, start_col):
+    closing_bracket = CLOSING_BRACKETS[bracket]
+    bracket_level_1 = 0
+    bracket_level_2 = 0
+    bracket_level_3 = 0
+    if bracket == "(":
+        bracket_level_1 = 1
+    elif bracket == "[":
+        bracket_level_2 = 1
+    elif bracket == "{":
+        bracket_level_3 = 1
+    col = start_col + 1
+    while col < len(value):
+        if value[col] == BRACKETS[0]:
+            bracket_level_1 += 1
+        elif value[col] == BRACKETS[1]:
+            bracket_level_1 -= 1
+        elif value[col] == BRACKETS[2]:
+            bracket_level_2 += 1
+        elif value[col] == BRACKETS[3]:
+            bracket_level_2 -= 1
+        elif value[col] == BRACKETS[4]:
+            bracket_level_3 += 1
+        elif value[col] == BRACKETS[5]:
+            bracket_level_3 -= 1
+        print(bracket_level_1)
+        if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
+            return col
+        col += 1
+    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {variables.currentLineIndex} col {start_col}")
+
+
+def find_closing_bracket(bracket, start_row, start_col):
+    closing_bracket = CLOSING_BRACKETS[bracket]
+    bracket_level_1 = 0
+    bracket_level_2 = 0
+    bracket_level_3 = 0
+    if bracket == "(":
+        bracket_level_1 = 1
+    elif bracket == "[":
+        bracket_level_2 = 1
+    elif bracket == "{":
+        bracket_level_3 = 1
+    row = start_row
+    col = start_col + 1
+    while row < len(variables.code):
+        while col < len(variables.code[row]):
+            if variables.code[row][col] == BRACKETS[0]:
+                bracket_level_1 += 1
+            elif variables.code[row][col] == BRACKETS[1]:
+                bracket_level_1 -= 1
+            elif variables.code[row][col] == BRACKETS[2]:
+                bracket_level_2 += 1
+            elif variables.code[row][col] == BRACKETS[3]:
+                bracket_level_2 -= 1
+            elif variables.code[row][col] == BRACKETS[4]:
+                bracket_level_3 += 1
+            elif variables.code[row][col] == BRACKETS[5]:
+                bracket_level_3 -= 1
+            if variables.code[row][
+                col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
+                return row, col
+            col += 1
+        row += 1
+    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
+
+
+def do_arguments(argstring):
+    """
+    :param argstring: all arguments as a string WITHOUT the brackets
+    :return: argument list, kwarg dictionary
+    """
+    args = []  # Format: (name, datatype)
+    kwargs = {}
+    all_args = argstring.split(",")
+    # TODO was wenn , in arguments
+    for arg in all_args:
+        arg = arg.strip()
+        if "=" not in arg:
+            if kwargs:
+                raise SyntaxError(
+                    f"Positional (=normal) argument after keyword argument at line {variables.currentLineIndex}")
+            args.append(do_value(arg))
+        else:
+            name, value = arg.split("=")
+            name = name.strip()
+            value = value.strip()
+            kwargs[name] = do_value(value)
+    return args, kwargs
+
+
+from functions import check_function_execution, check_function_definition
+
+
+def do_line(line):
+    instruction = line.strip()
+    if instruction[0] == "#":
+        return
+    elif any([instruction.startswith(i) for i in PRIMITIVE_TYPES]):
+        if (f := check_function_definition(instruction)) is not None:
+            return f
+        else:
+            return do_variable_definition(instruction)
+    elif (f := check_function_execution(instruction)) is not None:
+        return f
+    elif instruction[:2] == "if":
+        return do_if(instruction)
+    elif instruction[:5] == "while":
+        return do_while(instruction)
+    elif instruction[:3] == "for":
+        return do_for(instruction)
+    # TODO: das am Ende
+    elif "=" in instruction:
+        return do_variable_assignment(instruction)
+    # TODO ggf fix
+    elif "++" in instruction:
+        return instruction + ";"
 
 
 def do_variable_definition(line):
@@ -15,7 +138,7 @@ def do_variable_definition(line):
         value = line.split("=")[1].strip()
         value, dt = do_value(value)
         if dt != datatype and dt is not None:
-            raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} is not {datatype}")
+            raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} ({dt}) is not {datatype}")
         if variable_in_scope(name, variables.currentLineIndex):
             raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} already defined")
         add_variable_to_scope(name, datatype, variables.currentLineIndex)
@@ -93,7 +216,7 @@ def do_for(line):
     if line.strip()[-1] == ":":
         row = variables.currentLineIndex
         elements = [x.strip() for x in line[col_index + 1:-1].split("in")]
-
+        dt = "int[]"
         if len(elements) != 2:
             raise SyntaxError(f"Expected 'in' at line {variables.currentLineIndex} col {col_index}")
         counter_variable = elements[0]
@@ -134,15 +257,19 @@ def do_for(line):
                     f"Expected 1, 2 or 3 arguments in range() at line {variables.currentLineIndex} col {col_index}")
 
         else:
+            val, dt = do_value(elements[1])
+            if not dt in PRIMITIVE_ARRAY_TYPES:
+                raise SyntaxError(
+                    f"Expected array type at line {variables.currentLineIndex} col {col_index} (Not implemented)")
             for_code = [
                 # TODO Here not size
-                f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < {do_value(elements[1])[0]}.size(); {sys_var}++) {{",
-                f"auto {counter_variable} = {do_value(elements[1], row_index)[0]}[{sys_var}];"]
-        add_to_scope(row_index, (counter_variable, "auto"))
-        while IteratorLineIndex < end_indentation_index:
-            identation_levels[i] = current_indentation_level + 1
-            IteratorLineIndex, y = next(main_it)
-            for_code.append(do_line(IteratorLineIndex, y))
+
+                f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < sizeof({do_value(elements[1])[0]}) / sizeof(*{do_value(elements[1])[0]}); {sys_var}++) {{",
+                f"auto {counter_variable} = {do_value(elements[1])[0]}[{sys_var}];"]
+        add_variable_to_scope(counter_variable, dt[:-2], variables.currentLineIndex)
+        while variables.currentLineIndex < end_indentation_index:
+            variables.currentLineIndex, l = next(variables.iterator)
+            for_code.append(do_line(l))
         for_code.append("}")
         return "\n".join(for_code)
     else:
@@ -150,9 +277,12 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
+    print(value)
     if value[0] == '"' == value[-1]:
         return value, "string"
     value = value.strip()
+    if (f := check_function_execution(value)) and f is not None and f[2]:
+        return f[0], f[1]
     # remove double Whitespaces from value
     while "  " in value:
         value = value.replace("  ", " ")
@@ -244,68 +374,11 @@ def do_value(value) -> (str, str):
     elif (s := variable_in_scope(value, variables.currentLineIndex)) is not None:
         return value, s[1]
 
-    elif (f := check_function_execution(value, variables.currentLineIndex)) is not None and f[2]:
+    elif (f := check_function_execution(value)) is not None and f[2]:
         return f[0], f[1]
     else:
+        print(f)
         raise SyntaxError(f"Value '{value}' at line {variables.currentLineIndex} is not defined")
-
-
-def do_arguments(argstring):
-    """
-    :param argstring: all arguments as a string WITHOUT the brackets
-    :return: argument list, kwarg dictionary
-    """
-    args = []  # Format: (name, datatype)
-    kwargs = {}
-    all_args = argstring.split(",")
-    for arg in all_args:
-        arg = arg.strip()
-        if "=" not in arg:
-            if kwargs:
-                raise SyntaxError(
-                    f"Positional (=normal) argument after keyword argument at line {variables.currentLineIndex}")
-            args.append(do_value(arg))
-        else:
-            name, value = arg.split("=")
-            name = name.strip()
-            value = value.strip()
-            kwargs[name] = do_value(value)
-    return args, kwargs
-
-
-def find_closing_bracket(bracket, start_row, start_col):
-    closing_bracket = CLOSING_BRACKETS[bracket]
-    bracket_level_1 = 0
-    bracket_level_2 = 0
-    bracket_level_3 = 0
-    if bracket == "(":
-        bracket_level_1 = 1
-    elif bracket == "[":
-        bracket_level_2 = 1
-    elif bracket == "{":
-        bracket_level_3 = 1
-    row = start_row
-    col = start_col + 1
-    while row < len(variables.code):
-        while col < len(variables.code[row]):
-            if variables.code[row][col] == BRACKETS[0]:
-                bracket_level_1 += 1
-            elif variables.code[row][col] == BRACKETS[1]:
-                bracket_level_1 -= 1
-            elif variables.code[row][col] == BRACKETS[2]:
-                bracket_level_2 += 1
-            elif variables.code[row][col] == BRACKETS[3]:
-                bracket_level_2 -= 1
-            elif variables.code[row][col] == BRACKETS[4]:
-                bracket_level_3 += 1
-            elif variables.code[row][col] == BRACKETS[5]:
-                bracket_level_3 -= 1
-            if variables.code[row][
-                col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
-                return row, col
-            col += 1
-        row += 1
-    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
 
 
 def add_variable_to_scope(name, datatype, line_index):
@@ -324,12 +397,6 @@ def variable_in_scope(name, line_index):
             for i in variables.scope[(start, end)][0]:
                 if i[0] == name:
                     return i
-
-
-def next_sys_variable():
-    global sysVariableIndex
-    sysVariableIndex += 1
-    return f"__sys_var_{324987 * sysVariableIndex}"
 
 
 def get_line_identation(line):

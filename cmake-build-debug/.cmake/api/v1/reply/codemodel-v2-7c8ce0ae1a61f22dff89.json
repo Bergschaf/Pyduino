@@ -1,0 +1,64 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "SerialCommunication",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "executable.cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-executable.cpp-Debug-46daac67c61598560a10.json",
+					"name" : "executable.cpp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "executable2.cpp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-executable2.cpp-Debug-4fbab174a1e8ef61af6f.json",
+					"name" : "executable2.cpp",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/info/CLionProjects/cmake-build-debug",
+		"source" : "C:/Users/info/CLionProjects"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 2
+	}
+}

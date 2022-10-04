@@ -1,5 +1,6 @@
 from utils import *
 from constants import *
+from intitializer import intialize
 
 Variables = []
 
@@ -30,44 +31,13 @@ scopes = {(0,
 identation_levels = [0 for i in range(len(code_pc))]
 
 
-# functions
-
-def do_line(row_index, l):
-    instruction = l.strip()
-    if instruction[0] == "#":
-        return
-    elif any([instruction.startswith(i) for i in PRIMITIVE_TYPES]):
-        return do_variable(instruction, row_index)
-    elif instruction[:5] == "print":
-        return do_print(row_index, instruction[5:])
-    elif instruction[:2] == "if":
-        return do_if(row_index, instruction)
-    elif instruction[:5] == "while":
-        return do_while(row_index, instruction)
-    elif instruction[:3] == "for":
-        return do_for(row_index, instruction)
-    # TODO: das am ende
-    elif "=" in instruction:
-        return do_assignment(row_index, instruction)
-    # TODO ggf fix
-    elif "++" in instruction:
-        return instruction + ";"
-
-
-
-
-
-
-
-
-main_it = enumerate(code_pc)
 print("\n\n------\n")
-for IteratorLineIndex, line in main_it:
-    main_cpp.append(do_line(IteratorLineIndex, line))
-# main end
-main_cpp += ["return 0;", "}"]
+intialize(code_pc)
+for variables.currentLineIndex, line in variables.iterator:
+    do_line(line)
+variables.code_done += ["return 0;", "}"]
 with open(FILENAME[:-5] + ".cpp", "w") as f:
-    f.write("\n".join(main_cpp))
+    f.write("\n".join(variables.code_done))
 
 # print(code)
 # print(code_pc)

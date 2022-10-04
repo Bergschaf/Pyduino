@@ -146,6 +146,7 @@ SerialCommunication/Serial.obj: SerialCommunication/Serial.cpp.obj
 
 # target to build an object file
 SerialCommunication/Serial.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/Serial.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/Serial.cpp.obj
 .PHONY : SerialCommunication/Serial.cpp.obj
 
@@ -154,6 +155,7 @@ SerialCommunication/Serial.i: SerialCommunication/Serial.cpp.i
 
 # target to preprocess a source file
 SerialCommunication/Serial.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/Serial.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/Serial.cpp.i
 .PHONY : SerialCommunication/Serial.cpp.i
 
@@ -162,6 +164,7 @@ SerialCommunication/Serial.s: SerialCommunication/Serial.cpp.s
 
 # target to generate assembly for a file
 SerialCommunication/Serial.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/Serial.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/Serial.cpp.s
 .PHONY : SerialCommunication/Serial.cpp.s
 
@@ -170,6 +173,7 @@ SerialCommunication/SerialPc.obj: SerialCommunication/SerialPc.cpp.obj
 
 # target to build an object file
 SerialCommunication/SerialPc.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/SerialPc.cpp.obj
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/SerialPc.cpp.obj
 .PHONY : SerialCommunication/SerialPc.cpp.obj
 
@@ -178,6 +182,7 @@ SerialCommunication/SerialPc.i: SerialCommunication/SerialPc.cpp.i
 
 # target to preprocess a source file
 SerialCommunication/SerialPc.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/SerialPc.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/SerialPc.cpp.i
 .PHONY : SerialCommunication/SerialPc.cpp.i
 
@@ -186,32 +191,33 @@ SerialCommunication/SerialPc.s: SerialCommunication/SerialPc.cpp.s
 
 # target to generate assembly for a file
 SerialCommunication/SerialPc.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/SerialCommunication/SerialPc.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable.cpp.dir\build.make CMakeFiles/executable.cpp.dir/SerialCommunication/SerialPc.cpp.s
 .PHONY : SerialCommunication/SerialPc.cpp.s
 
-testPyduino.obj: testPyduino.cpp.obj
-.PHONY : testPyduino.obj
+main.obj: main.cpp.obj
+.PHONY : main.obj
 
 # target to build an object file
-testPyduino.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/testPyduino.cpp.obj
-.PHONY : testPyduino.cpp.obj
+main.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/main.cpp.obj
+.PHONY : main.cpp.obj
 
-testPyduino.i: testPyduino.cpp.i
-.PHONY : testPyduino.i
+main.i: main.cpp.i
+.PHONY : main.i
 
 # target to preprocess a source file
-testPyduino.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/testPyduino.cpp.i
-.PHONY : testPyduino.cpp.i
+main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/main.cpp.i
+.PHONY : main.cpp.i
 
-testPyduino.s: testPyduino.cpp.s
-.PHONY : testPyduino.s
+main.s: main.cpp.s
+.PHONY : main.s
 
 # target to generate assembly for a file
-testPyduino.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/testPyduino.cpp.s
-.PHONY : testPyduino.cpp.s
+main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\executable2.cpp.dir\build.make CMakeFiles/executable2.cpp.dir/main.cpp.s
+.PHONY : main.cpp.s
 
 # Help Target
 help:
@@ -229,9 +235,9 @@ help:
 	@echo ... SerialCommunication/SerialPc.obj
 	@echo ... SerialCommunication/SerialPc.i
 	@echo ... SerialCommunication/SerialPc.s
-	@echo ... testPyduino.obj
-	@echo ... testPyduino.i
-	@echo ... testPyduino.s
+	@echo ... main.obj
+	@echo ... main.i
+	@echo ... main.s
 .PHONY : help
 
 
