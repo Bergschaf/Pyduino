@@ -226,7 +226,7 @@ public:
     Serial *SP;
     thread *listenerThread{};
     explicit Arduino(){
-        this->SP = new Serial(R"(\\.\COM8)");
+        this->SP = new Serial(R"(\\.\COM5)");
         if (!SP->IsConnected()) {
                 cout << "Connection Error" << endl;
         }
@@ -244,6 +244,18 @@ public:
         // TODO wichtig
         Requests[requestID] = 0;
     }
+
+    void analogWrite(char pin, char value) {
+        char valueBytes[3] = {pin, value};
+        sendRequest('b', valueBytes, 2);
+    }
+
+    void digitalWrite(char pin, int value) {
+        char data[2] = {pin, char(value)};
+        sendRequest('d', data, 2);
+    }
+
+
 
 
 };

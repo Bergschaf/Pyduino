@@ -13,15 +13,13 @@ def check_function_execution(value):
     first_bracket = value.index("(")
     function_name = value[:first_bracket]
 
-    print(value, first_bracket)
-
     second_bracket = find_closing_bracket_in_value(value, "(", first_bracket)
     arguments = value[first_bracket + 1:second_bracket]
     # TODO was wenn , in arguemtns?
     args, kwargs = do_arguments(arguments)
 
-    if (f := check_builtin(function_name, args, kwargs)) is not None:
-        return f
+    if (f := check_builtin(function_name, args, kwargs)) is not None and f[2]:
+        return f[0], f[1]
         # TODO check if function is defined
 
     """

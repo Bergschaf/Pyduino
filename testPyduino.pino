@@ -1,3 +1,3 @@
 #main
-int i = analogRead(0)
-print(i)
+while True:
+    analogWrite(11,analogRead(0)/4);

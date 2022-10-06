@@ -1,3 +1,5 @@
+using namespace std;
+
 const int StartCharacter = 60;   // <
 const int EndCharacter = 62;     // >
 const int SpaceCharacter = 124;  // |
@@ -164,6 +166,11 @@ void decodeRequest(const char *data, int size) {
         short read = analogRead(analogPorts[value[0]]);
         const char response[2] = { (char)(read & 0xFF), (char)((read >> 8) & 0xFF) };
         sendResponse(requestID, response, 2);
+      }
+    case 'b':
+      if(valueSize == 2){ 
+      
+        analogWrite(uint8_t(value[0]), uint8_t(value[0]));
       }
     case 'd':
       if (valueSize == 1) {

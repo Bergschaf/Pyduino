@@ -4,7 +4,7 @@ import variables
 
 def next_sys_variable():
     variables.sysVariableIndex += 1
-    return f"__sys_var_{324987 * variables.sysVariableIndex}"
+    return f"_sys_var_{324987 * variables.sysVariableIndex}"
 
 
 def find_closing_bracket_in_value(value, bracket, start_col):
@@ -111,7 +111,7 @@ def do_line(line):
         else:
             return do_variable_definition(instruction)
     elif (f := check_function_execution(instruction)) is not None:
-        return f
+        return f[0] + ";"
     elif instruction[:2] == "if":
         return do_if(instruction)
     elif instruction[:5] == "while":
@@ -173,11 +173,12 @@ def do_if(line):
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
             if variables.identations[i] <= variables.identations[i]:
-                end_indentation_index = i - 1
+                end_indentation_index = i
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
-        if_code = [f"if ({condition}) {{"]
+            end_indentation_index = variables.totalLineCount
+        variables.code_done.append(f"if ({condition}) {{")
+        if_code = []
         while variables.currentLineIndex < end_indentation_index:
             variables.currentLineIndex, l = next(variables.iterator)
             if_code.append(do_line(l))
@@ -197,11 +198,13 @@ def do_while(line):
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
             if variables.identations[i] <= variables.identations[i]:
-                end_indentation_index = i - 1
+                end_indentation_index = i
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
-        while_code = [f"while ({condition}) {{"]
+            end_indentation_index = variables.totalLineCount
+        variables.code_done.append(f"while ({condition}) {{")
+        while_code = []
+
         while variables.currentLineIndex < end_indentation_index:
             variables.currentLineIndex, l = next(variables.iterator)
             while_code.append(do_line(l))
@@ -224,10 +227,10 @@ def do_for(line):
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
             if variables.identations[i] <= variables.identations[i]:
-                end_indentation_index = i - 1
+                end_indentation_index = i
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
+            end_indentation_index = variables.totalLineCount
 
         if elements[1][:5] == "range":
             if elements[1][5] != "(":
@@ -235,10 +238,11 @@ def do_for(line):
             end_row, end_col = find_closing_bracket("(", row, variables.code[row].index("range") + 6)
             if end_row != row:
                 raise SyntaxError(f"Expected ')' at line {end_row + 1} col {end_col + 1}")
-            range_arguments, range_kwargs = do_arguments(elements[1][6:end_col])
+            range_arguments, range_kwargs = do_arguments(elements[1][6:-1])
             if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
                     range_arguments]):
-                raise SyntaxError(f"Expected type int as range argument in line {variables.currentLineIndex}")
+                raise SyntaxError(
+                    f"Expected type numeric type (int, short, long) as range argument in line {variables.currentLineIndex}")
             if len(range_kwargs) != 0:
                 raise SyntaxError(
                     f"Unexpected keyword arguments in range function in line {variables.currentLineIndex}")
@@ -258,7 +262,7 @@ def do_for(line):
 
         else:
             val, dt = do_value(elements[1])
-            if not dt in PRIMITIVE_ARRAY_TYPES:
+            if dt not in PRIMITIVE_ARRAY_TYPES:
                 raise SyntaxError(
                     f"Expected array type at line {variables.currentLineIndex} col {col_index} (Not implemented)")
             for_code = [
@@ -267,6 +271,8 @@ def do_for(line):
                 f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < sizeof({do_value(elements[1])[0]}) / sizeof(*{do_value(elements[1])[0]}); {sys_var}++) {{",
                 f"auto {counter_variable} = {do_value(elements[1])[0]}[{sys_var}];"]
         add_variable_to_scope(counter_variable, dt[:-2], variables.currentLineIndex)
+        [variables.code_done.append(x) for x in for_code]
+        for_code = []
         while variables.currentLineIndex < end_indentation_index:
             variables.currentLineIndex, l = next(variables.iterator)
             for_code.append(do_line(l))
@@ -277,11 +283,15 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
-    print(value)
     if value[0] == '"' == value[-1]:
         return value, "string"
-    value = value.strip()
-    if (f := check_function_execution(value)) and f is not None and f[2]:
+    value = value.strip(" ")
+
+    for i in range(len(value - 1)):
+        if value[i + 1] == "(" and value[i] in VALID_NAME_END_LETTERS:
+            start_col = i + 1
+            end_col = find_closing_bracket_in_value(value, "(", start_col)
+    if (f := check_function_execution(value)) and f is not None:
         return f[0], f[1]
     # remove double Whitespaces from value
     while "  " in value:
@@ -332,6 +342,7 @@ def do_value(value) -> (str, str):
                 datatypes.append(None)
         # TODO check if datatypes are correct
         return " ".join(values), datatypes[0]
+
     if value[0] in NUMBERS:
         for i in range(len(value)):
             if value[i] not in NUMBERS and value[i] != ".":
@@ -377,7 +388,6 @@ def do_value(value) -> (str, str):
     elif (f := check_function_execution(value)) is not None and f[2]:
         return f[0], f[1]
     else:
-        print(f)
         raise SyntaxError(f"Value '{value}' at line {variables.currentLineIndex} is not defined")
 
 
