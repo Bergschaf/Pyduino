@@ -18,7 +18,7 @@ def check_function_execution(value):
     # TODO was wenn , in arguemtns?
     args, kwargs = do_arguments(arguments)
 
-    if (f := check_builtin(function_name, args, kwargs)) is not None and f[2]:
+    if (f := check_builtin(function_name, args, kwargs)) is not None: # and f[2]: TODO only let functions like cout through if the return value isn'T used
         return f[0], f[1]
         # TODO check if function is defined
 

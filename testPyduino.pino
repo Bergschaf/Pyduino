@@ -1,3 +1,4 @@
 #main
-while True:
-    analogWrite(11,analogRead(0)/4);
+for i in range(255):
+    analogWrite(10, i)
+    delay(50)

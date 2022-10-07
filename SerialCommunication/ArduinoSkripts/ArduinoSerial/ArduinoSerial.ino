@@ -170,7 +170,7 @@ void decodeRequest(const char *data, int size) {
     case 'b':
       if(valueSize == 2){ 
       
-        analogWrite(uint8_t(value[0]), uint8_t(value[0]));
+        analogWrite(uint8_t(value[0]), uint8_t(value[1]));
       }
     case 'd':
       if (valueSize == 1) {

@@ -5,7 +5,8 @@ DEFAULT_INDEX_LEVEL = 4  # spaces
 CLOSING_BRACKETS = {"(": ")", "[": "]", "{": "}"}
 BRACKETS = ["(", ")", "[", "]", "{", "}"]
 
-VALID_NAME_END_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+VALID_NAME_START_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+VALID_NAME_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
 PRIMITIVE_TYPES = ["int", "float", "char", "bool"]
 PRIMITIVE_ARRAY_TYPES = ["int[]", "float[]", "char[]", "bool[]"]

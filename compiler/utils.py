@@ -32,7 +32,6 @@ def find_closing_bracket_in_value(value, bracket, start_col):
             bracket_level_3 += 1
         elif value[col] == BRACKETS[5]:
             bracket_level_3 -= 1
-        print(bracket_level_1)
         if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
             return col
         col += 1
@@ -197,11 +196,11 @@ def do_while(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] <= variables.identations[i]:
+            if variables.identations[i] < variables.identations[i]:
                 end_indentation_index = i
                 break
         else:
-            end_indentation_index = variables.totalLineCount
+            end_indentation_index = variables.totalLineCount - 1
         variables.code_done.append(f"while ({condition}) {{")
         while_code = []
 
@@ -283,16 +282,31 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
+    if len(value) == 0:
+        return "", None
     if value[0] == '"' == value[-1]:
         return value, "string"
-    value = value.strip(" ")
+    value = value.strip()
+    valueList = []
+    last_function_end = 0
+    for i in range(len(value) - 1):
+        if value[i + 1] == "(" and value[i] in VALID_NAME_LETTERS:
+            for j in range(i, -1, -1):
+                if j == " ":
+                    start_col = j + 1
+                    break
+            else:
+                start_col = 0
+            end_col = find_closing_bracket_in_value(value, "(", i + 1)
+            valueList.append(do_value(value[last_function_end:start_col]))
+            valueList.append(check_function_execution(value[start_col:end_col + 1]))
+            last_function_end = end_col + 1
 
-    for i in range(len(value - 1)):
-        if value[i + 1] == "(" and value[i] in VALID_NAME_END_LETTERS:
-            start_col = i + 1
-            end_col = find_closing_bracket_in_value(value, "(", start_col)
-    if (f := check_function_execution(value)) and f is not None:
-        return f[0], f[1]
+    if len(valueList) > 0:
+        valueList.append(do_value(value[last_function_end:]))
+        # TODO return datatype here
+        return " ".join([x[0] for x in valueList]), valueList[0][1]
+
     # remove double Whitespaces from value
     while "  " in value:
         value = value.replace("  ", " ")
@@ -385,7 +399,7 @@ def do_value(value) -> (str, str):
     elif (s := variable_in_scope(value, variables.currentLineIndex)) is not None:
         return value, s[1]
 
-    elif (f := check_function_execution(value)) is not None and f[2]:
+    elif (f := check_function_execution(value)) is not None:
         return f[0], f[1]
     else:
         raise SyntaxError(f"Value '{value}' at line {variables.currentLineIndex} is not defined")

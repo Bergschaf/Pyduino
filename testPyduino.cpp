@@ -3,8 +3,9 @@
 using namespace std;
 int main() {
 Arduino arduino = Arduino();
-while (true) {
-short _sys_var_649974;arduino.analogRead(0, &_sys_var_649974);
-arduino.analogWrite(char(11), char(_sys_var_649974));;
+for (int i = 0; i < 255 ; i++) {
+arduino.analogWrite(char(10), uint8_t (i));;
+    sleep_for(milliseconds(50));;
+
 }
 }

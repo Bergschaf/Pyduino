@@ -10,7 +10,8 @@ def check_builtin(function_name, args, kwargs):
         return do_analog_read(args, kwargs)
     elif function_name == "analogWrite":
         return do_analog_write(args, kwargs)
-
+    elif function_name == "delay":
+        return do_delay(args,kwargs)
 
 def do_print(args, kwargs):
     newline = "<< endl"
@@ -21,7 +22,7 @@ def do_print(args, kwargs):
     else:
         if len(kwargs.keys()) > 0:
             raise Exception("print() got an unexpected keyword argument")
-    return "cout << " + " << ' ' << ".join([a[0] for a in args]) + newline + ";"
+    return "cout << " + " << ' ' << ".join([a[0] for a in args]) + newline + ";", None, False
 
 
 def do_analog_read(args, kwargs):
@@ -48,3 +49,7 @@ def do_analog_write(args, kwargs):
     if len(kwargs.keys()) > 0:
         raise Exception("analogWrite() got an unexpected keyword argument")
     return f"arduino.analogWrite(char({pin}), char({value}));", "void", True
+
+
+def do_delay(args, kwargs):
+    return f"sleep_for(milliseconds({args[0][0]}));", "void", True
