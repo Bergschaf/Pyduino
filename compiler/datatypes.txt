@@ -27,3 +27,5 @@ dict<type1,type2> x = [2] // dictionary of type1 and type2 with 2 elements
 
 set<type> x = {t,t,t,t} // x is a set of type
 set<type> x = [2] // set of type with 2 elements
+
+array_initializer<type> = {t,t,t,t} // array initializer

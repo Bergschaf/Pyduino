@@ -8,6 +8,4 @@ CMakeFiles/compiled.cpp.dir/SerialCommunication/SerialPc.cpp.obj: \
  ../SerialCommunication/SerialClass.h \
  ../SerialCommunication/SerialPc.cpp
 CMakeFiles/compiled.cpp.dir/testPyduino.cpp.obj: \
- ../SerialCommunication/SerialClass.h \
- ../SerialCommunication/SerialPc.cpp \
  ../testPyduino.cpp

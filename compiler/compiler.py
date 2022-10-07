@@ -31,6 +31,9 @@ for variables.currentLineIndex, line in variables.iterator:
     variables.code_done.append(do_line(line))
 
 variables.code_done.append("}")
+if (variables.arduino_needed == True):
+    variables.code_done.insert(0, '#include "SerialCommunication/SerialPc.cpp"')
+    variables.code_done.insert(4, "Arduino arduino = Arduino();")
 print(variables.code_done)
 with open(FILENAME[:-5] + ".cpp", "w") as f:
     f.write("\n".join(variables.code_done))

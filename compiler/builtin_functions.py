@@ -11,7 +11,8 @@ def check_builtin(function_name, args, kwargs):
     elif function_name == "analogWrite":
         return do_analog_write(args, kwargs)
     elif function_name == "delay":
-        return do_delay(args,kwargs)
+        return do_delay(args, kwargs)
+
 
 def do_print(args, kwargs):
     newline = "<< endl"
@@ -26,6 +27,7 @@ def do_print(args, kwargs):
 
 
 def do_analog_read(args, kwargs):
+    variables.arduino_needed = True
     pin, dt = args[0]
     if dt != "int":
         raise Exception("analogRead() argument 1 must be 'int', not " + dt)
@@ -40,6 +42,7 @@ def do_analog_read(args, kwargs):
 
 
 def do_analog_write(args, kwargs):
+    variables.arduino_needed = True
     pin, dt = args[0]
     value, dt2 = args[1]
     if dt != "int" or dt2 != "int":

@@ -1,7 +1,3 @@
 #main
-int x = 0
-while True:
-    x = analogRead(0) / 4
-    analogWrite(11,x)
-    print(x)
-    delay(300)
+array<int> x = {1, 2, 3}
+print(x[0])

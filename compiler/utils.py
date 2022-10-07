@@ -80,8 +80,19 @@ def do_arguments(argstring):
     """
     args = []  # Format: (name, datatype)
     kwargs = {}
-    all_args = argstring.split(",")
-    # TODO was wenn , in arguments
+    all_args = []
+    # split the args, but ignore commas in brackets
+    last_split = 0
+    closing_bracket = 0
+    for i in range(len(argstring)):
+        if closing_bracket > i:
+            continue
+        if argstring[i] == ",":
+            all_args.append(argstring[last_split:i])
+            last_split = i + 1
+        elif argstring[i] in OPENING_BRACKETS:
+            closing_bracket = find_closing_bracket_in_value(argstring, argstring[i], i)
+    all_args.append(argstring[last_split:])
     for arg in all_args:
         arg = arg.strip()
         if "=" not in arg:
@@ -104,7 +115,7 @@ def do_line(line):
     instruction = line.strip()
     if instruction[0] == "#":
         return
-    elif any([instruction.startswith(i) for i in PRIMITIVE_TYPES]):
+    elif any([instruction.startswith(i) for i in PRIMITIVE_TYPES + PRIMITIVE_ARRAY_TYPES]):
         if (f := check_function_definition(instruction)) is not None:
             return f
         else:
@@ -130,6 +141,7 @@ def do_variable_definition(line):
     :param line: The complete line of the variable definition
     :return: The definition converted to C++
     """
+    print(line)
     line = line.strip()
     datatype = line.split("=")[0].strip().split(" ")[0].strip()
     if datatype in PRIMITIVE_TYPES:
@@ -142,6 +154,17 @@ def do_variable_definition(line):
             raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} already defined")
         add_variable_to_scope(name, datatype, variables.currentLineIndex)
         return f"{datatype} {name} = {value};"
+    elif datatype in PRIMITIVE_ARRAY_TYPES:
+        datatype = datatype[6:-1]
+        name = line.split("=")[0].strip().split(" ")[1].strip()
+        value = line.split("=")[1].strip()
+        value, dt = do_array_intializer(value)
+        if dt != datatype:
+            raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} ({dt}) is not {datatype}")
+        if variable_in_scope(name, variables.currentLineIndex):
+            raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} already defined")
+        add_variable_to_scope(name, datatype, variables.currentLineIndex)
+        return f"{datatype} {name}[] = {value};"
     else:
         raise SyntaxError(f"Datatype {datatype} at line {variables.currentLineIndex} is not defined")
 
@@ -171,7 +194,7 @@ def do_if(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row+1]:
+            if variables.identations[i] < variables.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -196,7 +219,7 @@ def do_while(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row+1]:
+            if variables.identations[i] < variables.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -214,6 +237,7 @@ def do_while(line):
 
 
 def do_for(line):
+
     col_index = line.index("for") + 3
     if line.strip()[-1] == ":":
         row = variables.currentLineIndex
@@ -225,7 +249,7 @@ def do_for(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row+1]:
+            if variables.identations[i] < variables.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -282,6 +306,7 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
+    print(value)
     if len(value) == 0:
         return "", None
     if value[0] == '"' == value[-1]:
@@ -359,7 +384,7 @@ def do_value(value) -> (str, str):
 
     if value[0] in NUMBERS:
         for i in range(len(value)):
-            if value[i] not in NUMBERS and value[i] != ".":
+            if value[i] not in NUMBERS and value[i] != "." and value[i] != " ":
                 break
         else:
             if "." in value:
@@ -380,8 +405,6 @@ def do_value(value) -> (str, str):
     elif value[0] == "[":
         raise NotImplementedError("Lists are not implemented yet")
 
-    elif value[0] == "{":
-        raise NotImplementedError("Dictionaries are not implemented yet")
 
     elif value[0] == "(":
         raise NotImplementedError("Tuples are not implemented yet")
@@ -403,6 +426,17 @@ def do_value(value) -> (str, str):
         return f[0], f[1]
     else:
         raise SyntaxError(f"Value '{value}' at line {variables.currentLineIndex} is not defined")
+
+
+def do_array_intializer(value):
+    args, kwargs = do_arguments(value[1:-1])
+    if len(kwargs) != 0:
+        raise SyntaxError(
+            f"wtf? what is an = sign doing in an array intialization? at line {variables.currentLineIndex}")
+    dt = args[0][1]
+    if any([x[1] != dt for x in args]):
+        raise SyntaxError(f"Array at line {variables.currentLineIndex} has different datatypes")
+    return f"{{{', '.join([x[0] for x in args])}}}", dt
 
 
 def add_variable_to_scope(name, datatype, line_index):

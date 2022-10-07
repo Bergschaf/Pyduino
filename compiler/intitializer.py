@@ -12,10 +12,9 @@ def intialize(code):
         variables.identations.append(get_line_identation(line))
     variables.code = code.copy()
     variables.code_done = ["#include <iostream>",
-                           '#include "SerialCommunication/SerialPc.cpp"',
+
                            "using namespace std;",
                            "int main() {",
-                           "Arduino arduino = Arduino();"
                            ]
     current_id_level = 0
     variables.scope = {(0, variables.totalLineCount): [[], []]}
