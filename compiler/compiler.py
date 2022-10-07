@@ -37,7 +37,3 @@ if (variables.arduino_needed == True):
 print(variables.code_done)
 with open(FILENAME[:-5] + ".cpp", "w") as f:
     f.write("\n".join(variables.code_done))
-
-# print(code)
-# print(code_pc)
-# print(code_board)
