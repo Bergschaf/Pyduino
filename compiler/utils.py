@@ -171,11 +171,11 @@ def do_if(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] <= variables.identations[i]:
-                end_indentation_index = i
+            if variables.identations[i] < variables.identations[row+1]:
+                end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = variables.totalLineCount
+            end_indentation_index = variables.totalLineCount - 1
         variables.code_done.append(f"if ({condition}) {{")
         if_code = []
         while variables.currentLineIndex < end_indentation_index:
@@ -196,8 +196,8 @@ def do_while(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[i]:
-                end_indentation_index = i
+            if variables.identations[i] < variables.identations[row+1]:
+                end_indentation_index = i - 1
                 break
         else:
             end_indentation_index = variables.totalLineCount - 1
@@ -225,11 +225,11 @@ def do_for(line):
         if variables.identations[row] + 1 != variables.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] <= variables.identations[i]:
-                end_indentation_index = i
+            if variables.identations[i] < variables.identations[row+1]:
+                end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = variables.totalLineCount
+            end_indentation_index = variables.totalLineCount - 1
 
         if elements[1][:5] == "range":
             if elements[1][5] != "(":

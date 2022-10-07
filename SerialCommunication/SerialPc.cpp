@@ -34,6 +34,10 @@ public:
                 return;
             }
         }
+        if(targetVariable == nullptr || bytesToType == nullptr) {
+            Responses[requestID][0] = 0;
+            return;
+        }
         *targetVariable = bytesToType(Responses[requestID]);
         Responses[requestID][0] = 0;
     }
@@ -246,12 +250,16 @@ public:
     }
 
     void analogWrite(char pin, char value) {
+        // waits for response
         char valueBytes[2] = {pin, value};
-        sendRequest('b', valueBytes, 2);
+        char requestID = sendRequest('b', valueBytes, 2);
+        delete new Promise<short>(nullptr, nullptr, requestID, Responses);
+        Requests[requestID] = 0;
+
     }
 
-    void digitalWrite(char pin, int value) {
-        char data[2] = {pin, char(value)};
+    void digitalWrite(char pin, char value) {
+        char data[2] = {pin, value};
         sendRequest('d', data, 2);
     }
 

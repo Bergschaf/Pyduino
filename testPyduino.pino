@@ -1,4 +1,7 @@
 #main
-for i in range(255):
-    analogWrite(10, i)
-    delay(50)
+int x = 0
+while True:
+    x = analogRead(0) / 4
+    analogWrite(11,x)
+    print(x)
+    delay(300)
