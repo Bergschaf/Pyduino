@@ -2,11 +2,11 @@
 <module version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python facet">
-      <configuration sdkName="Python 3.9 (CLionProjects)" />
+      <configuration sdkName="Python 3.9 (Pyduino)" />
     </facet>
   </component>
   <component name="NewModuleRootManager">
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Python 3.9 (CLionProjects) interpreter library" level="application" />
+    <orderEntry type="library" name="Python 3.9 (Pyduino) interpreter library" level="application" />
   </component>
 </module>
