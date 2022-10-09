@@ -3,8 +3,8 @@ import variables_arduino
 
 
 def next_sys_variable():
-    variables.sysVariableIndex += 1
-    return f"_sys_var_{324987 * variables.sysVariableIndex}"
+    variables_arduino.sysVariableIndex += 1
+    return f"_sys_var_{324987 * variables_arduino.sysVariableIndex}"
 
 
 def find_closing_bracket_in_value(value, bracket, start_col):
@@ -35,7 +35,7 @@ def find_closing_bracket_in_value(value, bracket, start_col):
         if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
             return col
         col += 1
-    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {variables.currentLineIndex} col {start_col}")
+    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {variables_arduino.currentLineIndex} col {start_col}")
 
 
 def find_closing_bracket(bracket, start_row, start_col):
@@ -51,21 +51,21 @@ def find_closing_bracket(bracket, start_row, start_col):
         bracket_level_3 = 1
     row = start_row
     col = start_col + 1
-    while row < len(variables.code):
-        while col < len(variables.code[row]):
-            if variables.code[row][col] == BRACKETS[0]:
+    while row < len(variables_arduino.code):
+        while col < len(variables_arduino.code[row]):
+            if variables_arduino.code[row][col] == BRACKETS[0]:
                 bracket_level_1 += 1
-            elif variables.code[row][col] == BRACKETS[1]:
+            elif variables_arduino.code[row][col] == BRACKETS[1]:
                 bracket_level_1 -= 1
-            elif variables.code[row][col] == BRACKETS[2]:
+            elif variables_arduino.code[row][col] == BRACKETS[2]:
                 bracket_level_2 += 1
-            elif variables.code[row][col] == BRACKETS[3]:
+            elif variables_arduino.code[row][col] == BRACKETS[3]:
                 bracket_level_2 -= 1
-            elif variables.code[row][col] == BRACKETS[4]:
+            elif variables_arduino.code[row][col] == BRACKETS[4]:
                 bracket_level_3 += 1
-            elif variables.code[row][col] == BRACKETS[5]:
+            elif variables_arduino.code[row][col] == BRACKETS[5]:
                 bracket_level_3 -= 1
-            if variables.code[row][
+            if variables_arduino.code[row][
                 col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
                 return row, col
             col += 1
@@ -98,7 +98,7 @@ def do_arguments(argstring):
         if "=" not in arg:
             if kwargs:
                 raise SyntaxError(
-                    f"Positional (=normal) argument after keyword argument at line {variables.currentLineIndex}")
+                    f"Positional (=normal) argument after keyword argument at line {variables_arduino.currentLineIndex}")
             args.append(do_value(arg))
         else:
             name, value = arg.split("=")
@@ -149,10 +149,10 @@ def do_variable_definition(line):
         value = line.split("=")[1].strip()
         value, dt = do_value(value)
         if dt != datatype and dt is not None:
-            raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} ({dt}) is not {datatype}")
-        if variable_in_scope(name, variables.currentLineIndex):
-            raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} already defined")
-        add_variable_to_scope(name, datatype, variables.currentLineIndex)
+            raise SyntaxError(f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
+        if variable_in_scope(name, variables_arduino.currentLineIndex):
+            raise SyntaxError(f"Variable {name} at line {variables_arduino.currentLineIndex} already defined")
+        add_variable_to_scope(name, datatype, variables_arduino.currentLineIndex)
         return f"{datatype} {name} = {value};"
     elif datatype in PRIMITIVE_ARRAY_TYPES:
         datatype = datatype[6:-1]
@@ -160,13 +160,13 @@ def do_variable_definition(line):
         value = line.split("=")[1].strip()
         value, dt = do_array_intializer(value)
         if dt != datatype:
-            raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} ({dt}) is not {datatype}")
-        if variable_in_scope(name, variables.currentLineIndex):
-            raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} already defined")
-        add_variable_to_scope(name, datatype, variables.currentLineIndex)
+            raise SyntaxError(f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
+        if variable_in_scope(name, variables_arduino.currentLineIndex):
+            raise SyntaxError(f"Variable {name} at line {variables_arduino.currentLineIndex} already defined")
+        add_variable_to_scope(name, datatype, variables_arduino.currentLineIndex)
         return f"{datatype} {name}[] = {value};"
     else:
-        raise SyntaxError(f"Datatype {datatype} at line {variables.currentLineIndex} is not defined")
+        raise SyntaxError(f"Datatype {datatype} at line {variables_arduino.currentLineIndex} is not defined")
 
 
 def do_variable_assignment(line):
@@ -178,97 +178,97 @@ def do_variable_assignment(line):
     name = line.split("=")[0].strip()
     value = line.split("=")[1].strip()
     value, dt = do_value(value)
-    if not variable_in_scope(name, variables.currentLineIndex):
-        raise SyntaxError(f"Variable {name} at line {variables.currentLineIndex} not defined")
-    if dt != variable_in_scope(name, variables.currentLineIndex)[1] and dt is not None:
-        raise SyntaxError(f"Datatype of {name} at line {variables.currentLineIndex} is not {dt}")
+    if not variable_in_scope(name, variables_arduino.currentLineIndex):
+        raise SyntaxError(f"Variable {name} at line {variables_arduino.currentLineIndex} not defined")
+    if dt != variable_in_scope(name, variables_arduino.currentLineIndex)[1] and dt is not None:
+        raise SyntaxError(f"Datatype of {name} at line {variables_arduino.currentLineIndex} is not {dt}")
     return f"{name} = {value};"
 
 
 def do_if(line):
     col_index = line.index("if") + 2
     if line.strip()[-1] == ":":
-        row = variables.currentLineIndex
+        row = variables_arduino.currentLineIndex
         col = len(line) - 1
         condition = do_value(line[col_index + 1:col])[0]
-        if variables.identations[row] + 1 != variables.identations[row + 1]:
+        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
-        for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row + 1]:
+        for i in range(row + 1, variables_arduino.totalLineCount):
+            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
-        variables.code_done.append(f"if ({condition}) {{")
+            end_indentation_index = variables_arduino.totalLineCount - 1
+        variables_arduino.code_done.append(f"if ({condition}) {{")
         if_code = []
-        while variables.currentLineIndex < end_indentation_index:
-            variables.currentLineIndex, l = next(variables.iterator)
+        while variables_arduino.currentLineIndex < end_indentation_index:
+            variables_arduino.currentLineIndex, l = next(variables_arduino.iterator)
             if_code.append(do_line(l))
         if_code.append("}")
         return "\n".join(if_code)
     else:
-        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+        raise SyntaxError(f"Expected ':' at line {variables_arduino.currentLineIndex} col {col_index}")
 
 
 def do_while(line):
     col_index = line.index("while") + 5
     if line.strip()[-1] == ":":
-        row = variables.currentLineIndex
+        row = variables_arduino.currentLineIndex
         col = len(line) - 1
         condition = do_value(line[col_index + 1:col])[0]
-        if variables.identations[row] + 1 != variables.identations[row + 1]:
+        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
-        for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row + 1]:
+        for i in range(row + 1, variables_arduino.totalLineCount):
+            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
-        variables.code_done.append(f"while ({condition}) {{")
+            end_indentation_index = variables_arduino.totalLineCount - 1
+        variables_arduino.code_done.append(f"while ({condition}) {{")
         while_code = []
 
-        while variables.currentLineIndex < end_indentation_index:
-            variables.currentLineIndex, l = next(variables.iterator)
+        while variables_arduino.currentLineIndex < end_indentation_index:
+            variables_arduino.currentLineIndex, l = next(variables_arduino.iterator)
             while_code.append(do_line(l))
         while_code.append("}")
         return "\n".join(while_code)
     else:
-        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+        raise SyntaxError(f"Expected ':' at line {variables_arduino.currentLineIndex} col {col_index}")
 
 
 def do_for(line):
 
     col_index = line.index("for") + 3
     if line.strip()[-1] == ":":
-        row = variables.currentLineIndex
+        row = variables_arduino.currentLineIndex
         elements = [x.strip() for x in line[col_index + 1:-1].split("in")]
         dt = "int[]"
         if len(elements) != 2:
-            raise SyntaxError(f"Expected 'in' at line {variables.currentLineIndex} col {col_index}")
+            raise SyntaxError(f"Expected 'in' at line {variables_arduino.currentLineIndex} col {col_index}")
         counter_variable = elements[0]
-        if variables.identations[row] + 1 != variables.identations[row + 1]:
+        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
-        for i in range(row + 1, variables.totalLineCount):
-            if variables.identations[i] < variables.identations[row + 1]:
+        for i in range(row + 1, variables_arduino.totalLineCount):
+            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
-            end_indentation_index = variables.totalLineCount - 1
+            end_indentation_index = variables_arduino.totalLineCount - 1
 
         if elements[1][:5] == "range":
             if elements[1][5] != "(":
-                raise SyntaxError(f"Expected '(' at line {variables.currentLineIndex} col {col_index}")
-            end_row, end_col = find_closing_bracket("(", row, variables.code[row].index("range") + 6)
+                raise SyntaxError(f"Expected '(' at line {variables_arduino.currentLineIndex} col {col_index}")
+            end_row, end_col = find_closing_bracket("(", row, variables_arduino.code[row].index("range") + 6)
             if end_row != row:
                 raise SyntaxError(f"Expected ')' at line {end_row + 1} col {end_col + 1}")
             range_arguments, range_kwargs = do_arguments(elements[1][6:-1])
             if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
                     range_arguments]):
                 raise SyntaxError(
-                    f"Expected type numeric type (int, short, long) as range argument in line {variables.currentLineIndex}")
+                    f"Expected type numeric type (int, short, long) as range argument in line {variables_arduino.currentLineIndex}")
             if len(range_kwargs) != 0:
                 raise SyntaxError(
-                    f"Unexpected keyword arguments in range function in line {variables.currentLineIndex}")
+                    f"Unexpected keyword arguments in range function in line {variables_arduino.currentLineIndex}")
 
             if len(range_arguments) == 1:
                 for_code = [
@@ -281,28 +281,28 @@ def do_for(line):
                     f"for (int {counter_variable} = {range_arguments[0][0]}; {counter_variable} < {range_arguments[1][0]} ; {counter_variable} += {range_arguments[2][0]}) {{"]
             else:
                 raise SyntaxError(
-                    f"Expected 1, 2 or 3 arguments in range() at line {variables.currentLineIndex} col {col_index}")
+                    f"Expected 1, 2 or 3 arguments in range() at line {variables_arduino.currentLineIndex} col {col_index}")
 
         else:
             val, dt = do_value(elements[1])
             if dt not in PRIMITIVE_ARRAY_TYPES:
                 raise SyntaxError(
-                    f"Expected array type at line {variables.currentLineIndex} col {col_index} (Not implemented)")
+                    f"Expected array type at line {variables_arduino.currentLineIndex} col {col_index} (Not implemented)")
             for_code = [
                 # TODO Here not size
 
                 f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < sizeof({do_value(elements[1])[0]}) / sizeof(*{do_value(elements[1])[0]}); {sys_var}++) {{",
                 f"auto {counter_variable} = {do_value(elements[1])[0]}[{sys_var}];"]
-        add_variable_to_scope(counter_variable, dt[:-2], variables.currentLineIndex)
-        [variables.code_done.append(x) for x in for_code]
+        add_variable_to_scope(counter_variable, dt[:-2], variables_arduino.currentLineIndex)
+        [variables_arduino.code_done.append(x) for x in for_code]
         for_code = []
-        while variables.currentLineIndex < end_indentation_index:
-            variables.currentLineIndex, l = next(variables.iterator)
+        while variables_arduino.currentLineIndex < end_indentation_index:
+            variables_arduino.currentLineIndex, l = next(variables_arduino.iterator)
             for_code.append(do_line(l))
         for_code.append("}")
         return "\n".join(for_code)
     else:
-        raise SyntaxError(f"Expected ':' at line {variables.currentLineIndex} col {col_index}")
+        raise SyntaxError(f"Expected ':' at line {variables_arduino.currentLineIndex} col {col_index}")
 
 
 def do_value(value) -> (str, str):
@@ -391,16 +391,16 @@ def do_value(value) -> (str, str):
                 return value, "float"
             else:
                 return value, "int"
-        raise SyntaxError(f"Value {value} at line {variables.currentLineIndex} is not a number")
+        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a number")
 
     elif value[0] == '"':
         if value[-1] == '"':
             return value, "string"
-        raise SyntaxError(f"Value {value} at line {variables.currentLineIndex} is not a string")
+        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a string")
     elif value[0] == "'":
         if value[2] == "'" and len(value) == 3:
             return value, "char"
-        raise SyntaxError(f"Value {value} at line {variables.currentLineIndex} is not a character")
+        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a character")
 
     elif value[0] == "[":
         raise NotImplementedError("Lists are not implemented yet")
@@ -419,30 +419,30 @@ def do_value(value) -> (str, str):
     elif value[0] == "n" and value[1] == "o" and value[2] == "n" and value[3] == "e" and len(value) == 4:
         return "nullptr", "none"
 
-    elif (s := variable_in_scope(value, variables.currentLineIndex)) is not None:
+    elif (s := variable_in_scope(value, variables_arduino.currentLineIndex)) is not None:
         return value, s[1]
 
     elif (f := check_function_execution(value)) is not None:
         return f[0], f[1]
     else:
-        raise SyntaxError(f"Value '{value}' at line {variables.currentLineIndex} is not defined")
+        raise SyntaxError(f"Value '{value}' at line {variables_arduino.currentLineIndex} is not defined")
 
 
 def do_array_intializer(value):
     args, kwargs = do_arguments(value[1:-1])
     if len(kwargs) != 0:
         raise SyntaxError(
-            f"wtf? what is an = sign doing in an array intialization? at line {variables.currentLineIndex}")
+            f"wtf? what is an = sign doing in an array intialization? at line {variables_arduino.currentLineIndex}")
     dt = args[0][1]
     if any([x[1] != dt for x in args]):
-        raise SyntaxError(f"Array at line {variables.currentLineIndex} has different datatypes")
+        raise SyntaxError(f"Array at line {variables_arduino.currentLineIndex} has different datatypes")
     return f"{{{', '.join([x[0] for x in args])}}}", dt
 
 
 def add_variable_to_scope(name, datatype, line_index):
-    for start, end in variables.scope.keys():
+    for start, end in variables_arduino.scope.keys():
         if start <= line_index <= end:
-            variables.scope[(start, end)][0].append((name, datatype))
+            variables_arduino.scope[(start, end)][0].append((name, datatype))
             return
 
 
@@ -450,9 +450,9 @@ def variable_in_scope(name, line_index):
     """
     :return: (name, datatype) if variable is in scope, else None
     """
-    for start, end in variables.scope.keys():
+    for start, end in variables_arduino.scope.keys():
         if start <= line_index <= end:
-            for i in variables.scope[(start, end)][0]:
+            for i in variables_arduino.scope[(start, end)][0]:
                 if i[0] == name:
                     return i
 

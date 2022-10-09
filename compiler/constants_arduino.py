@@ -23,3 +23,6 @@ OPERATORS = ARITHMETIC_OPERATORS + CONDITION_OPERATORS_LEN1 + CONDITION_OPERATOR
 CONDITION_CONDITIONS = ["and", "or"]
 
 WHITESPACE = '" "'
+
+
+SERIAL_CODE = open("../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino", "r").read() # TODO make this as static string

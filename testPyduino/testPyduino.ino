@@ -231,3 +231,10 @@ void innit_serial() {
         }
     }
 }
+
+void setup() {
+while (true) {
+analogWrite(11,  analogRead(A0) / 4);;
+}
+}
+void loop() {}

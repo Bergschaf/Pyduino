@@ -237,7 +237,6 @@ def do_while(line):
 
 
 def do_for(line):
-
     col_index = line.index("for") + 3
     if line.strip()[-1] == ":":
         row = variables.currentLineIndex

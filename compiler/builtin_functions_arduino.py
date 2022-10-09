@@ -1,10 +1,9 @@
-from utils_arduino import next_sys_variable
+from utils import next_sys_variable
 import variables_arduino
 
 
 def check_builtin(function_name, args, kwargs):
     if function_name == "print":
-        print(args, kwargs)
         return do_print(args, kwargs)
     elif function_name == "analogRead":
         return do_analog_read(args, kwargs)
@@ -23,7 +22,9 @@ def do_print(args, kwargs):
     else:
         if len(kwargs.keys()) > 0:
             raise Exception("print() got an unexpected keyword argument")
-    return "cout << " + " << ' ' << ".join([a[0] for a in args]) + newline + ";", None, False
+    var = next_sys_variable()
+    variables_arduino.code_done.append(f"String {var}[] = {{ {', '.join([f'to_string({arg[0]})' for arg in args])} }};")
+    return f"do_print({var}, {len(args)}, {newline})", None, False
 
 
 def do_analog_read(args, kwargs):
@@ -35,24 +36,23 @@ def do_analog_read(args, kwargs):
         raise Exception("analogRead() takes exactly 1 argument")
     if len(kwargs.keys()) > 0:
         raise Exception("analogRead() got an unexpected keyword argument")
-    sys_var = next_sys_variable()
-    code = ["short " + sys_var + ";""arduino.analogRead(" + pin + ", &" + sys_var + ");"]
-    [variables.code_done.append(l) for l in code]
-    return sys_var, "int", True
+    return f"analogRead(A{pin})", "int", True
 
 
 def do_analog_write(args, kwargs):
     variables_arduino.arduino_needed = True
     pin, dt = args[0]
     value, dt2 = args[1]
-    if dt != "int" or dt2 != "int":
+    if dt != "int" and dt is not None:
         raise Exception("analogWrite() arguments  must be 'int', not " + dt)
+    if dt2 != "int" and dt2 is not None:
+        raise Exception("analogWrite() arguments  must be 'int', not " + dt2)
     if len(args) > 2:
         raise Exception("analogWrite() takes exactly 2 arguments")
     if len(kwargs.keys()) > 0:
         raise Exception("analogWrite() got an unexpected keyword argument")
-    return f"arduino.analogWrite(char({pin}), char({value}));", "void", True
+    return f"analogWrite({pin}, {value});", "void", True
 
 
 def do_delay(args, kwargs):
-    return f"sleep_for(milliseconds({args[0][0]}));", "void", True
+    return f"delay({args[0]})", "void", True

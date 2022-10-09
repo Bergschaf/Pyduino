@@ -1,5 +1,5 @@
 from builtin_functions_arduino import check_builtin
-from utils import *
+from utils_arduino import *
 
 
 def check_function_definition(line):
