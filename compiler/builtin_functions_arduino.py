@@ -1,4 +1,4 @@
-from utils import next_sys_variable
+from utils_arduino import next_sys_variable
 import variables_arduino
 
 
@@ -14,16 +14,16 @@ def check_builtin(function_name, args, kwargs):
 
 
 def do_print(args, kwargs):
-    newline = "<< endl"
+    newline = "true"
     if "newline" in kwargs.keys():
-        newline = "" if not kwargs["newline"] else "<< endl"
+        newline = "false" if not kwargs["newline"] else "true"
         if len(kwargs.keys()) > 1:
             raise Exception("print() got an unexpected keyword argument")
     else:
         if len(kwargs.keys()) > 0:
             raise Exception("print() got an unexpected keyword argument")
     var = next_sys_variable()
-    variables_arduino.code_done.append(f"String {var}[] = {{ {', '.join([f'to_string({arg[0]})' for arg in args])} }};")
+    variables_arduino.code_done.append(f"String {var}[] = {{ {', '.join([f'String({arg[0]})' for arg in args])} }};")
     return f"do_print({var}, {len(args)}, {newline})", None, False
 
 
@@ -55,4 +55,6 @@ def do_analog_write(args, kwargs):
 
 
 def do_delay(args, kwargs):
-    return f"delay({args[0]})", "void", True
+    if args[0][1] != "int":
+        raise Exception("delay() argument 1 must be 'int', not " + args[0][1])
+    return f"delay({args[0][0]})", "void", True

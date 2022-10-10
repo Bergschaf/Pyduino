@@ -1,3 +1,4 @@
 #board
-while True:
-    analogWrite(11,analogRead(0)/4)
+array<int> y = {1,2,3,4}
+for i in y:
+    print(i)

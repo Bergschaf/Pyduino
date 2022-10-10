@@ -233,8 +233,11 @@ void innit_serial() {
 }
 
 void setup() {
-while (true) {
-analogWrite(11,  analogRead(A0) / 4);;
+int y[] = {1, 2, 3, 4};
+for (int _sys_var_649974 = 0; _sys_var_649974 < sizeof(y) / sizeof(*y); _sys_var_649974++) {
+auto i = y[_sys_var_649974];
+String _sys_var_974961[] = { String(i) };
+do_print(_sys_var_974961, 1, true);
 }
 }
 void loop() {}

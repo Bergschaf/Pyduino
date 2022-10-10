@@ -1,10 +1,8 @@
-import os
 from utils import *
 from constants import *
 from intitializer import intialize
 from compiler_arduino import compile_arduino
 import subprocess
-import pyudinocli
 
 Variables = []
 
@@ -46,10 +44,10 @@ if code_board is not None:
     with open("../testPyduino/testPyduino.ino", "w") as f:
         f.write(code_arduino)
 
-#subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
+subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
 # list all device
 out = subprocess.run("arduino-cli board list", shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
 print("....................")
 print(out.split("\n"))
 # Upload to device on COM5
-#subprocess.run("arduino-cli upload -p COM5 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
+subprocess.run("arduino-cli upload -p COM5 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)

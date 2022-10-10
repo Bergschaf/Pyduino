@@ -2,6 +2,10 @@ from constants_arduino import *
 import variables_arduino
 
 
+def reset_sys_variable():
+    variables_arduino.sysVariableIndex = 0
+
+
 def next_sys_variable():
     variables_arduino.sysVariableIndex += 1
     return f"_sys_var_{324987 * variables_arduino.sysVariableIndex}"
@@ -35,7 +39,8 @@ def find_closing_bracket_in_value(value, bracket, start_col):
         if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
             return col
         col += 1
-    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {variables_arduino.currentLineIndex} col {start_col}")
+    raise SyntaxError(
+        f"No closing bracket found for '{bracket}' at line {variables_arduino.currentLineIndex} col {start_col}")
 
 
 def find_closing_bracket(bracket, start_row, start_col):
@@ -149,22 +154,23 @@ def do_variable_definition(line):
         value = line.split("=")[1].strip()
         value, dt = do_value(value)
         if dt != datatype and dt is not None:
-            raise SyntaxError(f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
+            raise SyntaxError(
+                f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
         if variable_in_scope(name, variables_arduino.currentLineIndex):
             raise SyntaxError(f"Variable {name} at line {variables_arduino.currentLineIndex} already defined")
         add_variable_to_scope(name, datatype, variables_arduino.currentLineIndex)
         return f"{datatype} {name} = {value};"
     elif datatype in PRIMITIVE_ARRAY_TYPES:
-        datatype = datatype[6:-1]
         name = line.split("=")[0].strip().split(" ")[1].strip()
         value = line.split("=")[1].strip()
         value, dt = do_array_intializer(value)
-        if dt != datatype:
-            raise SyntaxError(f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
+        if dt != datatype[6:-1]:
+            raise SyntaxError(
+                f"Datatype of {name} at line {variables_arduino.currentLineIndex} ({dt}) is not {datatype}")
         if variable_in_scope(name, variables_arduino.currentLineIndex):
             raise SyntaxError(f"Variable {name} at line {variables_arduino.currentLineIndex} already defined")
         add_variable_to_scope(name, datatype, variables_arduino.currentLineIndex)
-        return f"{datatype} {name}[] = {value};"
+        return f"{datatype[6:-1]} {name}[] = {value};"
     else:
         raise SyntaxError(f"Datatype {datatype} at line {variables_arduino.currentLineIndex} is not defined")
 
@@ -237,7 +243,6 @@ def do_while(line):
 
 
 def do_for(line):
-
     col_index = line.index("for") + 3
     if line.strip()[-1] == ":":
         row = variables_arduino.currentLineIndex
@@ -285,14 +290,14 @@ def do_for(line):
 
         else:
             val, dt = do_value(elements[1])
-            if dt not in PRIMITIVE_ARRAY_TYPES:
-                raise SyntaxError(
-                    f"Expected array type at line {variables_arduino.currentLineIndex} col {col_index} (Not implemented)")
-            for_code = [
-                # TODO Here not size
+            if dt[:5] == "array":
 
-                f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < sizeof({do_value(elements[1])[0]}) / sizeof(*{do_value(elements[1])[0]}); {sys_var}++) {{",
-                f"auto {counter_variable} = {do_value(elements[1])[0]}[{sys_var}];"]
+                for_code = [
+
+                    f"for (int {(sys_var := next_sys_variable())} = 0; {sys_var} < sizeof({do_value(elements[1])[0]}) / sizeof(*{do_value(elements[1])[0]}); {sys_var}++) {{",
+                    f"auto {counter_variable} = {do_value(elements[1])[0]}[{sys_var}];"]
+            else:
+                raise SyntaxError("Expected array or range() in for loop")
         add_variable_to_scope(counter_variable, dt[:-2], variables_arduino.currentLineIndex)
         [variables_arduino.code_done.append(x) for x in for_code]
         for_code = []
