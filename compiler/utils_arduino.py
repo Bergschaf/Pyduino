@@ -12,6 +12,13 @@ def next_sys_variable():
 
 
 def find_closing_bracket_in_value(value, bracket, start_col):
+    """
+    :param value: the value to search in
+    :param bracket: the bracket to search for
+    :param start_col: the column to start searching from
+    """
+    if value[start_col] != bracket:
+        raise SyntaxError(f"Value does not start with '{bracket}'")
     closing_bracket = CLOSING_BRACKETS[bracket]
     bracket_level_1 = 0
     bracket_level_2 = 0
