@@ -1,6 +1,6 @@
 totalLineCount = 0
 scope = None  # [[variables], [functions]]
-arduino_needed = False
+arduino_needed = True
 identations = []
 iterator = None
 code = None

@@ -58,15 +58,17 @@ public:
 // Invoke:
 class Arduino {
 
-    bool Handshake() {
+    bool Handshake() const {
         char outgoingData[2] = "*";
         char incomingData[2] = "";
         int readResult = 0;
         while (true) {
+            cout << "Sending handshake" << endl;
             SP->WriteData(outgoingData, 2);
             sleep_for(milliseconds(2));
             readResult = SP->ReadData(incomingData, 2);
             if (readResult > 0) {
+                cout << "Handshake: " << incomingData << endl;
                 if (incomingData[0] == '*') {
                     outgoingData[0] = 'T';
                     SP->WriteData(outgoingData, 1);
@@ -166,11 +168,32 @@ class Arduino {
     }
 
     void decodeRequest(const char *data, int size) {
+        char requestID = data[1];
+        int valueSize = int(uint8_t(data[3]));
+        char instruction = data[5];
+        if (valueSize > MaxDataLength) {
+            cout << "Warning: value size is bigger than MaxDataLength" << endl;
+            valueSize = MaxDataLength;
+        } else if (valueSize == 0) {
+            cout << "Warning: value size is 0" << endl;
+            return;
+        }
+        if (data[2] != SpaceCharacter || data[4] != SpaceCharacter) {
+            cout << "Error: Invalid request format" << endl;
+            return;
+        }
+        char value[valueSize];
+        for (int i = 0; i < valueSize; i++) {
+            value[i] = data[7 + i];
+        }
+        if(instruction == 'l'){
+            cout << "[Arduino:] " <<  value;
+        }
 
     }
 
     void decodeSerial(const char *data, int size) {
-        char requestID = data[1];
+        int requestID = int(uint8_t (data[1]));
         if (int(requestID) <= MaxRequests) {
             decodeResponse(data, size);
         } else if (int(requestID <= MaxRequests * 2)) {
@@ -207,7 +230,6 @@ class Arduino {
                     while (true) {
                         readResult = SP->ReadData(dataBuffer, 1);
                         if (readResult > 0) {
-                            // TODO cout here
                             incomingData[i] = dataBuffer[0];
                             if (dataBuffer[0] == EndCharacter) {
                                 arduino->decodeSerial(incomingData, i);
@@ -234,9 +256,13 @@ public:
         if (!SP->IsConnected()) {
                 cout << "Connection Error" << endl;
         }
+        cout << "Connection Established" << endl;
         if (!Handshake()) {
             cout << "Handshake Failed" << endl;
             return;
+        }
+        else{
+            cout << "Handshake Successful" << endl;
         }
         listenerThread = new thread(listener, this, SP);
     }
