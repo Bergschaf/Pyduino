@@ -38,41 +38,6 @@ def find_closing_bracket_in_value(value, bracket, start_col):
     raise SyntaxError(f"No closing bracket found for '{bracket}' at line {variables.currentLineIndex} col {start_col}")
 
 
-def find_closing_bracket(bracket, start_row, start_col):
-    closing_bracket = CLOSING_BRACKETS[bracket]
-    bracket_level_1 = 0
-    bracket_level_2 = 0
-    bracket_level_3 = 0
-    if bracket == "(":
-        bracket_level_1 = 1
-    elif bracket == "[":
-        bracket_level_2 = 1
-    elif bracket == "{":
-        bracket_level_3 = 1
-    row = start_row
-    col = start_col + 1
-    while row < len(variables.code):
-        while col < len(variables.code[row]):
-            if variables.code[row][col] == BRACKETS[0]:
-                bracket_level_1 += 1
-            elif variables.code[row][col] == BRACKETS[1]:
-                bracket_level_1 -= 1
-            elif variables.code[row][col] == BRACKETS[2]:
-                bracket_level_2 += 1
-            elif variables.code[row][col] == BRACKETS[3]:
-                bracket_level_2 -= 1
-            elif variables.code[row][col] == BRACKETS[4]:
-                bracket_level_3 += 1
-            elif variables.code[row][col] == BRACKETS[5]:
-                bracket_level_3 -= 1
-            if variables.code[row][
-                col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
-                return row, col
-            col += 1
-        row += 1
-    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
-
-
 def do_arguments(argstring):
     """
     :param argstring: all arguments as a string WITHOUT the brackets
@@ -257,9 +222,8 @@ def do_for(line):
         if elements[1][:5] == "range":
             if elements[1][5] != "(":
                 raise SyntaxError(f"Expected '(' at line {variables.currentLineIndex} col {col_index}")
-            end_row, end_col = find_closing_bracket("(", row, variables.code[row].index("range") + 6)
-            if end_row != row:
-                raise SyntaxError(f"Expected ')' at line {end_row + 1} col {end_col + 1}")
+            find_closing_bracket_in_value("(", row, variables.code[row].index("range") + 6)
+
             range_arguments, range_kwargs = do_arguments(elements[1][6:-1])
             if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
                     range_arguments]):

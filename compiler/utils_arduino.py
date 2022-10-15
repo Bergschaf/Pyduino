@@ -8,7 +8,7 @@ def reset_sys_variable():
 
 def next_sys_variable():
     variables_arduino.sysVariableIndex += 1
-    return f"_sys_var_{324987 * variables_arduino.sysVariableIndex}"
+    return f"_sys_var_{variables_arduino.sysVariableIndex}"
 
 
 def find_closing_bracket_in_value(value, bracket, start_col):
@@ -17,6 +17,10 @@ def find_closing_bracket_in_value(value, bracket, start_col):
     :param bracket: the bracket to search for
     :param start_col: the column to start searching from
     """
+    if type(bracket) is not str or len(bracket) != 1:
+        raise SyntaxError(f"Bracket has to be a string of length 1")
+    if bracket not in "([{":
+        raise SyntaxError(f"'{bracket}' is not a valid opening bracket")
     if value[start_col] != bracket:
         raise SyntaxError(f"Value does not start with '{bracket}'")
     closing_bracket = CLOSING_BRACKETS[bracket]
@@ -48,41 +52,6 @@ def find_closing_bracket_in_value(value, bracket, start_col):
         col += 1
     raise SyntaxError(
         f"No closing bracket found for '{bracket}' at line {variables_arduino.currentLineIndex} col {start_col}")
-
-
-def find_closing_bracket(bracket, start_row, start_col):
-    closing_bracket = CLOSING_BRACKETS[bracket]
-    bracket_level_1 = 0
-    bracket_level_2 = 0
-    bracket_level_3 = 0
-    if bracket == "(":
-        bracket_level_1 = 1
-    elif bracket == "[":
-        bracket_level_2 = 1
-    elif bracket == "{":
-        bracket_level_3 = 1
-    row = start_row
-    col = start_col + 1
-    while row < len(variables_arduino.code):
-        while col < len(variables_arduino.code[row]):
-            if variables_arduino.code[row][col] == BRACKETS[0]:
-                bracket_level_1 += 1
-            elif variables_arduino.code[row][col] == BRACKETS[1]:
-                bracket_level_1 -= 1
-            elif variables_arduino.code[row][col] == BRACKETS[2]:
-                bracket_level_2 += 1
-            elif variables_arduino.code[row][col] == BRACKETS[3]:
-                bracket_level_2 -= 1
-            elif variables_arduino.code[row][col] == BRACKETS[4]:
-                bracket_level_3 += 1
-            elif variables_arduino.code[row][col] == BRACKETS[5]:
-                bracket_level_3 -= 1
-            if variables_arduino.code[row][
-                col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
-                return row, col
-            col += 1
-        row += 1
-    raise SyntaxError(f"No closing bracket found for '{bracket}' at line {start_row} col {start_col}")
 
 
 def do_arguments(argstring):
@@ -318,18 +287,21 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
-    print(value)
     if len(value) == 0:
         return "", None
-    if value[0] == '"' == value[-1]:
-        return value, "string"
+
+    if value.count("'") % 2 == 1:
+        raise SyntaxError(f"unterminated char literal ' at line '{variables_arduino.currentLineIndex}'")
+    if value.count('"') % 2 == 1:
+        raise SyntaxError(f"unterminated string literal \" at line '{variables_arduino.currentLineIndex}'")
+
     value = value.strip()
     valueList = []
     last_function_end = 0
     for i in range(len(value) - 1):
         if value[i + 1] == "(" and value[i] in VALID_NAME_LETTERS:
             for j in range(i, -1, -1):
-                if j == " ":
+                if j in ALL_SYNTAX_ELEMENTS:
                     start_col = j + 1
                     break
             else:
@@ -344,55 +316,12 @@ def do_value(value) -> (str, str):
         # TODO return datatype here
         return " ".join([x[0] for x in valueList]), valueList[0][1]
 
-    # remove double Whitespaces from value
-    while "  " in value:
-        value = value.replace("  ", " ")
     while "and" in value:
         value = value.replace("and", "&&")
     while "or" in value:
         value = value.replace("or", "||")
     while "not" in value:
         value = value.replace("not", "!")
-    values = value.split(" ")
-    for i in range(len(values)):
-        splitlist = []
-        last_index = 0
-        for j in range(len(values[i])):
-            if values[i][j] in ARITHMETIC_OPERATORS:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif values[i][j] in BRACKETS:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif values[i][j] in CONDITION_OPERATORS_LEN1:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-            elif j + 1 < len(values[i]) and values[i][j:j + 2] in CONDITION_OPERATORS_LEN2:
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j:j + 2])
-                last_index = j + 2
-            elif values[i][j] == "!":
-                splitlist.append(values[i][last_index:j])
-                splitlist.append(values[i][j])
-                last_index = j + 1
-
-        splitlist.append(values[i][last_index:])
-        values[i] = splitlist
-
-    values = [i for j in values for i in j if i != ""]
-    if len(values) > 1:
-        datatypes = []
-        for i in range(len(values)):
-            if not values[i] in OPERATORS + BRACKETS:
-                values[i], dt = do_value(values[i])
-                datatypes.append(dt)
-            else:
-                datatypes.append(None)
-        # TODO check if datatypes are correct
-        return " ".join(values), datatypes[0]
 
     if value[0] in NUMBERS:
         for i in range(len(value)):
@@ -408,15 +337,14 @@ def do_value(value) -> (str, str):
     elif value[0] == '"':
         if value[-1] == '"':
             return value, "string"
-        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a string")
+        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not closed")
     elif value[0] == "'":
         if value[2] == "'" and len(value) == 3:
             return value, "char"
-        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a character")
+        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not a valid character")
 
     elif value[0] == "[":
         raise NotImplementedError("Lists are not implemented yet")
-
 
     elif value[0] == "(":
         raise NotImplementedError("Tuples are not implemented yet")

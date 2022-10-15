@@ -234,10 +234,10 @@ void innit_serial() {
 
 void setup() {
 int y[] = {1, 2, 3, 4};
-for (int _sys_var_649974 = 0; _sys_var_649974 < sizeof(y) / sizeof(*y); _sys_var_649974++) {
-auto i = y[_sys_var_649974];
-String _sys_var_974961[] = { String(i) };
-do_print(_sys_var_974961, 1, true);
+for (int _sys_var_1 = 0; _sys_var_1 < sizeof(y) / sizeof(*y); _sys_var_1++) {
+auto i = y[_sys_var_1];
+String _sys_var_2[] = { String(i) };
+do_print(_sys_var_2, 1, true);
 }
 }
 void loop() {}
