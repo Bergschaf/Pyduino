@@ -33,7 +33,8 @@ if code_pc is not None:
     for variables.currentLineIndex, line in variables.iterator:
         variables.code_done.append(do_line(line))
     variables.code_done.append("}")
-    if (variables.arduino_needed == True):
+    variables.arduino_needed = True  # TODO temp
+    if variables.arduino_needed == True:
         variables.code_done.insert(0, '#include "SerialCommunication/SerialPc.cpp"')
         variables.code_done.insert(4, "Arduino arduino = Arduino();")
     print(variables.code_done)
@@ -41,13 +42,14 @@ if code_pc is not None:
         f.write("\n".join(variables.code_done))
 if code_board is not None:
     code_arduino = compile_arduino(code_board)
+    print(code_arduino)
+
     with open("../testPyduino/testPyduino.ino", "w") as f:
         f.write(code_arduino)
-
 subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
 # list all device
 out = subprocess.run("arduino-cli board list", shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
 print("....................")
 print(out.split("\n"))
 # Upload to device on COM5
-subprocess.run("arduino-cli upload -p COM5 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
+subprocess.run("arduino-cli upload -p COM8 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)

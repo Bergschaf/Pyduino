@@ -5,7 +5,7 @@ const int StartCharacter = 60;   // <
 const int EndCharacter = 62;     // >
 const int SpaceCharacter = 124;  // |
 const int MaxDataLength = 100;
-const int MaxRequests = 50;
+const int MaxRequests = 100;
 const int MaxMillisecondsToWaitForData = 2000;
 const byte analogPorts[6] = {A0, A1, A2, A3, A4, A5};
 char Requests[MaxRequests];
@@ -13,16 +13,20 @@ char Responses[MaxRequests][MaxDataLength];
 
 
 bool Handshake() {
+    analogWrite(10,255);
     while (true) {
         delay(1);
         if (Serial.available() > 0) {
             char incomingData = Serial.read();
+            analogWrite(10,100);
             if (incomingData == '*') {
                 Serial.write('*');
                 while (true) {
                     Serial.write('*');
                     delay(1);
                     if (Serial.available() > 0) {
+                        analogWrite(10,0);
+
                         incomingData = Serial.read();
                         if (incomingData == 'T') {
                             return true;
@@ -37,9 +41,9 @@ bool Handshake() {
 }
 
 char getNextRequestId() {
-    for (uint8_t i = 0; i < MaxRequests; i++) {
+    for (uint8_t i = 51; i < MaxRequests; i++) {
         if (Requests[i] == 0) {
-            return (char) i;
+            return (byte) i;
         }
     }
 }
@@ -201,12 +205,12 @@ void do_print(const String data[], int size, bool newline) {
 }
 
 void innit_serial() {
-
+    Serial.begin(256000);
     byte incomingData[MaxDataLength] = "";
     int incomingDataSize = 0;
 
     Handshake();
-    while (true) {
+    while (false) {
         if (Serial.available()) {
             byte data = Serial.read();
             if (data == StartCharacter) {
@@ -233,11 +237,11 @@ void innit_serial() {
 }
 
 void setup() {
-int y[] = {1, 2, 3, 4};
-for (int _sys_var_1 = 0; _sys_var_1 < sizeof(y) / sizeof(*y); _sys_var_1++) {
-auto i = y[_sys_var_1];
-String _sys_var_2[] = { String(i) };
-do_print(_sys_var_2, 1, true);
+innit_serial();
+while (true) {
+String _sys_var_324987[] = { String( analogRead(A0) ) };
+do_print(_sys_var_324987, 1, true);
+delay(200);
 }
 }
 void loop() {}

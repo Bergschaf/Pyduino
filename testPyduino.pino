@@ -1,4 +1,14 @@
+#main
+print("Hello World")
+delay(1000000)
 #board
-array<int> y = {1,2,3,4}
-for i in y:
-    print(i)
+# min Lichteinfall: kanpp 400
+# max Lichteinfall: knapp 800
+while True:
+    int licht = analogRead(0)
+    int LED_PORT = 13
+    if licht > 750:
+        analogWrite(LED_PORT, 0)
+    if licht < 750:
+        analogWrite(LED_PORT, (licht - 400) / 2)
+    delay(50)

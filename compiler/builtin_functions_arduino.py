@@ -14,6 +14,7 @@ def check_builtin(function_name, args, kwargs):
 
 
 def do_print(args, kwargs):
+    variables_arduino.arduino_needed = True
     newline = "true"
     if "newline" in kwargs.keys():
         newline = "false" if not kwargs["newline"] else "true"
