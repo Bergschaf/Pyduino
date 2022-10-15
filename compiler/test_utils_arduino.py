@@ -149,6 +149,18 @@ class TestUtilsArduino(unittest.TestCase):
 
         # Ints
 
+        self.assertEqual(do_value("0"), ("0", "int"))
+        self.assertEqual(do_value(" 0 "), ("0", "int"))
+        self.assertEqual(do_value("0 "), ("0", "int"))
+
+        self.assertEqual(do_value("2423"), ("2423", "int"))
+        self.assertEqual(do_value("-2423"), ("-2423", "int"))
+        self.assertEqual(do_value("+2423 "), ("2423", "int"))
+
+
+
+
+
 
 
 

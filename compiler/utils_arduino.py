@@ -1,4 +1,5 @@
 from constants_arduino import *
+import re
 import variables_arduino
 
 
@@ -295,6 +296,15 @@ def do_value(value) -> (str, str):
     if value.count('"') % 2 == 1:
         raise SyntaxError(f"unterminated string literal \" at line '{variables_arduino.currentLineIndex}'")
 
+    if value[0] == '"':
+        if value[-1] == '"':
+            return value, "string"
+        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not closed")
+    elif value[0] == "'":
+        if value[2] == "'" and len(value) == 3:
+            return value, "char"
+        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not a valid character")
+
     value = value.strip()
     valueList = []
     last_function_end = 0
@@ -310,11 +320,13 @@ def do_value(value) -> (str, str):
             valueList.append(do_value(value[last_function_end:start_col]))
             valueList.append(check_function_execution(value[start_col:end_col + 1]))
             last_function_end = end_col + 1
-
     if len(valueList) > 0:
         valueList.append(do_value(value[last_function_end:]))
         # TODO return datatype here
         return " ".join([x[0] for x in valueList]), valueList[0][1]
+
+    valueList = re.split(r"", value)
+    # TODO split by operators
 
     while "and" in value:
         value = value.replace("and", "&&")
@@ -332,16 +344,8 @@ def do_value(value) -> (str, str):
                 return value, "float"
             else:
                 return value, "int"
-        raise SyntaxError(f"Value {value} at line {variables_arduino.currentLineIndex} is not a number")
+        raise SyntaxError(f"'{value}' at line {variables_arduino.currentLineIndex} is not a number")
 
-    elif value[0] == '"':
-        if value[-1] == '"':
-            return value, "string"
-        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not closed")
-    elif value[0] == "'":
-        if value[2] == "'" and len(value) == 3:
-            return value, "char"
-        raise SyntaxError(f"'{value}' at line '{variables_arduino.currentLineIndex}' is not a valid character")
 
     elif value[0] == "[":
         raise NotImplementedError("Lists are not implemented yet")

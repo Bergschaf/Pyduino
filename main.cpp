@@ -1,6 +1,12 @@
 #include <iostream>
-#include "SerialCommunication/SerialPc.cpp"
 using namespace std;
+
 int main() {
-    cout << int(byte (char(byte (57)))) << endl;
+    int x = 0;
+    int y = 12;
+
+    cout << x + y << endl;
+
+    char z[] = "hello";
+    cout << z << endl;
 }
