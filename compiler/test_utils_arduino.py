@@ -155,13 +155,7 @@ class TestUtilsArduino(unittest.TestCase):
 
         self.assertEqual(do_value("2423"), ("2423", "int"))
         self.assertEqual(do_value("-2423"), ("-2423", "int"))
-        self.assertEqual(do_value("+2423 "), ("2423", "int"))
-
-
-
-
-
-
+        self.assertEqual(do_value("+2423 "), ("+2423", "int"))
 
 
 

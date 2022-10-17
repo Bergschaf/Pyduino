@@ -288,6 +288,7 @@ def do_for(line):
 
 
 def do_value(value) -> (str, str):
+    value = value.strip()
     if len(value) == 0:
         return "", None
 
@@ -325,15 +326,28 @@ def do_value(value) -> (str, str):
         # TODO return datatype here
         return " ".join([x[0] for x in valueList]), valueList[0][1]
 
-    valueList = re.split(r"", value)
     # TODO split by operators
-
-    while "and" in value:
-        value = value.replace("and", "&&")
-    while "or" in value:
-        value = value.replace("or", "||")
-    while "not" in value:
-        value = value.replace("not", "!")
+    lastsplit = 0
+    for i in range(len(value) - 1):
+        # check if the value is and with whitespace aroud it
+        if value[i] == " " and value[i + 1] != " ":
+            if value[lastsplit:i].strip() in OPERATORS + ["and", "or", "not"]:
+                if value[lastsplit:i].strip() == "and":
+                    valueList.append("&&")
+                elif value[lastsplit:i].strip() == "or":
+                    valueList.append("||")
+                elif value[lastsplit:i].strip() == "not":
+                    valueList.append("!")
+                else:
+                    valueList.append(value[lastsplit:i])
+                lastsplit = i + 1
+            else:
+                valueList.append(value[lastsplit:i])
+                lastsplit = i + 1
+    if len(valueList) > 0:
+        valueList.append(do_value(value[lastsplit:]))
+        # TODO datatype
+        return "".join([x[0] for x in valueList]), valueList[-1][1]
 
     if value[0] in NUMBERS:
         for i in range(len(value)):
@@ -345,7 +359,16 @@ def do_value(value) -> (str, str):
             else:
                 return value, "int"
         raise SyntaxError(f"'{value}' at line {variables_arduino.currentLineIndex} is not a number")
-
+    elif value[0] == "-" or value[0] == "+" and value[1] in NUMBERS:
+        for i in range(1, len(value)):
+            if value[i] not in NUMBERS and value[i] != "." and value[i] != " ":
+                break
+        else:
+            if "." in value:
+                return value, "float"
+            else:
+                return value, "int"
+        raise SyntaxError(f"'{value}' at line {variables_arduino.currentLineIndex} is not a number")
 
     elif value[0] == "[":
         raise NotImplementedError("Lists are not implemented yet")

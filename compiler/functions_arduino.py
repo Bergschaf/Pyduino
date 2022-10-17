@@ -1,5 +1,5 @@
 from builtin_functions_arduino import check_builtin
-from utils_arduino import *
+from utils_arduino import find_closing_bracket_in_value, do_arguments
 
 
 def check_function_definition(line):
