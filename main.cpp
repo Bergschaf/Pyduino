@@ -1,12 +1,23 @@
 #include <iostream>
 using namespace std;
+void mergesort(int arr[],int res[], int l, int r, int size){
+    if(l==r){
+        res[l]=arr[l];
+        return;
+    }
+    int mid = (l+r)/2;
+    mergesort(arr,res,l,mid,size);
+    mergesort(arr,res,mid+1,r,size);
+
+
+}
+
+
 
 int main() {
-    int x = 0;
-    int y = 12;
-
-    cout << x + y << endl;
-
-    char z[] = "hello";
-    cout << z << endl;
+    int results[10];
+    fibonacci(10,results);
+    for (int result : results) {
+        cout << result << endl;
+    }
 }

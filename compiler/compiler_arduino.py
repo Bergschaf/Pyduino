@@ -10,6 +10,11 @@ def compile_arduino(code):
         variables_arduino.code_done.append(do_line(line))
     variables_arduino.code_done.append("}")
     variables_arduino.code_done.insert(1, "innit_serial();")
+    # insert "checkSerial();" after every line
+    for i in range(1,len(variables_arduino.code_done)-1):
+        if variables_arduino.code_done[i] == "}":
+            continue
+        variables_arduino.code_done.insert(i + i, "checkSerial();")
 
-    variables_arduino.code_done.append("void loop() {}")
+    variables_arduino.code_done.append("void loop() {checkSerial();}")
     return "\n".join([SERIAL_CODE] + variables_arduino.code_done)

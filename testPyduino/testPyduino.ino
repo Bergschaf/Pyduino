@@ -40,6 +40,33 @@ bool Handshake() {
     }
 }
 
+void checkSerial(){
+    if (Serial.available()) {
+        byte data = Serial.read();
+        int incomingDataSize = 0;
+        byte incomingData[MaxDataLength];
+        if (data == StartCharacter) {
+            incomingDataSize = 1;
+            incomingData[0] = data;
+            while (incomingDataSize < MaxDataLength) {
+                if (Serial.available()) {
+                    data = Serial.read();
+
+                    if (data == EndCharacter) {
+                        incomingData[incomingDataSize] = data;
+                        decodeSerial(incomingData, incomingDataSize);
+                        incomingDataSize = 0;
+                        break;
+                    } else {
+                        incomingData[incomingDataSize] = data;
+                        incomingDataSize++;
+                    }
+                }
+            }
+        }
+    }
+}
+
 char getNextRequestId() {
     for (uint8_t i = 51; i < MaxRequests; i++) {
         if (Requests[i] == 0) {
@@ -208,40 +235,19 @@ void innit_serial() {
     Serial.begin(256000);
     byte incomingData[MaxDataLength] = "";
     int incomingDataSize = 0;
-
     Handshake();
-    while (false) {
-        if (Serial.available()) {
-            byte data = Serial.read();
-            if (data == StartCharacter) {
-                incomingDataSize = 1;
-                incomingData[0] = data;
-                while (incomingDataSize < MaxDataLength) {
-                    if (Serial.available()) {
-                        data = Serial.read();
+    checkSerial();
 
-                        if (data == EndCharacter) {
-                            incomingData[incomingDataSize] = data;
-                            decodeSerial(incomingData, incomingDataSize);
-                            incomingDataSize = 0;
-                            break;
-                        } else {
-                            incomingData[incomingDataSize] = data;
-                            incomingDataSize++;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 void setup() {
 innit_serial();
-while (true) {
-String _sys_var_324987[] = { String( analogRead(A0) ) };
-do_print(_sys_var_324987, 1, true);
-delay(200);
+checkSerial();
+delay(100);
+checkSerial();
+String _sys_var_1[] = { String("Hello World") };
+checkSerial();
+do_print(_sys_var_1, 1, true);
+checkSerial();
 }
-}
-void loop() {}
+void loop() {checkSerial();}

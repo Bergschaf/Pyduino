@@ -1,14 +1,12 @@
 #main
 print("Hello World")
+while True:
+    int i = analogRead(0)
+    print(i)
+    analogWrite(11,i / 4)
+    delay(50)
 delay(1000000)
 #board
-# min Lichteinfall: kanpp 400
-# max Lichteinfall: knapp 800
-while True:
-    int licht = analogRead(0)
-    int LED_PORT = 13
-    if licht > 750:
-        analogWrite(LED_PORT, 0)
-    if licht < 750:
-        analogWrite(LED_PORT, (licht - 400) / 2)
-    delay(50)
+delay(100)
+print("Hello World")
+

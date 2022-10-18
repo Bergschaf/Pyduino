@@ -40,6 +40,33 @@ bool Handshake() {
     }
 }
 
+void checkSerial(){
+    if (Serial.available()) {
+        byte data = Serial.read();
+        int incomingDataSize = 0;
+        byte incomingData[MaxDataLength];
+        if (data == StartCharacter) {
+            incomingDataSize = 1;
+            incomingData[0] = data;
+            while (incomingDataSize < MaxDataLength) {
+                if (Serial.available()) {
+                    data = Serial.read();
+
+                    if (data == EndCharacter) {
+                        incomingData[incomingDataSize] = data;
+                        decodeSerial(incomingData, incomingDataSize);
+                        incomingDataSize = 0;
+                        break;
+                    } else {
+                        incomingData[incomingDataSize] = data;
+                        incomingDataSize++;
+                    }
+                }
+            }
+        }
+    }
+}
+
 char getNextRequestId() {
     for (uint8_t i = 51; i < MaxRequests; i++) {
         if (Requests[i] == 0) {
@@ -208,30 +235,7 @@ void innit_serial() {
     Serial.begin(256000);
     byte incomingData[MaxDataLength] = "";
     int incomingDataSize = 0;
-
     Handshake();
-    while (false) {
-        if (Serial.available()) {
-            byte data = Serial.read();
-            if (data == StartCharacter) {
-                incomingDataSize = 1;
-                incomingData[0] = data;
-                while (incomingDataSize < MaxDataLength) {
-                    if (Serial.available()) {
-                        data = Serial.read();
+    checkSerial();
 
-                        if (data == EndCharacter) {
-                            incomingData[incomingDataSize] = data;
-                            decodeSerial(incomingData, incomingDataSize);
-                            incomingDataSize = 0;
-                            break;
-                        } else {
-                            incomingData[incomingDataSize] = data;
-                            incomingDataSize++;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

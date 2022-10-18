@@ -240,9 +240,7 @@ def do_for(line):
         if elements[1][:5] == "range":
             if elements[1][5] != "(":
                 raise SyntaxError(f"Expected '(' at line {variables_arduino.currentLineIndex} col {col_index}")
-            end_row, end_col = find_closing_bracket("(", row, variables_arduino.code[row].index("range") + 6)
-            if end_row != row:
-                raise SyntaxError(f"Expected ')' at line {end_row + 1} col {end_col + 1}")
+
             range_arguments, range_kwargs = do_arguments(elements[1][6:-1])
             if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
                     range_arguments]):

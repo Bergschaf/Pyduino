@@ -222,7 +222,7 @@ def do_for(line):
         if elements[1][:5] == "range":
             if elements[1][5] != "(":
                 raise SyntaxError(f"Expected '(' at line {variables.currentLineIndex} col {col_index}")
-            find_closing_bracket_in_value("(", row, variables.code[row].index("range") + 6)
+            find_closing_bracket_in_value(line,"(", line.index("range") + 5)
 
             range_arguments, range_kwargs = do_arguments(elements[1][6:-1])
             if any([x[1] != "int" and x[1] != "short" and x[1] != "long" and x[1] is not None for x in
