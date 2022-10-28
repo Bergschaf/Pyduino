@@ -1,12 +1,5 @@
 #main
 print("Hello World")
-while True:
-    int i = analogRead(0)
-    print(i)
-    analogWrite(11,i / 4)
-    delay(50)
-delay(1000000)
 #board
-delay(100)
 print("Hello World")
-
+delay(100)

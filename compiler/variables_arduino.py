@@ -1,7 +1,7 @@
 totalLineCount = 0
-scope = None  # [[variables], [functions]]
+scope = None  # [[variables: (name,datatype,lineindex)], [functions]]
 arduino_needed = True
-identations = []
+indentations = []
 iterator = None
 code = None
 code_done = []

@@ -94,6 +94,7 @@ from functions_arduino import check_function_execution, check_function_definitio
 
 
 def do_line(line):
+
     instruction = line.strip()
     if instruction[0] == "#":
         return
@@ -174,10 +175,10 @@ def do_if(line):
         row = variables_arduino.currentLineIndex
         col = len(line) - 1
         condition = do_value(line[col_index + 1:col])[0]
-        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
+        if variables_arduino.indentations[row] + 1 != variables_arduino.indentations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables_arduino.totalLineCount):
-            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
+            if variables_arduino.indentations[i] < variables_arduino.indentations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -199,10 +200,10 @@ def do_while(line):
         row = variables_arduino.currentLineIndex
         col = len(line) - 1
         condition = do_value(line[col_index + 1:col])[0]
-        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
+        if variables_arduino.indentations[row] + 1 != variables_arduino.indentations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables_arduino.totalLineCount):
-            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
+            if variables_arduino.indentations[i] < variables_arduino.indentations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -212,9 +213,9 @@ def do_while(line):
 
         while variables_arduino.currentLineIndex < end_indentation_index:
             variables_arduino.currentLineIndex, l = next(variables_arduino.iterator)
-            while_code.append(do_line(l))
-        while_code.append("}")
-        return "\n".join(while_code)
+            variables_arduino.code_done.append(do_line(l))
+        variables_arduino.code_done.append("}")
+        return ""
     else:
         raise SyntaxError(f"Expected ':' at line {variables_arduino.currentLineIndex} col {col_index}")
 
@@ -228,10 +229,10 @@ def do_for(line):
         if len(elements) != 2:
             raise SyntaxError(f"Expected 'in' at line {variables_arduino.currentLineIndex} col {col_index}")
         counter_variable = elements[0]
-        if variables_arduino.identations[row] + 1 != variables_arduino.identations[row + 1]:
+        if variables_arduino.indentations[row] + 1 != variables_arduino.indentations[row + 1]:
             raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
         for i in range(row + 1, variables_arduino.totalLineCount):
-            if variables_arduino.identations[i] < variables_arduino.identations[row + 1]:
+            if variables_arduino.indentations[i] < variables_arduino.indentations[row + 1]:
                 end_indentation_index = i - 1
                 break
         else:
@@ -374,15 +375,11 @@ def do_value(value) -> (str, str):
     elif value[0] == "(":
         raise NotImplementedError("Tuples are not implemented yet")
 
-    elif value[0] == "T" and value[1] == "r" and value[2] == "u" and value[3] == "e" and len(value) == 4:
+    elif value == "True":
         return "true", "bool"
 
-    elif value[0] == "F" and value[1] == "a" and value[2] == "l" and value[3] == "s" and value[4] == "e" and len(
-            value) == 5:
+    elif value == "False":
         return "false", "bool"
-
-    elif value[0] == "n" and value[1] == "o" and value[2] == "n" and value[3] == "e" and len(value) == 4:
-        return "nullptr", "none"
 
     elif (s := variable_in_scope(value, variables_arduino.currentLineIndex)) is not None:
         return value, s[1]
@@ -407,7 +404,7 @@ def do_array_intializer(value):
 def add_variable_to_scope(name, datatype, line_index):
     for start, end in variables_arduino.scope.keys():
         if start <= line_index <= end:
-            variables_arduino.scope[(start, end)][0].append((name, datatype))
+            variables_arduino.scope[(start, end)][0].append((name, datatype, line_index))
             return
 
 
@@ -416,10 +413,11 @@ def variable_in_scope(name, line_index):
     :return: (name, datatype) if variable is in scope, else None
     """
     for start, end in variables_arduino.scope.keys():
-        if start <= line_index <= end:
+        if start <= line_index < end:
             for i in variables_arduino.scope[(start, end)][0]:
                 if i[0] == name:
                     return i
+    raise SyntaxError(f"Variable '{name}' at line {line_index} is not defined")
 
 
 def get_line_identation(line):

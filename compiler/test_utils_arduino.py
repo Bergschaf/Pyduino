@@ -2,6 +2,7 @@ import unittest
 from utils_arduino import *
 from intitializer_arduino import intialize
 
+
 class TestUtilsArduino(unittest.TestCase):
     def test_reset_sys_variable(self):
         next_sys_variable()
@@ -148,7 +149,6 @@ class TestUtilsArduino(unittest.TestCase):
         self.assertEqual(str(context.exception), "'' t'' at line '0' is not a valid character")
 
         # Ints
-
         self.assertEqual(do_value("0"), ("0", "int"))
         self.assertEqual(do_value(" 0 "), ("0", "int"))
         self.assertEqual(do_value("0 "), ("0", "int"))
@@ -156,6 +156,69 @@ class TestUtilsArduino(unittest.TestCase):
         self.assertEqual(do_value("2423"), ("2423", "int"))
         self.assertEqual(do_value("-2423"), ("-2423", "int"))
         self.assertEqual(do_value("+2423 "), ("+2423", "int"))
+
+        # Floats
+        self.assertEqual(do_value("0.0"), ("0.0", "float"))
+        self.assertEqual(do_value(" 0.0 "), ("0.0", "float"))
+        self.assertEqual(do_value("  0.0 "), ("0.0", "float"))
+
+        self.assertEqual(do_value("23.42"), ("23.42", "float"))
+        self.assertEqual(do_value("-23.42"), ("-23.42", "float"))
+
+        self.assertEqual(do_value("235235."), ("235235.", "float"))
+
+        # Booleans
+        self.assertEqual(do_value("True"), ("true", "bool"))
+        self.assertEqual(do_value("False"), ("false", "bool"))
+
+        self.assertEqual(do_value("   True "), ("true", "bool"))
+
+        # Variables
+        intialize([])
+        add_variable_to_scope("test", "int", 0)
+        self.assertEqual(do_value("test"), ("test", "int"))
+
+        with self.assertRaises(SyntaxError) as context:
+            do_value("test2")
+        self.assertEqual(str(context.exception), "Value 'test2' at line 0 is not defined")
+
+        intialize([])
+        with self.assertRaises(SyntaxError) as context:
+            do_value("test")
+        self.assertEqual(str(context.exception), "Value 'test' at line 0 is not defined")
+
+        add_variable_to_scope("test", "int", 2)
+
+        variables_arduino.currentLineIndex = 1
+        with self.assertRaises(SyntaxError) as context:
+            do_value("test")
+        self.assertEqual(str(context.exception), "Value 'test' at line 1 is not defined")
+        variables_arduino.currentLineIndex = 3
+        self.assertEqual(do_value("test"), ("test", "int"))
+
+    def test_variable_scope(self):
+        intialize(["", "", ""])
+        add_variable_to_scope("test", "int", 0)
+        self.assertEqual(variable_in_scope("test", 1), ("test", "int"))
+
+        with self.assertRaises(SyntaxError) as context:
+            variable_in_scope("test", 4)
+        self.assertEqual(str(context.exception), "Variable 'test' at line 4 is not defined")
+
+        with self.assertRaises(SyntaxError) as context:
+            variable_in_scope("test2", 1)
+        self.assertEqual(str(context.exception), "Variable 'test2' at line 1 is not defined")
+
+        intialize(["", "    ", "    ", ""])
+
+        add_variable_to_scope("test", "int", 0)
+        self.assertEqual(variable_in_scope("test", 1), ("test", "int"))
+
+        add_variable_to_scope("test2", "int", 1)
+        self.assertEqual(variable_in_scope("test2", 2), ("test2", "int"))
+        with self.assertRaises(SyntaxError) as context:
+            variable_in_scope("test2", 3)
+        self.assertEqual(str(context.exception), "Variable 'test2' at line 3 is not defined")
 
 
 

@@ -240,14 +240,18 @@ void innit_serial() {
 
 }
 
-void setup() {
+void betterdelay(int ms){
+                                                        unsigned long current = millis();
+                                                        while(millis() - current < ms){
+                                                        checkSerial();}}
+void setup(){
 innit_serial();
 checkSerial();
-delay(100);
+String __sys_var_1[] = { String("Hello World") };
 checkSerial();
-String _sys_var_1[] = { String("Hello World") };
+do_print(__sys_var_1, 1, true);
 checkSerial();
-do_print(_sys_var_1, 1, true);
+betterdelay(100);
 checkSerial();
 }
 void loop() {checkSerial();}
