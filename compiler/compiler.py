@@ -73,7 +73,7 @@ class Compiler(Utils):
                 self.Variables.code_done.insert(0, """void betterdelay(int ms) {
                 delay(ms);}""")
                 self.Variables.code_done.append("void loop() {}")
-            return "\n".join([open("../../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
+            return "\n".join([open("../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
                                    "r").read()] + self.Variables.code_done)
         if self.Variables.connection_needed:
             self.Variables.code_done.append("""#include "SerialCommunication/SerialPc.cpp"

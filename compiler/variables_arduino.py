@@ -1,9 +1,0 @@
-totalLineCount = 0
-scope = None  # [[variables: (name,datatype,lineindex)], [functions]]
-arduino_needed = True
-indentations = []
-iterator = None
-code = None
-code_done = []
-currentLineIndex = 0
-sysVariableIndex = 0

@@ -5,7 +5,7 @@ import subprocess
 
 code_pc = None
 code_board = None
-with open("../../testPyduino.pino", "r") as f:
+with open("../testPyduino.pino", "r") as f:
     code = [l.strip("\n").rstrip() for l in f.readlines() if l.strip("\n").replace(" ", "") != ""]
     if code[0] == "#main":
         for i in range(len(code)):
@@ -28,7 +28,7 @@ if code_pc is not None:
 if code_board is not None:
     compiler = Compiler(Constants(), Variables(), code_board, "arduino")
     c_code_board = compiler.compile()
-    with open("../../testPyduino/testPyduino.ino", "w") as f:
+    with open("../testPyduino/testPyduino.ino", "w") as f:
         f.write(c_code_board)
 
 subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../../testPyduino/testPyduino.ino", shell=True)

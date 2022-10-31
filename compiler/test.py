@@ -1,19 +1,31 @@
 import unittest
-from utils_arduino import *
-from intitializer_arduino import intialize
+from utils import Utils
+from constants import Constants
+from variables import Variables
+from builtin_functions import BuiltinsArduino, BuiltinsPC
 
+def get_new_Utils(code,pc = True):
+    var = Variables()
+    if pc:
+        builtins = BuiltinsPC(var)
+    else:
+        builtins = BuiltinsArduino(var)
+    return Utils(Constants(), var, builtins)
 
 class TestUtilsArduino(unittest.TestCase):
+
     def test_reset_sys_variable(self):
-        next_sys_variable()
-        reset_sys_variable()
-        self.assertEqual(variables_arduino.sysVariableIndex, 0)
+        utils = get_new_Utils("")
+        utils.next_sys_variable()
+        utils.reset_sys_variable()
+        self.assertEqual(utils.Variables.sysVariableIndex, 0)
 
     def test_next_sys_variable(self):
-        self.assertEqual(next_sys_variable(), f"_sys_var_1")
-        self.assertEqual(next_sys_variable(), f"_sys_var_2")
-        self.assertEqual(next_sys_variable(), f"_sys_var_3")
-        self.assertEqual(next_sys_variable(), f"_sys_var_4")
+        utils = get_new_Utils("")
+        self.assertEqual(utils.next_sys_variable(), f"_sys_var_1")
+        self.assertEqual(utils.next_sys_variable(), f"_sys_var_2")
+        self.assertEqual(utils.next_sys_variable(), f"_sys_var_3")
+        self.assertEqual(utils.next_sys_variable(), f"_sys_var_4")
 
     def test_find_closing_bracket_in_value(self):
         # What if the bracket isn't a string of length 1?
