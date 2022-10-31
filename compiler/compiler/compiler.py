@@ -50,10 +50,12 @@ class Compiler(Utils):
     def compile(self):
         for self.Variables.currentLineIndex, line in self.Variables.iterator:
             self.Variables.code_done.append(self.do_line(line))
+
+    def finish(self, connection_needed):
         self.Variables.code_done.append("}")
         if self.mode == "arduino":
             self.Variables.code_done.insert(0, "void setup(){")
-            if self.Variables.connection_needed:
+            if connection_needed:
                 self.Variables.code_done.insert(1, "innit_serial();")
 
                 # insert "checkSerial();" after every line
@@ -75,7 +77,7 @@ class Compiler(Utils):
                 self.Variables.code_done.append("void loop() {}")
             return "\n".join([open("../../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
                                    "r").read()] + self.Variables.code_done)
-        if self.Variables.connection_needed:
+        if connection_needed:
             self.Variables.code_done.append("""#include "SerialCommunication/SerialPc.cpp"
                                 
                                 using namespace std;
@@ -86,3 +88,4 @@ class Compiler(Utils):
             int main() {""")
 
         return "\n".join(self.Variables.code_done)
+
