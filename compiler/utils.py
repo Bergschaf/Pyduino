@@ -1,6 +1,8 @@
+from constants import Constants
+
+
 class Utils:
-    def __init__(self, constants, variables, builtins):
-        self.Constants = constants
+    def __init__(self, variables, builtins):
         self.Variables = variables
         self.Builtins = builtins
 
@@ -11,7 +13,8 @@ class Utils:
         self.Variables.sysVariableIndex += 1
         return f"_sys_var_{self.Variables.sysVariableIndex}"
 
-    def find_closing_bracket_in_value(self, value, bracket, start_col):
+    @staticmethod
+    def find_closing_bracket_in_value(value, bracket, start_col):
         """
         :param value: the value to search in
         :param bracket: the bracket to search for
@@ -23,7 +26,7 @@ class Utils:
             raise SyntaxError(f"'{bracket}' is not a valid opening bracket")
         if value[start_col] != bracket:
             raise SyntaxError(f"Value does not start with '{bracket}'")
-        closing_bracket = self.Constants.CLOSING_BRACKETS[bracket]
+        closing_bracket = Constants.CLOSING_BRACKETS[bracket]
         bracket_level_1 = 0
         bracket_level_2 = 0
         bracket_level_3 = 0
@@ -35,23 +38,23 @@ class Utils:
             bracket_level_3 = 1
         col = start_col + 1
         while col < len(value):
-            if value[col] == self.Constants.BRACKETS[0]:
+            if value[col] == Constants.BRACKETS[0]:
                 bracket_level_1 += 1
-            elif value[col] == self.Constants.BRACKETS[1]:
+            elif value[col] == Constants.BRACKETS[1]:
                 bracket_level_1 -= 1
-            elif value[col] == self.Constants.BRACKETS[2]:
+            elif value[col] == Constants.BRACKETS[2]:
                 bracket_level_2 += 1
-            elif value[col] == self.Constants.BRACKETS[3]:
+            elif value[col] == Constants.BRACKETS[3]:
                 bracket_level_2 -= 1
-            elif value[col] == self.Constants.BRACKETS[4]:
+            elif value[col] == Constants.BRACKETS[4]:
                 bracket_level_3 += 1
-            elif value[col] == self.Constants.BRACKETS[5]:
+            elif value[col] == Constants.BRACKETS[5]:
                 bracket_level_3 -= 1
             if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
                 return col
             col += 1
         raise SyntaxError(
-            f"No closing bracket found for '{bracket}' at line {self.Variables.currentLineIndex} col {start_col}")
+            f"No closing bracket found for '{bracket}' at col {start_col}")
 
     def do_arguments(self, argstring):
         """
@@ -70,15 +73,14 @@ class Utils:
             if argstring[i] == ",":
                 all_args.append(argstring[last_split:i])
                 last_split = i + 1
-            elif argstring[i] in self.Constants.OPENING_BRACKETS:
-                closing_bracket = self.find_closing_bracket_in_value(argstring, argstring[i], i)
+            elif argstring[i] in Constants.OPENING_BRACKETS:
+                closing_bracket = Utils.find_closing_bracket_in_value(argstring, argstring[i], i)
         all_args.append(argstring[last_split:])
         for arg in all_args:
             arg = arg.strip()
             if "=" not in arg:
                 if kwargs:
-                    raise SyntaxError(
-                        f"Positional (=normal) argument after keyword argument at line {self.Variables.currentLineIndex}")
+                    raise SyntaxError(f"Positional (=normal) argument after keyword argument")
                 args.append(self.do_value(arg))
             else:
                 name, value = arg.split("=")
@@ -93,7 +95,7 @@ class Utils:
         if instruction[0] == "#":
             return
         elif any([instruction.startswith(i) for i in
-                  self.Constants.PRIMITIVE_TYPES + self.Constants.PRIMITIVE_ARRAY_TYPES]):
+                  Constants.PRIMITIVE_TYPES + Constants.PRIMITIVE_ARRAY_TYPES]):
             if (f := self.check_function_definition(instruction)) is not None:
                 return f
             else:
@@ -146,7 +148,7 @@ class Utils:
         print(line)
         line = line.strip()
         datatype = line.split("=")[0].strip().split(" ")[0].strip()
-        if datatype in self.Constants.PRIMITIVE_TYPES:
+        if datatype in Constants.PRIMITIVE_TYPES:
             name = line.split("=")[0].strip().split(" ")[1].strip()
             value = line.split("=")[1].strip()
             value, dt = self.do_value(value)
@@ -157,7 +159,7 @@ class Utils:
                 raise SyntaxError(f"Variable {name} at line {self.Variables.currentLineIndex} already defined")
             self.add_variable_to_scope(name, datatype, self.Variables.currentLineIndex)
             return f"{datatype} {name} = {value};"
-        elif datatype in self.Constants.PRIMITIVE_ARRAY_TYPES:
+        elif datatype in Constants.PRIMITIVE_ARRAY_TYPES:
             name = line.split("=")[0].strip().split(" ")[1].strip()
             value = line.split("=")[1].strip()
             value, dt = self.do_array_intializer(value)
@@ -322,9 +324,9 @@ class Utils:
         valueList = []
         last_function_end = 0
         for i in range(len(value) - 1):
-            if value[i + 1] == "(" and value[i] in self.Constants.VALID_NAME_LETTERS:
+            if value[i + 1] == "(" and value[i] in Constants.VALID_NAME_LETTERS:
                 for j in range(i, -1, -1):
-                    if j in self.Constants.ALL_SYNTAX_ELEMENTS:
+                    if j in Constants.ALL_SYNTAX_ELEMENTS:
                         start_col = j + 1
                         break
                 else:
@@ -343,7 +345,7 @@ class Utils:
         for i in range(len(value) - 1):
             # check if the value is and with whitespace aroud it
             if value[i] == " " and value[i + 1] != " ":
-                if value[lastsplit:i].strip() in self.Constants.OPERATORS + ["and", "or", "not"]:
+                if value[lastsplit:i].strip() in Constants.OPERATORS + ["and", "or", "not"]:
                     if value[lastsplit:i].strip() == "and":
                         valueList.append("&&")
                     elif value[lastsplit:i].strip() == "or":
@@ -361,9 +363,9 @@ class Utils:
             # TODO datatype
             return "".join([x[0] for x in valueList]), valueList[-1][1]
 
-        if value[0] in self.Constants.NUMBERS:
+        if value[0] in Constants.NUMBERS:
             for i in range(len(value)):
-                if value[i] not in self.Constants.NUMBERS and value[i] != "." and value[i] != " ":
+                if value[i] not in Constants.NUMBERS and value[i] != "." and value[i] != " ":
                     break
             else:
                 if "." in value:
@@ -371,9 +373,9 @@ class Utils:
                 else:
                     return value, "int"
             raise SyntaxError(f"'{value}' at line {self.Variables.currentLineIndex} is not a number")
-        elif value[0] == "-" or value[0] == "+" and value[1] in self.Constants.NUMBERS:
+        elif value[0] == "-" or value[0] == "+" and value[1] in Constants.NUMBERS:
             for i in range(1, len(value)):
-                if value[i] not in self.Constants.NUMBERS and value[i] != "." and value[i] != " ":
+                if value[i] not in Constants.NUMBERS and value[i] != "." and value[i] != " ":
                     break
             else:
                 if "." in value:
@@ -402,16 +404,6 @@ class Utils:
         else:
             raise SyntaxError(f"Value '{value}' at line {self.Variables.currentLineIndex} is not defined")
 
-    def do_array_intializer(self, value):
-        args, kwargs = self.do_arguments(value[1:-1])
-        if len(kwargs) != 0:
-            raise SyntaxError(
-                f"what is an = sign doing in an array intialization? at line {self.Variables.currentLineIndex}")
-        dt = args[0][1]
-        if any([x[1] != dt for x in args]):
-            raise SyntaxError(f"Array at line {self.Variables.currentLineIndex} has different datatypes")
-        return f"{{{', '.join([x[0] for x in args])}}}", dt
-
     def add_variable_to_scope(self, name, datatype, line_index):
         for start, end in self.Variables.scope.keys():
             if start <= line_index <= end:
@@ -429,8 +421,19 @@ class Utils:
                         return i
         raise SyntaxError(f"Variable '{name}' at line {line_index} is not defined")
 
-    def get_line_identation(self, line):
+    @staticmethod
+    def get_line_indentation(line):
         """
         :return: Indentation level of the line ALWAYS ROUNDS DOWN
         """
-        return (len(line) - len(line.lstrip())) // self.Constants.DEFAULT_INDEX_LEVEL
+        return (len(line) - len(line.lstrip())) // Constants.DEFAULT_INDEX_LEVEL
+
+    def do_array_intializer(self, value):
+        args, kwargs = self.do_arguments(value[1:-1])
+        if len(kwargs) != 0:
+            raise SyntaxError(
+                f"what is an = sign doing in an array intialization? at line {self.Variables.currentLineIndex}")
+        dt = args[0][1]
+        if any([x[1] != dt for x in args]):
+            raise SyntaxError(f"Array at line {self.Variables.currentLineIndex} has different datatypes")
+        return f"{{{', '.join([x[0] for x in args])}}}", dt
