@@ -189,45 +189,40 @@ class TestUtilsArduino(unittest.TestCase):
 
         with self.assertRaises(SyntaxError) as context:
             compiler.do_value("test2")
-        self.assertEqual(str(context.exception), "Variable 'test2' at line 0 is not defined")
+        self.assertEqual(str(context.exception), "Value 'test2' at line 0 is not defined")
 
         compiler = get_new_compiler([""])
         with self.assertRaises(SyntaxError) as context:
             compiler.do_value("test")
-        self.assertEqual(str(context.exception), "Variable 'test' at line 0 is not defined")
+        self.assertEqual(str(context.exception), "Value 'test' at line 0 is not defined")
 
         compiler.add_variable_to_scope("test", "int", 2)
 
-        compiler.currentLineIndex = 1
+        compiler.Variables.currentLineIndex = 1
         with self.assertRaises(SyntaxError) as context:
             compiler.do_value("test")
-        self.assertEqual(str(context.exception), "Variable 'test' at line 1 is not defined")
-        compiler.currentLineIndex = 3
+        self.assertEqual(str(context.exception), "Value 'test' at line 1 is not defined")
+        compiler.Variables.currentLineIndex = 3
         self.assertEqual(compiler.do_value("test"), ("test", "int"))
 
     def test_variable_scope(self):
-        compiler = get_new_compiler(["","",""])
-        compiler.add_variable_to_scope("test", "int", 0)
-        self.assertEqual(compiler.variable_in_scope("test", 1), ("test", "int"))
-
-        with self.assertRaises(SyntaxError) as context:
-            compiler.variable_in_scope("test", 4)
-        self.assertEqual(str(context.exception), "Variable 'test' at line 4 is not defined")
-
-        with self.assertRaises(SyntaxError) as context:
-            compiler.variable_in_scope("test2", 1)
-        self.assertEqual(str(context.exception), "Variable 'test2' at line 1 is not defined")
+        compiler = get_new_compiler(["", "", "", "", ""])
+        compiler.add_variable_to_scope("test", "int", 2)
+        self.assertEqual(compiler.variable_in_scope("test", 2), ("test", "int"))
+        self.assertEqual(compiler.variable_in_scope("test", 1), None)
+        self.assertEqual(compiler.variable_in_scope("test2", 3), None)
 
         compiler = get_new_compiler(["", "    ", "    ", ""])
 
         compiler.add_variable_to_scope("test", "int", 0)
         self.assertEqual(compiler.variable_in_scope("test", 1), ("test", "int"))
+        self.assertEqual(compiler.variable_in_scope("test", 2), ("test", "int"))
+        self.assertEqual(compiler.variable_in_scope("test", 3), ("test", "int"))
 
         compiler.add_variable_to_scope("test2", "int", 1)
+        self.assertEqual(compiler.variable_in_scope("test2", 1), ("test2", "int"))
         self.assertEqual(compiler.variable_in_scope("test2", 2), ("test2", "int"))
-        with self.assertRaises(SyntaxError) as context:
-            compiler.variable_in_scope("test2", 3)
-        self.assertEqual(str(context.exception), "Variable 'test2' at line 3 is not defined")
+        self.assertEqual(compiler.variable_in_scope("test2", 3), None)
 
 
 if __name__ == '__main__':

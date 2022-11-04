@@ -406,7 +406,7 @@ class Utils:
 
     def add_variable_to_scope(self, name, datatype, line_index):
         for start, end in self.Variables.scope.keys():
-            if start <= line_index <= end:
+            if start <= line_index <= end and self.Variables.indentations[start] == self.Variables.indentations[line_index]:
                 self.Variables.scope[(start, end)][0].append((name, datatype, line_index))
                 return
 
@@ -415,11 +415,10 @@ class Utils:
         :return: (name, datatype) if variable is in scope, else None
         """
         for start, end in self.Variables.scope.keys():
-            if start <= line_index < end:
+            if start <= line_index <= end:
                 for i in self.Variables.scope[(start, end)][0]:
-                    if i[0] == name:
-                        return i
-        raise SyntaxError(f"Variable '{name}' at line {line_index} is not defined")
+                    if i[0] == name and i[2] <= line_index:
+                        return i[:2]
 
     @staticmethod
     def get_line_indentation(line):

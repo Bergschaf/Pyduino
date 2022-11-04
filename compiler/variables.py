@@ -1,6 +1,7 @@
 
 class Variables:
     def __init__(self):
+        self.scope = None
         self.connection_needed = False
         self.code_done = []
         self.currentLineIndex = 0
