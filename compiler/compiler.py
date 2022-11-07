@@ -1,16 +1,18 @@
 from utils import Utils
 from builtin_functions import BuiltinsArduino, BuiltinsPC
+from constants import Constants
+from variables import Variables
 
 
 class Compiler(Utils):
-    def __init__(self, constants, variables, code, mode):
+    def __init__(self, variables: Variables, code: list, mode: str):
         if mode == "arduino":
             builtins = BuiltinsArduino(variables)
         elif mode == "pc":
             builtins = BuiltinsPC(variables)
         else:
             raise Exception("Invalid mode")
-        super().__init__(constants, variables, builtins)
+        super().__init__(variables, builtins)
         self.code = code
         self.Variables = variables
         self.mode = mode
@@ -23,7 +25,7 @@ class Compiler(Utils):
         """
         self.Variables.totalLineCount = len(self.code)
         for line in self.code:
-            self.Variables.indentations.append(self.get_line_identation(line))
+            self.Variables.indentations.append(self.get_line_indentation(line))
         self.Variables.code = self.code.copy()
         self.Variables.code_done = []
 
@@ -75,7 +77,7 @@ class Compiler(Utils):
                 self.Variables.code_done.insert(0, """void betterdelay(int ms) {
                 delay(ms);}""")
                 self.Variables.code_done.append("void loop() {}")
-            return "\n".join([open("../../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
+            return "\n".join([open("../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
                                    "r").read()] + self.Variables.code_done)
         if connection_needed:
             self.Variables.code_done.append("""#include "SerialCommunication/SerialPc.cpp"
