@@ -7,5 +7,5 @@
 /.idea/dataSources.local.xml
 # Editor-based HTTP Client requests
 /.idea/httpRequests/
-/.ideaCLionProjects.iml
-/.ideaSerialCommunication.iml
+/.idea/CLionProjects.iml
+/.idea/SerialCommunication.iml
