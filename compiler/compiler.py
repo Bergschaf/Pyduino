@@ -86,7 +86,8 @@ class Compiler(Utils):
                                 int main() {
                                 Arduino arduino = Arduino();""")
         else:
-            self.Variables.code_done.append("""#include <iostream>
+            self.Variables.code_done.insert(0,"""#include <iostream>
+            using namespace std;
             int main() {""")
 
         return "\n".join(self.Variables.code_done)

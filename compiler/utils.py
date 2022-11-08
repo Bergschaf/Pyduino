@@ -163,13 +163,13 @@ class Utils:
             name = line.split("=")[0].strip().split(" ")[1].strip()
             value = line.split("=")[1].strip()
             value, dt = self.do_array_intializer(value)
-            if dt != datatype[6:-1]:
+            if dt != datatype[:-2]:
                 raise SyntaxError(
                     f"Datatype of {name} at line {self.Variables.currentLineIndex} ({dt}) is not {datatype}")
             if self.variable_in_scope(name, self.Variables.currentLineIndex):
                 raise SyntaxError(f"Variable {name} at line {self.Variables.currentLineIndex} already defined")
             self.add_variable_to_scope(name, datatype, self.Variables.currentLineIndex)
-            return f"{datatype[6:-1]} {name}[] = {value};"
+            return f"{datatype[:-2]} {name}[] = {value};"
         else:
             raise SyntaxError(f"Datatype {datatype} at line {self.Variables.currentLineIndex} is not defined")
 

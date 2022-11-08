@@ -1,10 +1,11 @@
+from constants import Constants
 class BuiltinsArduino:
     def __init__(self, variables):
         self.Variables = variables
 
     def next_sys_variable(self):
-        self.Variables.SysVariableIndex += 1
-        return f"__sys_var_{self.Variables.SysVariableIndex}"
+        self.Variables.sysVariableIndex += 1
+        return f"__sys_var_{self.Variables.sysVariableIndex}"
 
     def check_builtin(self, function_name, args, kwargs):
         if function_name == "print":
@@ -67,8 +68,8 @@ class BuiltinsPC:
         self.Variables = variables
 
     def next_sys_variable(self):
-        self.Variables.SysVariableIndex += 1
-        return f"__sys_var_{self.Variables.SysVariableIndex}"
+        self.Variables.sysVariableIndex += 1
+        return f"__sys_var_{self.Variables.sysVariableIndex}"
 
     def check_builtin(self, function_name, args, kwargs):
         if function_name == "print":
@@ -89,7 +90,19 @@ class BuiltinsPC:
         else:
             if len(kwargs.keys()) > 0:
                 raise Exception("print() got an unexpected keyword argument")
-        return "cout << " + " << ' ' << ".join([a[0] for a in args]) + newline + ";", None, False
+        res = []
+        lastsplit = 0
+        space = "<< ' ' <<"
+        for i,arg in enumerate(args):
+            arg, dt = arg
+            if dt in Constants.PRIMITIVE_ARRAY_TYPES:
+
+                if lastsplit < i: res.append(f"cout << {space.join(a[0] for a in args[lastsplit:i])};")
+                res.append(f"for (int i = 0; i < sizeof({arg}) / sizeof({arg}[0]); i++) cout << {arg}[i] << ' ';")
+                lastsplit = i + 1
+
+        if lastsplit < len(args): res.append(f"cout << {space.join(a[0] for a in args[lastsplit:])} {newline};")
+        return "".join(res), None, False
 
     def do_analog_read(self, args, kwargs):
         self.Variables.connection_needed = True

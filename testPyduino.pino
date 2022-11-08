@@ -1,5 +1,3 @@
 #main
-print("Hello World")
-#board
-print("Hello World")
-delay(100)
+int[] x = {2,4,2,4,3,2}
+print(x,32,"Hello")

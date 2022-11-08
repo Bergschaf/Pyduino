@@ -11,7 +11,7 @@ class Constants:
     VALID_NAME_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
     PRIMITIVE_TYPES = ["int", "float", "char", "bool","byte", "long", "double", "short"]
-    PRIMITIVE_ARRAY_TYPES = ["array<int>", "array<float>", "array<char>", "array<bool>","array<byte>", "array<long>", "array<double>", "array<short>"]
+    PRIMITIVE_ARRAY_TYPES = ["int[]", "float[]", "char[]", "bool[]","byte[]", "long[]", "double[]", "short[]"]
     PRIMITIVE_LIST_TYPES = ["list<int>", "list<float>", "list<char>", "list<bool>","list<byte>", "list<long>", "list<double>", "list<short>"]
 
     NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]

@@ -21,20 +21,27 @@ with open("../testPyduino.pino", "r") as f:
         raise SyntaxError("No start defined, it should be '#board' or '#main' at the beginning")
 
 # main code
+connection_needed = False
 if code_pc is not None:
-    compiler = Compiler(Constants(), Variables(), code_pc, "pc")
-    c_code_pc = compiler.compile()
+    compiler_pc = Compiler(Variables(), code_pc, "pc")
+    c_code_pc = compiler_pc.compile()
+    connection_needed = compiler_pc.Variables.connection_needed
+    if code_board is not None:
+        compiler_board = Compiler(Variables(), code_board, "arduino")
+        c_code_board = compiler_board.compile()
+        connection_needed = True if compiler_board.Variables.connection_needed else connection_needed
+        c_code_board = compiler_board.finish(connection_needed)
+        with open("../testPyduino/testPyduino.ino", "w") as f:
+            f.write(c_code_board)
+    c_code_pc = compiler_pc.finish(connection_needed)
+    with open("../testPyduino.cpp", "w") as f:
+        f.write(c_code_pc)
 
-if code_board is not None:
-    compiler = Compiler(Constants(), Variables(), code_board, "arduino")
-    c_code_board = compiler.compile()
-    with open("../testPyduino/testPyduino.ino", "w") as f:
-        f.write(c_code_board)
 
-subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../../testPyduino/testPyduino.ino", shell=True)
+subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
 # list all device
 out = subprocess.run("arduino-cli board list", shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
 print("....................")
 print(out.split("\n"))
 # Upload to device on COM5
-subprocess.run("arduino-cli upload -p COM8 --fqbn arduino:avr:uno ../../testPyduino/testPyduino.ino", shell=True)
+subprocess.run("arduino-cli upload -p COM8 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
