@@ -1,3 +1,4 @@
 #main
 int[] x = {2,4,2,4,3,2}
-print(x,32,"Hello")
+for i in range(len(x)):
+    print(i)

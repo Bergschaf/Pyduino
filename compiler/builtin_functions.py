@@ -1,8 +1,8 @@
 from constants import Constants
-class BuiltinsArduino:
+
+class Builtins:
     def __init__(self, variables):
         self.Variables = variables
-
     def next_sys_variable(self):
         self.Variables.sysVariableIndex += 1
         return f"__sys_var_{self.Variables.sysVariableIndex}"
@@ -16,6 +16,24 @@ class BuiltinsArduino:
             return self.do_analog_write(args, kwargs)
         elif function_name == "delay":
             return self.do_delay(args, kwargs)
+        elif function_name == "len":
+            return self.do_len(args,kwargs)
+
+    def do_len(self, args, kwargs):
+        if len(args) != 1 or len(kwargs) > 0:
+            raise SyntaxError(f"Unexpected argument to function 'len' at line {self.Variables.currentLineIndex}")
+        arg, dt = args[0]
+        if dt not in Constants.ITERABLES:
+            raise SyntaxError(f"Can only determine length of iterable")
+        if dt in Constants.PRIMITIVE_ARRAY_TYPES:
+            return f"sizeof({arg}) / sizeof({arg}[0])", True
+
+
+class BuiltinsArduino(Builtins):
+    def __init__(self, variables):
+        super().__init__(variables)
+        self.Variables = variables
+
 
     def do_analog_read(self, args, kwargs):
         pin, dt = args[0]
@@ -63,23 +81,10 @@ class BuiltinsArduino:
         return f"betterdelay({args[0][0]})", "void", True
 
 
-class BuiltinsPC:
+class BuiltinsPC(Builtins):
     def __init__(self, variables):
+        super().__init__(variables)
         self.Variables = variables
-
-    def next_sys_variable(self):
-        self.Variables.sysVariableIndex += 1
-        return f"__sys_var_{self.Variables.sysVariableIndex}"
-
-    def check_builtin(self, function_name, args, kwargs):
-        if function_name == "print":
-            return self.do_print(args, kwargs)
-        elif function_name == "analogRead":
-            return self.do_analog_read(args, kwargs)
-        elif function_name == "analogWrite":
-            return self.do_analog_write(args, kwargs)
-        elif function_name == "delay":
-            return self.do_delay(args, kwargs)
 
     def do_print(self, args, kwargs):
         newline = "<< endl"

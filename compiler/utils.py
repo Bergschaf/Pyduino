@@ -282,7 +282,7 @@ class Utils:
 
             else:
                 val, dt = self.do_value(elements[1])
-                if dt[:5] == "array":
+                if dt in Constants.ITERABLES:
 
                     for_code = [
 

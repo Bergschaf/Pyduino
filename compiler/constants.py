@@ -13,6 +13,7 @@ class Constants:
     PRIMITIVE_TYPES = ["int", "float", "char", "bool","byte", "long", "double", "short"]
     PRIMITIVE_ARRAY_TYPES = ["int[]", "float[]", "char[]", "bool[]","byte[]", "long[]", "double[]", "short[]"]
     PRIMITIVE_LIST_TYPES = ["list<int>", "list<float>", "list<char>", "list<bool>","list<byte>", "list<long>", "list<double>", "list<short>"]
+    ITERABLES = PRIMITIVE_ARRAY_TYPES + PRIMITIVE_LIST_TYPES
 
     NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     ARITHMETIC_OPERATORS = ["+", "-", "*", "/", "%"]

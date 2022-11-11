@@ -3,12 +3,14 @@
 //
 #include <iostream>
 #include "SerialClass.h"
-#include <chrono>
-#include <thread>
+
 
 using namespace std;
+#include <chrono>
+#include <thread>
 using namespace std::chrono;
 using namespace std::this_thread;
+
 
 const int StartCharacter = 60; // <
 const int EndCharacter = 62; // >
