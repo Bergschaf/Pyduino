@@ -93,7 +93,7 @@ class Utils:
 
         instruction = line.strip()
         if instruction[0] == "#":
-            return
+            return ""
         elif any([instruction.startswith(i) for i in
                   Constants.PRIMITIVE_TYPES + Constants.PRIMITIVE_ARRAY_TYPES]):
             if (f := self.check_function_definition(instruction)) is not None:
@@ -154,7 +154,7 @@ class Utils:
             value, dt = self.do_value(value)
             if dt != datatype and dt is not None:
                 raise SyntaxError(
-                    f"Datatype of {name} at line {self.Variables.currentLineIndex} ({dt}) is not {datatype}")
+                    f"Datatype of '{name}' at line {self.Variables.currentLineIndex} ({dt} is not {datatype})")
             if self.variable_in_scope(name, self.Variables.currentLineIndex):
                 raise SyntaxError(f"Variable {name} at line {self.Variables.currentLineIndex} already defined")
             self.add_variable_to_scope(name, datatype, self.Variables.currentLineIndex)
@@ -249,7 +249,7 @@ class Utils:
                 raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
             for i in range(row + 1, self.Variables.totalLineCount):
                 if self.Variables.indentations[i] < self.Variables.indentations[row + 1]:
-                    end_indentation_index = i - 1
+                    end_indentation_index = i
                     break
             else:
                 end_indentation_index = self.Variables.totalLineCount - 1
@@ -384,11 +384,17 @@ class Utils:
                     return value, "int"
             raise SyntaxError(f"'{value}' at line {self.Variables.currentLineIndex} is not a number")
 
-        elif value[0] == "[":
-            raise NotImplementedError("Lists are not implemented yet")
-
-        elif value[0] == "(":
-            raise NotImplementedError("Tuples are not implemented yet")
+        elif "[" in value and value[-1] == "]":
+            start = value.index("[")
+            arg, dt = self.variable_in_scope(value[:start], self.Variables.currentLineIndex)
+            if dt not in Constants.ITERABLES:
+                raise SyntaxError(
+                    f"Can only get an Element out of an Iterable, not {dt} at line {self.Variables.currentLineIndex}")
+            if dt in Constants.PRIMITIVE_ARRAY_TYPES:
+                index, dtid = self.do_value(value[start + 1:-1])
+                if dtid != "int":
+                    raise SyntaxError(f"Array index can only be int, not {dtid}")
+                return f"{arg}[{index}]", dt[:-2]
 
         elif value == "True":
             return "true", "bool"
@@ -406,7 +412,8 @@ class Utils:
 
     def add_variable_to_scope(self, name, datatype, line_index):
         for start, end in self.Variables.scope.keys():
-            if start <= line_index <= end and self.Variables.indentations[start] == self.Variables.indentations[line_index]:
+            if start <= line_index <= end and self.Variables.indentations[start] == self.Variables.indentations[
+                line_index]:
                 self.Variables.scope[(start, end)][0].append((name, datatype, line_index))
                 return
 
@@ -414,6 +421,19 @@ class Utils:
         """
         :return: (name, datatype) if variable is in scope, else None
         """
+        if "[" in name and name[-1] == "]":
+            start = name.index("[")
+            index = name[start + 1:-1]
+            name = name[:start]
+            _, dt = self.variable_in_scope(name, line_index)
+            if dt not in Constants.ITERABLES:
+                raise SyntaxError(f"Can only assign element to iterable, not to {self.Variables.currentLineIndex}")
+            if dt in Constants.PRIMITIVE_ARRAY_TYPES:
+                _ , dti = self.do_value(index)
+                if dti != "int":
+                    raise SyntaxError(f"Array index can only be int, not {dti}")
+                return f"{name}[{index}]", dt[:-2]
+
         for start, end in self.Variables.scope.keys():
             if start <= line_index <= end:
                 for i in self.Variables.scope[(start, end)][0]:
