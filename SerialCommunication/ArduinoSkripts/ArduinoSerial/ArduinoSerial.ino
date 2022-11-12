@@ -1,37 +1,32 @@
-using namespace std;
 
+using namespace std;
 
 const int StartCharacter = 60;   // <
 const int EndCharacter = 62;     // >
 const int SpaceCharacter = 124;  // |
 const int MaxDataLength = 100;
-const int MaxRequests = 50;
+const int MaxRequests = 100;
 const int MaxMillisecondsToWaitForData = 2000;
 const byte analogPorts[6] = {A0, A1, A2, A3, A4, A5};
 char Requests[MaxRequests];
 char Responses[MaxRequests][MaxDataLength];
 
-void setup() {
-
-    Serial.begin(256000);
-
-    innit_serial();
-}
-
-void loop() {
-}
 
 bool Handshake() {
+    analogWrite(10,255);
     while (true) {
         delay(1);
         if (Serial.available() > 0) {
             char incomingData = Serial.read();
+            analogWrite(10,100);
             if (incomingData == '*') {
                 Serial.write('*');
                 while (true) {
                     Serial.write('*');
                     delay(1);
                     if (Serial.available() > 0) {
+                        analogWrite(10,0);
+
                         incomingData = Serial.read();
                         if (incomingData == 'T') {
                             return true;
@@ -45,12 +40,39 @@ bool Handshake() {
     }
 }
 
-char getNextRequestId() {
-    for (uint8_t i = 0; i < MaxRequests; i++) {
-        if (Requests[i] == 0) {
-            return (char) i;
+void checkSerial(){
+    if (Serial.available()) {
+        byte data = Serial.read();
+        int incomingDataSize = 0;
+        byte incomingData[MaxDataLength];
+        if (data == StartCharacter) {
+            incomingDataSize = 1;
+            incomingData[0] = data;
+            while (incomingDataSize < MaxDataLength) {
+                if (Serial.available()) {
+                    data = Serial.read();
+
+                    if (data == EndCharacter) {
+                        incomingData[incomingDataSize] = data;
+                        decodeSerial(incomingData, incomingDataSize);
+                        incomingDataSize = 0;
+                        break;
+                    } else {
+                        incomingData[incomingDataSize] = data;
+                        incomingDataSize++;
+                    }
+                }
+            }
         }
     }
+}
+
+char getNextRequestId() {
+    for (uint8_t i = 51; i < MaxRequests; i++) {
+        if (Requests[i] == 0) {
+            return (byte) i;
+        }
+    }}
 }
 
 // TODO implement asynchronous waiting for data
@@ -160,7 +182,7 @@ void decodeRequest(const byte *data, int size) {
     } else if (instruction == 'b') {
         if (valueSize == 2) {
             analogWrite(value[0], int(uint8_t(value[1])));
-            sendResponse(requestID,new char[1] {' '},1);
+            sendResponse(requestID, new char[1]{' '}, 1);
         }
     } else if (instruction == 'c') {
         if (valueSize == 1) {
@@ -186,35 +208,34 @@ void decodeSerial(const byte *data, int size) {
     }
 }
 
+void do_print(const String data[], int size, bool newline) {
+    int len = 0;
+    for (int i = 0; i < size; ++i) {
+        len += data[i].length() + 1;
+    }
+    if (newline) {
+        len++;
+    }
+    char data_char[len];
+    int index = 0;
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < data[i].length(); ++j) {
+            data_char[index] = data[i][j];
+            index++;
+        }
+        data_char[index] = ' ';
+        index++;
+    }
+    if (newline) {
+        data_char[index] = '\n';}
+    sendRequest('l', data_char, len);
+}
 
 void innit_serial() {
-
+    Serial.begin(256000);
     byte incomingData[MaxDataLength] = "";
     int incomingDataSize = 0;
-
     Handshake();
-    while (true) {
-        if (Serial.available()) {
-            byte data = Serial.read();
-            if (data == StartCharacter) {
-                incomingDataSize = 1;
-                incomingData[0] = data;
-                while (incomingDataSize < MaxDataLength) {
-                    if (Serial.available()) {
-                        data = Serial.read();
+    checkSerial();
 
-                        if (data == EndCharacter) {
-                            incomingData[incomingDataSize] = data;
-                            decodeSerial(incomingData, incomingDataSize);
-                            incomingDataSize = 0;
-                            break;
-                        } else {
-                            incomingData[incomingDataSize] = data;
-                            incomingDataSize++;
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

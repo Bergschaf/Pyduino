@@ -15,6 +15,7 @@ Instruction + Value:
     i (105) : getIntArray (Value Variable ID (4 bytes))
     j (106) : getFloatArray (Value Variable ID (4 bytes))
     k (107) : getCharArray (Value Variable ID (4 bytes))
+    l (109) : print (Value Chars)
 Request ID: 1 bytes, 0 - 50 von PC aus, 51 - 100 von Arduino aus
 Error:
     Unexpected Char:
