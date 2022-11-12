@@ -191,7 +191,7 @@ class TestUtilsArduino(unittest.TestCase):
             compiler.do_value("test2")
         self.assertEqual(str(context.exception), "Value 'test2' at line 0 is not defined")
 
-        compiler = get_new_compiler([""])
+        compiler = get_new_compiler(["", "", "", ""])
         with self.assertRaises(SyntaxError) as context:
             compiler.do_value("test")
         self.assertEqual(str(context.exception), "Value 'test' at line 0 is not defined")
@@ -223,6 +223,14 @@ class TestUtilsArduino(unittest.TestCase):
         self.assertEqual(compiler.variable_in_scope("test2", 1), ("test2", "int"))
         self.assertEqual(compiler.variable_in_scope("test2", 2), ("test2", "int"))
         self.assertEqual(compiler.variable_in_scope("test2", 3), None)
+
+    def test_do_for(self):
+        compiler = get_new_compiler(["for i in range(10):", "    print(i)"])
+        compiler.do_line("for i in range(10):")
+
+class TestCompiler(unittest.TestCase):
+    def test(self):
+        pass
 
 
 if __name__ == '__main__':
