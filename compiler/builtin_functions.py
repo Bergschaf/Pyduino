@@ -89,7 +89,7 @@ class BuiltinsPC(Builtins):
     def do_print(self, args, kwargs):
         newline = "<< endl"
         if "newline" in kwargs.keys():
-            newline = "" if not kwargs["newline"] else "<< endl"
+            newline = "" if kwargs["newline"] == "False" else "<< endl"
             if len(kwargs.keys()) > 1:
                 raise Exception("print() got an unexpected keyword argument")
         else:
@@ -106,7 +106,8 @@ class BuiltinsPC(Builtins):
                 res.append(f"for (int i = 0; i < sizeof({arg}) / sizeof({arg}[0]); i++) cout << {arg}[i] << ' ';")
                 lastsplit = i + 1
 
-        if lastsplit < len(args): res.append(f"cout << {space.join(a[0] for a in args[lastsplit:])} {newline};")
+        if lastsplit < len(args): res.append(f"cout << {space.join(a[0] for a in args[lastsplit:])};")
+        res.append(f"cout {newline};")
         return "".join(res), None, False
 
     def do_analog_read(self, args, kwargs):

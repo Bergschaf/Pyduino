@@ -1,17 +1,20 @@
 #include <iostream>
             using namespace std;
 int main(){
-int x[] = {2, 4, 2, 4, 3, 2};
+int x[] = {4, 1, 6, 2, 98, 3, 7, 8, 9, 10};
+for (int i = 0; i < sizeof(x) / sizeof(x[0]); i++) cout << x[i] << ' ';cout << endl;;
 for (int i = 0; i <  sizeof(x) / sizeof(x[0])  ; i++) {
-for (int j = i; j <  sizeof(x) / sizeof(x[0])  ; j++) {
-if (x<x[min]) {
 int min = i;
+for (int j = i; j <  sizeof(x) / sizeof(x[0])  ; j++) {
+if (x[j]<x[min]) {
 min = j;
 }
-int temp = x[min];
 }
+
+int temp = x[min];
 x[min] = x[i];
 x[i] = temp;
-for (int i = 0; i < sizeof(x) / sizeof(x[0]); i++) cout << x[i] << ' ';;
 }
+
+for (int i = 0; i < sizeof(x) / sizeof(x[0]); i++) cout << x[i] << ' ';cout << endl;;
 }

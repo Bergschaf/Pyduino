@@ -38,9 +38,14 @@ def heapsort(arr):
 
 
 if __name__ == '__main__':
-    arr = [2, 5, 6, 3, 5, 8, 67, 43, 3, 4]
-    arr.sort()
-    print(arr)
+    x = 2
+    print(type(x))
+    if input() == "1":
+        x = True
+    else:
+        x = 3
+
+    print(x + "ahhlo")
 
 
 

@@ -145,7 +145,6 @@ class Utils:
         :param line: The complete line of the variable definition
         :return: The definition converted to C++
         """
-        print(line)
         line = line.strip()
         datatype = line.split("=")[0].strip().split(" ")[0].strip()
         if datatype in Constants.PRIMITIVE_TYPES:
@@ -249,7 +248,7 @@ class Utils:
                 raise SyntaxError(f"Expected indentation at line {row + 1}, (indentation = 4 Spaces)")
             for i in range(row + 1, self.Variables.totalLineCount):
                 if self.Variables.indentations[i] < self.Variables.indentations[row + 1]:
-                    end_indentation_index = i
+                    end_indentation_index = i - 1
                     break
             else:
                 end_indentation_index = self.Variables.totalLineCount - 1
@@ -292,12 +291,10 @@ class Utils:
                     raise SyntaxError("Expected array or range() in for loop")
             self.add_variable_to_scope(counter_variable, dt[:-2], self.Variables.currentLineIndex)
             [self.Variables.code_done.append(x) for x in for_code]
-            for_code = []
             while self.Variables.currentLineIndex < end_indentation_index:
                 self.Variables.currentLineIndex, l = next(self.Variables.iterator)
-                for_code.append(self.do_line(l))
-            for_code.append("}")
-            return "\n".join(for_code)
+                self.Variables.code_done.append(self.do_line(l))
+            return "}\n"
         else:
             raise SyntaxError(f"Expected ':' at line {self.Variables.currentLineIndex} col {col_index}")
 
@@ -328,6 +325,7 @@ class Utils:
                 for j in range(i, -1, -1):
                     if j in Constants.ALL_SYNTAX_ELEMENTS:
                         start_col = j + 1
+
                         break
                 else:
                     start_col = 0
@@ -356,10 +354,12 @@ class Utils:
                         valueList.append(value[lastsplit:i])
                     lastsplit = i + 1
                 else:
-                    valueList.append(value[lastsplit:i])
+                    valueList.append(self.do_value(value[lastsplit:i]))
                     lastsplit = i + 1
         if len(valueList) > 0:
             valueList.append(self.do_value(value[lastsplit:]))
+            print(valueList)
+
             # TODO datatype
             return "".join([x[0] for x in valueList]), valueList[-1][1]
 
@@ -395,6 +395,8 @@ class Utils:
                 if dtid != "int":
                     raise SyntaxError(f"Array index can only be int, not {dtid}")
                 return f"{arg}[{index}]", dt[:-2]
+            else:
+                raise SyntaxError(f"Iterable not implemented")
 
         elif value == "True":
             return "true", "bool"
@@ -412,8 +414,8 @@ class Utils:
 
     def add_variable_to_scope(self, name, datatype, line_index):
         for start, end in self.Variables.scope.keys():
-            if start <= line_index <= end and self.Variables.indentations[start] == self.Variables.indentations[
-                line_index]:
+            if start <= line_index <= end and self.Variables.indentations[
+                line_index] == self.Variables.indentations[start]:
                 self.Variables.scope[(start, end)][0].append((name, datatype, line_index))
                 return
 
@@ -429,7 +431,7 @@ class Utils:
             if dt not in Constants.ITERABLES:
                 raise SyntaxError(f"Can only assign element to iterable, not to {self.Variables.currentLineIndex}")
             if dt in Constants.PRIMITIVE_ARRAY_TYPES:
-                _ , dti = self.do_value(index)
+                _, dti = self.do_value(index)
                 if dti != "int":
                     raise SyntaxError(f"Array index can only be int, not {dti}")
                 return f"{name}[{index}]", dt[:-2]

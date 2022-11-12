@@ -1,5 +1,6 @@
 #main
-int[] x = {2,4,2,4,3,2}
+int[] x = {4,1,6,2,98,3,7,8,9,10}
+print(x)
 for i in range(len(x)):
     int min = i
     for j in range(i,len(x)):
@@ -8,4 +9,5 @@ for i in range(len(x)):
     int temp = x[min]
     x[min] = x[i]
     x[i] = temp
+
 print(x)
