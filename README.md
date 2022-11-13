@@ -27,53 +27,46 @@ float y = 3.14
 Arrays are declared with the datatype, name and an intializer list.
 ```c
 int[] x = [1, 2, 3]
+int y[] = [x[0], 23, 42]
 ```
 
-### Functions
+### Loops
+There are two types of loops: for loops and while loops. They work the same as in Python.
+```python
+# for loop
+for i in range(10):
+    print(i)
 
-operatoren: ,+ ,-, *, / ,% ,// für floor division,
+for i in y:
+    print(i)
+   
+# while loop
+int x = 0
+while x < 10:
+    print(x)
+    x += 1
+```
+You can also use the `break` and `continue` keywords to break out of a loop or skip the current iteration. 
 
-python and or not etc.
-geht aber auch mit !, ||, &&
+### Input and Output 
+The print function prints to the PC's console. If it is called on the Arduino and the Arduino is connected to the PC, it will print to the PC's console as well.
+```python
+print("Hello World")
+print("x = ", x)
+```
 
-print(value1,valie2,...,break=default True,round=default 0 für nicht runden)
+The analogRead reads the value of the analog pin on the Arduino and returns it as an int from 0 to 1023. The digitalRead reads the value of the digital pin and returns it as a boolean.
+```python
+analogRead(0)
+digitalRead(1)
+```
 
+The analogWrite writes an analog value to the pin. The value must be an int from 0 to 255. The digitalWrite writes a digital value to the pin.
+```python
+analogWrite(11,255)
+digitalWrite(12, 0)
+```
 
-python loops \
-break und continue\
-python classes \
-static types for variables and lists:\
-int,float,double,string, char,int8...., bool\
-typecasting mit: \
-int(float, string etc) \
-round funktion zu float, ggf mit stellen\
-roundToInt Funktion zu int\
-
-liste: list<type> name = [element1,element2,...] .add .remove \
-array: array<type> name = []\
-tupel: tuple<type1,type2> = ()\
-dict : dict<keyType,valueType> = {key:value,key:value} oder lehr: {}\
-element: array/list/tupel[index]
-
-Arduino: \
-write(port,value)
-value: True,1,0, False für ein und aus,von 1 bis 0 für analog
-tone Befehl wie arduino \
-read(port) returns value: 1,0 bool
-delay(millis)
-
-analogRead(analogPort): value von 1 bis 0
-
-math modul für sin cost tan wurzel etc
-
-Jeder (globalen) Variable auf dem Arduino und auf dem Pc wird ein index zugewiesen.\
-GetVariable(name) gibt den Wert zurück
-
-Promise?
-Asynchorer Datenaustausch mit dem Arduino
-
-Await Syntax:
-Alle Funktion um Daten vom Arduino zu bekommen sind asynchron,|\
-wenn await for dem Funktionsaufruf steht, wird erst weitergemacht, wenn die Daten da sind|\
-sonst muss async davor stehen
+These functions can also be called on the PC if the Arduino is connected to the PC. The PC will then write to the Arduino's
+serial port and the Arduino will read the value and write it to the pin, but this process is a lot slower than calling the functions directly on the Arduino.
 
