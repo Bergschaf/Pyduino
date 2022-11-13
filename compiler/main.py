@@ -1,11 +1,13 @@
 from compiler import Compiler
 from variables import Variables
-from constants import Constants
+from distutils.ccompiler import new_compiler
 import subprocess
 
 code_pc = None
 code_board = None
-with open("../testPyduino.pino", "r") as f:
+Path = "../testPyduino"
+Filename = "testPyduino"
+with open(Path + ".pino", "r") as f:
     code = [l.strip("\n").rstrip() for l in f.readlines() if l.strip("\n").replace(" ", "") != ""]
     if code[0] == "#main":
         for i in range(len(code)):
@@ -31,17 +33,24 @@ if code_pc is not None:
         c_code_board = compiler_board.compile()
         connection_needed = True if compiler_board.Variables.connection_needed else connection_needed
         c_code_board = compiler_board.finish(connection_needed)
-        with open("../testPyduino/testPyduino.ino", "w") as f:
+        with open(Path + ".ino", "w") as f:
             f.write(c_code_board)
+        subprocess.run(f"arduino-cli compile --fqbn arduino:avr:uno {Path}.ino", shell=True)
+        # list all device
+        out = subprocess.run("arduino-cli board list", shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
+        print("....................")
+        print(out.split("\n"))
+        # Upload to device on COM5
+        subprocess.run(f"arduino-cli upload -p COM8 --fqbn arduino:avr:uno {Path}.ino", shell=True)
     c_code_pc = compiler_pc.finish(connection_needed)
-    with open("../testPyduino.cpp", "w") as f:
+    with open(Path + ".cpp", "w") as f:
         f.write(c_code_pc)
+    compiler = new_compiler()
+    compiler.compile([Path + '.cpp'], output_dir="../output")
+    compiler.link_executable([Path + '.obj'], Filename, output_dir="../output")
+    print("Running Code:")
+    subprocess.call(f"..\\\\output\\\\{Filename}.exe", shell=True)
 
 
-subprocess.run("arduino-cli compile --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
-# list all device
-out = subprocess.run("arduino-cli board list", shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
-print("....................")
-print(out.split("\n"))
-# Upload to device on COM5
-subprocess.run("arduino-cli upload -p COM8 --fqbn arduino:avr:uno ../testPyduino/testPyduino.ino", shell=True)
+
+

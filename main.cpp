@@ -15,24 +15,6 @@ void mergesort(int arr[],int res[], int l, int r, int size){
 
 
 int main() {
-   int x = 1;
-
-   if{
-       x
-   }
-
+    cout << "Hello, World!" << endl;
 }
 
-void betterdelay(int ms){
-    unsigned long current = millis();
-    while(millis() - current < ms){
-        checkSerial();
-    }
-}
-
-auto  x(){
-    if(1 > 2){
-        return "Hallo";
-    }
-    return 1;
-}
