@@ -80,11 +80,9 @@ class Compiler(Utils):
             return "\n".join([open("../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
                                    "r").read()] + self.Variables.code_done)
         if connection_needed:
-            self.Variables.code_done.insert(0,"""#include "SerialCommunication/SerialPc.cpp"
-                                using namespace std;""")
+            self.Variables.code_done.insert(0,'#include "SerialCommunication/SerialPc.cpp|\nusing namespace std;')
         else:
-            self.Variables.code_done.insert(0, """#include <iostream>
-            using namespace std;""")
+            self.Variables.code_done.insert(0, "#include <iostream>\nusing namespace std;")
 
         if "delay" in self.Variables.builtins_needed:
             self.Variables.code_done[0] +=  """\n#include <chrono>\n#include <thread>\nusing namespace std::chrono;\nusing namespace std::this_thread;\n"""

@@ -230,7 +230,21 @@ class TestUtilsArduino(unittest.TestCase):
 
 class TestCompiler(unittest.TestCase):
     def test(self):
-        pass
+
+        compiler = get_new_compiler(['for i in range(10):', "    print(i)", 'print("test")'])
+        compiler.compile()
+        self.assertEqual(compiler.finish(False),"""#include <iostream>
+using namespace std;
+int main(){
+for (int i = 0; i < 10 ; i++) {
+cout << i;cout << endl;;
+}
+
+cout << "test";cout << endl;;
+}""")
+        
+
+
 
 
 if __name__ == '__main__':
