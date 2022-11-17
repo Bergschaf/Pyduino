@@ -1,8 +1,12 @@
 from constants import Constants
+from error import Error
+
 
 class Builtins:
-    def __init__(self, variables):
+    def __init__(self, variables, errors):
         self.Variables = variables
+        self.errors = errors
+
     def next_sys_variable(self):
         self.Variables.sysVariableIndex += 1
         return f"__sys_var_{self.Variables.sysVariableIndex}"
@@ -17,7 +21,7 @@ class Builtins:
         elif function_name == "delay":
             return self.do_delay(args, kwargs)
         elif function_name == "len":
-            return self.do_len(args,kwargs)
+            return self.do_len(args, kwargs)
 
     def do_len(self, args, kwargs):
         if len(args) != 1 or len(kwargs) > 0:
@@ -30,25 +34,42 @@ class Builtins:
 
 
 class BuiltinsArduino(Builtins):
-    def __init__(self, variables):
-        super().__init__(variables)
+    def __init__(self, variables, errors):
+        super().__init__(variables, errors)
         self.Variables = variables
-
+        self.errors = errors
 
     def do_analog_read(self, args, kwargs):
         pin, dt = args[0]
         if dt != "int":
-            raise Exception("analogRead() argument 1 must be 'int', not " + dt)
+            self.errors.append(
+                Error(f"analogRead() argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index(f"analogRead({pin})") + 11,
+                      end_column=self.Variables.currentLine.index(f"analogRead({pin})") + 11 + len(pin)))
+            return None, None, True
         if len(args) > 1:
-            raise Exception("analogRead() takes exactly 1 argument")
+            self.errors.append(
+                Error(f"analogRead() takes 1 positional argument but {len(args)} were given", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index(f"analogRead({pin})") + 11,
+                      end_column=self.Variables.currentLine.index(f"analogRead({pin})") + 11 + len(pin)))
+            return None, None, True
         if len(kwargs.keys()) > 0:
-            raise Exception("analogRead() got an unexpected keyword argument")
+            self.errors.append(
+                Error(f"analogRead() got an unexpected keyword argument", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index(f"analogRead({pin})") + 11,
+                      end_column=self.Variables.currentLine.index(f"analogRead({pin})") + 11 + len(pin)))
+            return None, None, True
         return f"analogRead(A{pin})", "int", True
 
     def do_analog_write(self, args, kwargs):
         pin, dt = args[0]
         value, dt2 = args[1]
         if dt != "int" and dt is not None:
+            self.errors.append(
+                Error(f"analogWrite() argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index(f"analogWrite({pin}, {value})") + 12,
+                      end_column=self.Variables.currentLine.index(f"analogWrite({pin}, {value})") + 12 + len(pin)))
+            return None, None, True
             raise Exception("analogWrite() arguments  must be 'int', not " + dt)
         if dt2 != "int" and dt2 is not None:
             raise Exception("analogWrite() arguments  must be 'int', not " + dt2)
@@ -82,9 +103,10 @@ class BuiltinsArduino(Builtins):
 
 
 class BuiltinsPC(Builtins):
-    def __init__(self, variables):
-        super().__init__(variables)
+    def __init__(self, variables, errors):
+        super().__init__(variables, errors)
         self.Variables = variables
+        self.errors = errors
 
     def do_print(self, args, kwargs):
         newline = "<< endl"
@@ -98,7 +120,7 @@ class BuiltinsPC(Builtins):
         res = []
         lastsplit = 0
         space = "<< ' ' <<"
-        for i,arg in enumerate(args):
+        for i, arg in enumerate(args):
             arg, dt = arg
             if dt in Constants.PRIMITIVE_ARRAY_TYPES:
 

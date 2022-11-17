@@ -1,5 +1,5 @@
 class Error:
-    def __init__(self, message, line, column):
+    def __init__(self, message, line, column, end_line=None, end_column=None):
         self.message = message
         self.line = line
         self.column = column

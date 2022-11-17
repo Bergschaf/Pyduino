@@ -5,6 +5,7 @@ class Variables:
         self.connection_needed = False
         self.code_done = []
         self.currentLineIndex = 0
+        self.currentColumnIndex = 0
         self.iterator = None
         self.sysVariableIndex = 0
         self.iteratorLineIndex = 0
