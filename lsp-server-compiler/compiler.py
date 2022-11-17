@@ -1,6 +1,6 @@
 from utils import Utils
 from builtin_functions import BuiltinsArduino, BuiltinsPC
-from constants import Constants
+from error import Error
 from variables import Variables
 
 
@@ -16,6 +16,9 @@ class Compiler(Utils):
         self.code = code
         self.Variables = variables
         self.mode = mode
+        self.compiling = False
+        self.errors: list[Error] = []
+
         self.intialize()
 
     def intialize(self):
@@ -50,8 +53,11 @@ class Compiler(Utils):
         self.Variables.iterator = enumerate(self.Variables.code)
 
     def compile(self):
+        self.errors = []
+        self.compiling = True
         for self.Variables.currentLineIndex, line in self.Variables.iterator:
             self.Variables.code_done.append(self.do_line(line))
+        self.compiling = False
 
     def finish(self, connection_needed):
         self.Variables.code_done.append("}")
@@ -80,15 +86,20 @@ class Compiler(Utils):
             return "\n".join([open("../SerialCommunication/ArduinoSkripts/ArduinoSerial/ArduinoSerial.ino",
                                    "r").read()] + self.Variables.code_done)
         if connection_needed:
-            self.Variables.code_done.insert(0,'#include "SerialCommunication/SerialPc.cpp|\nusing namespace std;')
+            self.Variables.code_done.insert(0, '#include "SerialCommunication/SerialPc.cpp|\nusing namespace std;')
         else:
             self.Variables.code_done.insert(0, "#include <iostream>\nusing namespace std;")
 
         if "delay" in self.Variables.builtins_needed:
-            self.Variables.code_done[0] +=  """\n#include <chrono>\n#include <thread>\nusing namespace std::chrono;\nusing namespace std::this_thread;\n"""
+            self.Variables.code_done[
+                0] += """\n#include <chrono>\n#include <thread>\nusing namespace std::chrono;\nusing namespace std::this_thread;\n"""
 
         if connection_needed:
-            self.Variables.code_done.insert(1,"int main(){ Arduino arduino = Arduino();")
+            self.Variables.code_done.insert(1, "int main(){ Arduino arduino = Arduino();")
         else:
-            self.Variables.code_done.insert(1,"int main(){")
+            self.Variables.code_done.insert(1, "int main(){")
         return "\n".join(self.Variables.code_done)
+
+    def get_completion(self, line, col):
+        while self.compiling:
+            pass
