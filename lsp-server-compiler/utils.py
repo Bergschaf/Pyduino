@@ -350,10 +350,11 @@ class Utils:
             self.Variables.code_done.append(self.do_line(l))
         return "}\n"
 
-    def do_value(self, value) -> (str, str):
+    def do_value(self, value, after_col=0) -> (str, str):
         """
+        :param after_col: value is the first occurence of the string value after this  column in the current line
         :param value:
-        :return: -1,-1 if there is an error
+        :return: "",-1 if there is an error
         """
         value = value.strip()
         if len(value) == 0:
@@ -361,14 +362,14 @@ class Utils:
 
         if value.count("'") % 2 == 1:
             self.errors.append(Error("Expected \"'\" after character", self.Variables.currentLineIndex,
-                                     self.Variables.currentLine.index(value),
+                                     self.Variables.currentLine.index(value, start=after_col),
                                      end_column=len(self.Variables.currentLine)))
-            return -1, -1
+            return "", -1
         if value.count('"') % 2 == 1:
             self.errors.append(Error("Expected '\"' after string", self.Variables.currentLineIndex,
-                                     self.Variables.currentLine.index(value),
+                                     self.Variables.currentLine.index(value, start=after_col),
                                      end_column=len(self.Variables.currentLine)))
-            return -1, -1
+            return "", -1
 
         if value[0] == '"':
             if value[-1] == '"':
@@ -432,21 +433,9 @@ class Utils:
             self.errors.append(Error("Value is not a number", self.Variables.currentLineIndex,
                                      self.Variables.currentLine.index(value),
                                      end_column=len(self.Variables.currentLine)))
-            return -1, -1
+            return "", -1
 
-        if value[0] in Constants.VALID_NAME_LETTERS:
-            for i in range(len(value)):
-                if value[i] not in Constants.VALID_NAME_LETTERS and value[i] != " ":
-                    break
-            else:
-                if value in self.Variables.variables:
-                    return value, self.Variables.variables[value][1]
-                else:
-                    self.errors.append(Error(f"Variable '{value}' is not defined", self.Variables.currentLineIndex,
-                                             self.Variables.currentLine.index(value),
-                                             end_column=len(self.Variables.currentLine)))
-                    return -1, -1
-        elif value[0] == "-" or value[0] == "+" and value[1] in Constants.NUMBERS:
+        if value[0] == "-" or value[0] == "+" and value[1] in Constants.NUMBERS:
             for i in range(1, len(value)):
                 if value[i] not in Constants.NUMBERS and value[i] != "." and value[i] != " ":
                     break
@@ -456,9 +445,9 @@ class Utils:
                 else:
                     return value, "int"
             self.errors.append(Error("Value is not a number", self.Variables.currentLineIndex,
-                                     self.Variables.currentLine.index(value),
+                                     self.Variables.currentLine.index(value, after_col),
                                      end_column=len(self.Variables.currentLine)))
-            return -1, -1
+            return "", -1
 
         elif "[" in value and value[-1] == "]":
             start = value.index("[")
@@ -466,21 +455,21 @@ class Utils:
             if dt not in Constants.ITERABLES:
                 self.errors.append(Error(f"Can only get element out of iterable type, not out of '{dt}'",
                                          self.Variables.currentLineIndex,
-                                         self.Variables.currentLine.index(value),
+                                         self.Variables.currentLine.index(value, after_col),
                                          end_column=len(value) + self.Variables.currentLine.index(value)))
-                return -1, -1
+                return "", -1
 
             if dt in Constants.PRIMITIVE_ARRAY_TYPES:
                 index, dtid = self.do_value(value[start + 1:-1])
                 if dtid != "int":
                     self.errors.append(Error(f"Array Index must be int, not '{dtid}'", self.Variables.currentLineIndex,
-                                             self.Variables.currentLine.index(value),
+                                             self.Variables.currentLine.index(value, after_col),
                                              end_column=len(value) + self.Variables.currentLine.index(value)))
-                    return -1, -1
+                    return "", -1
                 return f"{arg}[{index}]", dt[:-2]
             else:
                 self.errors.append(Error("Iterable type not yet implemented", self.Variables.currentLineIndex,
-                                         self.Variables.currentLine.index(value),
+                                         self.Variables.currentLine.index(value, after_col),
                                          end_column=len(value) + self.Variables.currentLine.index(value)))
 
         elif value == "True":
@@ -489,21 +478,21 @@ class Utils:
         elif value == "False":
             return "false", "bool"
 
-        elif (s := self.variable_in_scope(value, self.Variables.currentLineIndex)) is not None:
+        elif s := self.variable_in_scope(value, self.Variables.currentLineIndex):
             return value, s[1]
 
         elif (f := self.check_function_execution(value)) is not None:
             return f[0], f[1]
         else:
             self.errors.append(Error("Value is not defined", self.Variables.currentLineIndex,
-                                     self.Variables.currentLine.index(value),
+                                     self.Variables.currentLine.index(value,after_col),
                                      end_column=len(self.Variables.currentLine)))
-            return -1, -1
+            return "", -1
 
     def add_variable_to_scope(self, name, datatype, line_index):
         for start, end in self.Variables.scope.keys():
             if start <= line_index <= end and self.Variables.indentations[
-                        line_index] == self.Variables.indentations[start]:
+                line_index] == self.Variables.indentations[start]:
                 self.Variables.scope[(start, end)][0].append((name, datatype, line_index))
                 return
 
@@ -521,7 +510,7 @@ class Utils:
                                          self.Variables.currentLineIndex,
                                          self.Variables.currentLine.index(name),
                                          end_column=len(name) + self.Variables.currentLine.index(name)))
-                return ""
+                return "", None
             if dt in Constants.PRIMITIVE_ARRAY_TYPES:
                 _, dti = self.do_value(index)
                 if dti != "int":
@@ -530,14 +519,17 @@ class Utils:
                                              self.Variables.currentLine.index(name) + len(name),
                                              end_column=len(name) + self.Variables.currentLine.index(name) + len(
                                                  index)))
-                    return ""
+                    return "", None
                 return f"{name}[{index}]", dt[:-2]
+        return False
 
         for start, end in self.Variables.scope.keys():
             if start <= line_index <= end:
                 for i in self.Variables.scope[(start, end)][0]:
                     if i[0] == name and i[2] <= line_index:
                         return i[:2]
+
+        return -1
 
     @staticmethod
     def get_line_indentation(line):
@@ -561,3 +553,49 @@ class Utils:
             return -1
 
         return f"{{{', '.join([x[0] for x in args])}}}", dt
+
+
+class StaticUtils:
+    @staticmethod
+    def find_closing_bracket_in_value(errors, variables, value, bracket, start_col):
+        """
+        :param value: the value to search in
+        :param bracket: the bracket to search for
+        :param start_col: the column to start searching from
+        """
+        if type(bracket) is not str or len(bracket) != 1:
+            raise SyntaxError(f"Bracket has to be a string of length 1")
+        if bracket not in "([{":
+            raise SyntaxError(f"'{bracket}' is not a valid opening bracket")
+        if value[start_col] != bracket:
+            raise SyntaxError(f"Value does not start with '{bracket}'")
+        closing_bracket = Constants.CLOSING_BRACKETS[bracket]
+        bracket_level_1 = 0
+        bracket_level_2 = 0
+        bracket_level_3 = 0
+        if bracket == "(":
+            bracket_level_1 = 1
+        elif bracket == "[":
+            bracket_level_2 = 1
+        elif bracket == "{":
+            bracket_level_3 = 1
+        col = start_col + 1
+        while col < len(value):
+            if value[col] == Constants.BRACKETS[0]:
+                bracket_level_1 += 1
+            elif value[col] == Constants.BRACKETS[1]:
+                bracket_level_1 -= 1
+            elif value[col] == Constants.BRACKETS[2]:
+                bracket_level_2 += 1
+            elif value[col] == Constants.BRACKETS[3]:
+                bracket_level_2 -= 1
+            elif value[col] == Constants.BRACKETS[4]:
+                bracket_level_3 += 1
+            elif value[col] == Constants.BRACKETS[5]:
+                bracket_level_3 -= 1
+            if value[col] == closing_bracket and bracket_level_1 == 0 and bracket_level_2 == 0 and bracket_level_3 == 0:
+                return col
+            col += 1
+
+        errors.append(Error(f"No closing bracket found for '{bracket}'",
+                            variables.currentLineIndex, variables.currentLine.find(value)))

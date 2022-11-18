@@ -6,10 +6,11 @@ from variables import Variables
 
 class Compiler(Utils):
     def __init__(self, variables: Variables, code: list, mode: str):
+        self.errors: list[Error] = []
         if mode == "arduino":
-            builtins = BuiltinsArduino(variables)
+            builtins = BuiltinsArduino(variables,self.errors)
         elif mode == "pc":
-            builtins = BuiltinsPC(variables)
+            builtins = BuiltinsPC(variables,self.errors)
         else:
             raise Exception("Invalid mode")
         super().__init__(variables, builtins)
@@ -17,7 +18,6 @@ class Compiler(Utils):
         self.Variables = variables
         self.mode = mode
         self.compiling = False
-        self.errors: list[Error] = []
 
         self.intialize()
 
@@ -103,3 +103,11 @@ class Compiler(Utils):
     def get_completion(self, line, col):
         while self.compiling:
             pass
+
+if __name__ == '__main__':
+    code = open("../testPyduino.pino", "r").readlines()
+    variables = Variables()
+    compiler = Compiler(variables, code, "pc")
+    compiler.compile()
+    print("\n".join([str(x) for x in compiler.errors]))
+    print(compiler.Variables.scope)

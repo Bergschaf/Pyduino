@@ -1,9 +1,9 @@
 In meinem Projekt habe ich eine einfachere Programmiersprache für den Microcontroller Arduino entwickelt.
-Sie soll mit einem Python-ähnlichen Syntax den Einstieg ins Programmieren erleichtern, da für den Arduino sonst
+Sie soll mit einer Python-ähnlichen Syntax den Einstieg ins Programmieren erleichtern, da für den Arduino sonst
 die schwierigere Programmiersprache C verwendet werden muss. Um dies möglich zu machen, habe ich einen Transpiler in
-Python programmiert, der den Pyduino Syntax in C Syntax übersetzt und auf Fehler überprüft. Dieses C Programm wird dann
-für den PC und den Arduino kompiliert. So kann der selbe Syntax auf beiden Plattformen ausgeführt werden. Wenn der PC mit
-dem Arduino via USB verbunden ist, kann der PC auf Sensoren und Aktoren des Arduinos zugreifen und der Arduino kann Text
+Python programmiert, der die Pyduino Syntax in C Syntax übersetzt und auf Fehler überprüft. Dieses C Programm wird dann
+für den PC und den Arduino kompiliert. So kann die selbe Syntax auf beiden Plattformen ausgeführt werden. Wenn der PC mit
+dem Arduino verbunden ist, kann der PC auf die Ports des Arduinos zugreifen und der Arduino kann Text
 in der Konsole des PCs ausgeben, auf Dateien zugreifen und Funktionen aufrufen. Mit Pyduino kann der Arduino vom PC aus
-gesteuert werden, ohne das Programm jedes mal hochladen zu müssen. Außerdem hat der Arduino so Zugriff auf die Rechenleistung
-eines PCs, was die Einsatzmöglichkeiten stark erweitert.
+gesteuert werden, ohne das Programm jedes mal hochladen zu müssen und selbst auf die Rechenleistung
+eines PCs zugreifen, was die Einsatzmöglichkeiten des verbreiteten Microcontrollers stark erweitert.

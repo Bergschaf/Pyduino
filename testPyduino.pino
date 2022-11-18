@@ -1,13 +1,6 @@
 #main
-int[] x = {4,1,6,2,98,3,7,8,9,10}
-print(x)
-for i in range(len(x)):
-    int min = i
-    for j in range(i,len(x)):
-        if x[j] < x[min]:
-            min = j
-    int temp = x[min]
-    x[min] = x[i]
-    x[i] = temp
-
-print(x)
+int x = 3
+print(y)
+if x == 4
+    int y = 2
+    print(x)
