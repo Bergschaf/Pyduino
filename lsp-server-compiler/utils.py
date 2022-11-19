@@ -3,8 +3,8 @@ from error import Error
 
 
 class Utils:
-    def __init__(self, variables, builtins):
-        self.errors = None
+    def __init__(self, variables, builtins, errors):
+        self.errors = errors
         self.Variables = variables
         self.Builtins = builtins
 
@@ -95,8 +95,9 @@ class Utils:
         return args, kwargs
 
     def do_line(self, line):
-
         instruction = line.strip()
+        if instruction == "":
+            return ""
         self.Variables.currentColumnIndex = line.index(instruction)
         self.Variables.currentLine = line
         if instruction[0] == "#":
@@ -175,10 +176,10 @@ class Utils:
             name = line.split("=")[0].strip().split(" ")[1].strip()
             value = line.split("=")[1].strip()
             value, dt = self.do_array_intializer(value)
-            if dt != datatype[:-2]:
-                self.errors.append(Error(f"Datatype mismatch: {datatype} != {dt}", self.Variables.currentLineIndex,
-                                         self.Variables.currentLine.find(line)))
-                return ""
+            if dt != -1:
+                if dt != datatype[:-2]:
+                    self.errors.append(Error(f"Datatype mismatch: {datatype} != {dt}", self.Variables.currentLineIndex,
+                                             self.Variables.currentLine.find(line)))
             if self.variable_in_scope(name, self.Variables.currentLineIndex):
                 self.errors.append(Error(f"Variable '{name}' already defined in this scope",
                                          self.Variables.currentLineIndex, self.Variables.currentLine.find(name)))
@@ -266,7 +267,7 @@ class Utils:
 
     def do_for(self, line):
         col_index = line.index("for") + 3
-        if line.strip()[-1] == ":":
+        if line.strip()[-1] != ":":
             self.errors.append(
                 Error("Expected ':' after for", self.Variables.currentLineIndex, len(self.Variables.currentLine) - 1))
 
@@ -342,8 +343,8 @@ class Utils:
                                          self.Variables.currentLine.index("for"),
                                          end_column=len(self.Variables.currentLine)))
                 for_code = []
-
-        self.add_variable_to_scope(counter_variable, dt[:-2], self.Variables.currentLineIndex)
+        if dt != -1:
+            self.add_variable_to_scope(counter_variable, dt[:-2], self.Variables.currentLineIndex)
         [self.Variables.code_done.append(x) for x in for_code]
         while self.Variables.currentLineIndex < end_indentation_index:
             self.Variables.currentLineIndex, l = next(self.Variables.iterator)
@@ -521,7 +522,6 @@ class Utils:
                                                  index)))
                     return "", None
                 return f"{name}[{index}]", dt[:-2]
-        return False
 
         for start, end in self.Variables.scope.keys():
             if start <= line_index <= end:
@@ -529,7 +529,7 @@ class Utils:
                     if i[0] == name and i[2] <= line_index:
                         return i[:2]
 
-        return -1
+        return False
 
     @staticmethod
     def get_line_indentation(line):
@@ -539,6 +539,12 @@ class Utils:
         return (len(line) - len(line.lstrip())) // Constants.DEFAULT_INDEX_LEVEL
 
     def do_array_intializer(self, value):
+        if not (value[0] == "[" and value[-1] == "]"):
+            self.errors.append(Error("Array initializer must start with '[' and end with ']'",
+                                     self.Variables.currentLineIndex,
+                                     self.Variables.currentLine.index(value),
+                                     end_column=len(value) + self.Variables.currentLine.index(value)))
+            return "", -1
         args, kwargs = self.do_arguments(value[1:-1])
         if len(kwargs) != 0:
             self.errors.append(
@@ -550,7 +556,7 @@ class Utils:
             self.errors.append(
                 Error(f"Array initializer can not have different datatypes at line {self.Variables.currentLineIndex}",
                       self.Variables.currentLineIndex, self.Variables.currentLine.index(value)))
-            return -1
+            return "",-1
 
         return f"{{{', '.join([x[0] for x in args])}}}", dt
 

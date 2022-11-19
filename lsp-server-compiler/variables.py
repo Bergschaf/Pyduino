@@ -11,3 +11,4 @@ class Variables:
         self.iteratorLineIndex = 0
         self.builtins_needed = []
         self.indentations = []
+        self.totalLineCount = 0

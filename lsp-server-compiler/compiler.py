@@ -5,20 +5,23 @@ from variables import Variables
 
 
 class Compiler(Utils):
-    def __init__(self, variables: Variables, code: list, mode: str):
+    def __init__(self, code: list, mode: str, variables: Variables = None):
+        if variables is None:
+            self.Variables = Variables()
+        else:
+            self.Variables = variables
+
         self.errors: list[Error] = []
         if mode == "arduino":
-            builtins = BuiltinsArduino(variables,self.errors)
+            builtins = BuiltinsArduino(self.Variables, self.errors)
         elif mode == "pc":
-            builtins = BuiltinsPC(variables,self.errors)
+            builtins = BuiltinsPC(self.Variables, self.errors)
         else:
             raise Exception("Invalid mode")
-        super().__init__(variables, builtins)
+        super().__init__(self.Variables, builtins, self.errors)
         self.code = code
-        self.Variables = variables
         self.mode = mode
         self.compiling = False
-
         self.intialize()
 
     def intialize(self):
@@ -29,6 +32,7 @@ class Compiler(Utils):
         self.Variables.totalLineCount = len(self.code)
         for line in self.code:
             self.Variables.indentations.append(self.get_line_indentation(line))
+        self.Variables.indentations.append(0)  # copium to prevent index out of range
         self.Variables.code = self.code.copy()
         self.Variables.code_done = []
 
@@ -53,7 +57,7 @@ class Compiler(Utils):
         self.Variables.iterator = enumerate(self.Variables.code)
 
     def compile(self):
-        self.errors = []
+        self.errors.clear()
         self.compiling = True
         for self.Variables.currentLineIndex, line in self.Variables.iterator:
             self.Variables.code_done.append(self.do_line(line))
@@ -103,11 +107,3 @@ class Compiler(Utils):
     def get_completion(self, line, col):
         while self.compiling:
             pass
-
-if __name__ == '__main__':
-    code = open("../testPyduino.pino", "r").readlines()
-    variables = Variables()
-    compiler = Compiler(variables, code, "pc")
-    compiler.compile()
-    print("\n".join([str(x) for x in compiler.errors]))
-    print(compiler.Variables.scope)

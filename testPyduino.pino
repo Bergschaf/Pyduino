@@ -1,6 +1,4 @@
 #main
-int x = 3
-print(y)
-if x == 4
-    int y = 2
-    print(x)
+float[] i = [3.34,2.32,4.2]
+while i < 10:
+   print(i)

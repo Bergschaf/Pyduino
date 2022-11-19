@@ -194,71 +194,96 @@ class BuiltinsPC(Builtins):
         res.append(f"cout {newline};")
         return "".join(res), None, False
 
-
-def do_analog_read(self, args, kwargs):
-    self.Variables.connection_needed = True
-    self.Variables.builtins_needed.append("analogRead")
-    pin, dt = args[0]
-    if dt != "int":
-        self.errors.append(
-            Error(f"'analogRead' argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
-                  self.Variables.currentLine.index("analogRead") + 11, end_column=
-                  StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
-                                                            self.Variables.currentLine
-                                                            , "(", self.Variables.currentLine.index("("))))
-        return "", None, True
-    if len(args) > 1:
-        self.errors.append(
-            Error(f"'analogRead' takes 1 positional argument but {len(args)} were given", self.Variables.currentLineIndex,
-                  self.Variables.currentLine.index("analogRead") + 11, end_column=
-                  StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
-                                                            self.Variables.currentLine
-                                                            , "(", self.Variables.currentLine.index("("))))
-
-    if len(kwargs.keys()) > 0:
-        self.errors.append(
-            Error(f"'analogRead' got an unexpected keyword argument", self.Variables.currentLineIndex,
-                  self.Variables.currentLine.index("analogRead") + 11, end_column=
-                  StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
-                                                            self.Variables.currentLine
-                                                            , "(", self.Variables.currentLine.index("("))))
-
-    sys_var = self.next_sys_variable()
-    code = ["short " + sys_var + ";""arduino.analogRead(" + pin + ", &" + sys_var + ");"]
-    [self.Variables.code_done.append(l) for l in code]
-    return sys_var, "int", True
-
-
-def do_analog_write(self, args, kwargs):
-    self.Variables.connection_needed = True
-    pin, dt = args[0]
-    value, dt2 = args[1]
-    if dt != "int" or dt2 != "int":
-        self.errors.append(
-            Error(f"'analogWrite' argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
-                  self.Variables.currentLine.index("analogWrite") + 12, end_column=
-                  StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
-                                                            self.Variables.currentLine
-                                                            , "(", self.Variables.currentLine.index("("))))
-        return "", None, True
-    if len(args) != 2:
-        self.errors.append(
-            Error(f"'analogWrite' takes 2 positional arguments but {len(args)} were given", self.Variables.currentLineIndex,
-                  self.Variables.currentLine.index("analogWrite") + 12, end_column=
-                  StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
-                                                            self.Variables.currentLine
-                                                            , "(", self.Variables.currentLine.index("("))))
-
-    if len(kwargs.keys()) > 0:
-        self.errors.append(
-            Error(f"'analogWrite' got an unexpected keyword argument", self.Variables.currentLineIndex,
-                    self.Variables.currentLine.index("analogWrite") + 12, end_column=
-                    StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+    def do_analog_read(self, args, kwargs):
+        self.Variables.connection_needed = True
+        self.Variables.builtins_needed.append("analogRead")
+        pin, dt = args[0]
+        if dt != "int":
+            self.errors.append(
+                Error(f"'analogRead' argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogRead") + 11, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
                                                                 self.Variables.currentLine
                                                                 , "(", self.Variables.currentLine.index("("))))
-    return f"arduino.analogWrite(char({pin}), char({value}));", "void", True
+            return "", None, True
+        if len(args) > 1:
+            self.errors.append(
+                Error(f"'analogRead' takes 1 positional argument but {len(args)} were given",
+                      self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogRead") + 11, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
 
+        if len(kwargs.keys()) > 0:
+            self.errors.append(
+                Error(f"'analogRead' got an unexpected keyword argument", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogRead") + 11, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
 
-def do_delay(self, args, kwargs):
-    self.Variables.builtins_needed.append("delay")
-    return f"sleep_for(milliseconds({args[0][0]}));", "void", True
+        sys_var = self.next_sys_variable()
+        code = ["short " + sys_var + ";""arduino.analogRead(" + pin + ", &" + sys_var + ");"]
+        [self.Variables.code_done.append(l) for l in code]
+        return sys_var, "int", True
+
+    def do_analog_write(self, args, kwargs):
+        self.Variables.connection_needed = True
+        pin, dt = args[0]
+        value, dt2 = args[1]
+        if dt != "int" or dt2 != "int":
+            self.errors.append(
+                Error(f"'analogWrite' argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogWrite") + 12, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+            return "", None, True
+        if len(args) != 2:
+            self.errors.append(
+                Error(f"'analogWrite' takes 2 positional arguments but {len(args)} were given",
+                      self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogWrite") + 12, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+
+        if len(kwargs.keys()) > 0:
+            self.errors.append(
+                Error(f"'analogWrite' got an unexpected keyword argument", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("analogWrite") + 12, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+        return f"arduino.analogWrite(char({pin}), char({value}));", "void", True
+
+    def do_delay(self, args, kwargs):
+        self.Variables.builtins_needed.append("delay")
+        if len(args) != 1:
+            self.errors.append(
+                Error(f"'delay' takes 1 positional argument but {len(args)} were given",
+                      self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("delay") + 6, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+
+        if len(kwargs.keys()) > 0:
+            self.errors.append(
+                Error(f"'delay' got an unexpected keyword argument", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("delay") + 6, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+        value, dt = args[0]
+        print(dt)
+        if dt != "int":
+            self.errors.append(
+                Error(f"'delay' argument 1 must be 'int', not {dt}", self.Variables.currentLineIndex,
+                      self.Variables.currentLine.index("delay") + 6, end_column=
+                      StaticUtils.find_closing_bracket_in_value(self.errors, self.Variables,
+                                                                self.Variables.currentLine
+                                                                , "(", self.Variables.currentLine.index("("))))
+            return "", None, True
+        return f"sleep_for(milliseconds({value}));", "void", True
