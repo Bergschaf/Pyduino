@@ -15,6 +15,8 @@ void mergesort(int arr[],int res[], int l, int r, int size){
 
 
 int main() {
-    cout << "Hello, World!" << endl;
+    while(true){
+        ;
+    }
 }
 

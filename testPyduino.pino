@@ -1,4 +1,5 @@
 #main
 float[] i = [3.34,2.32,4.2]
-while i < 10:
-   print(i)
+continue
+for i in range(1323):
+    break

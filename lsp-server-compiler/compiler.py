@@ -60,6 +60,7 @@ class Compiler(Utils):
         self.errors.clear()
         self.compiling = True
         for self.Variables.currentLineIndex, line in self.Variables.iterator:
+            self.Variables.inLoop = False
             self.Variables.code_done.append(self.do_line(line))
         self.compiling = False
 

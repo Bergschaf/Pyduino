@@ -119,10 +119,11 @@ class Utils:
         # TODO: das am Ende
         elif "=" in instruction:
             return self.do_variable_assignment(instruction)
-        # TODO ggf fix
-        elif "++" in instruction:
-            return instruction + ";"
+        elif instruction == "break" or instruction == "continue":
+            return self.do_break_continue(instruction)
         else:
+            self.errors.append(Error(f"Unknown instruction '{instruction}'",
+                                     self.Variables.currentLineIndex, 0, end_column=len(self.Variables.currentLine)))
             return ""
 
     def check_function_definition(self, line):
@@ -346,11 +347,19 @@ class Utils:
         if dt != -1:
             self.add_variable_to_scope(counter_variable, dt[:-2], self.Variables.currentLineIndex)
         [self.Variables.code_done.append(x) for x in for_code]
+        self.Variables.inLoop = True
         while self.Variables.currentLineIndex < end_indentation_index:
             self.Variables.currentLineIndex, l = next(self.Variables.iterator)
             self.Variables.code_done.append(self.do_line(l))
         return "}\n"
 
+    def do_break_continue(self, line):
+        if not self.Variables.inLoop:
+            self.errors.append(Error(f"Can only {line} in a loop", self.Variables.currentLineIndex,
+                                     self.Variables.indentations[self.Variables.currentLineIndex] * 4,
+                                     end_column=len(self.Variables.currentLine)))
+            return ""
+        return line + ";"
     def do_value(self, value, after_col=0) -> (str, str):
         """
         :param after_col: value is the first occurence of the string value after this  column in the current line
@@ -398,9 +407,12 @@ class Utils:
         if len(valueList) > 0:
             valueList.append(self.do_value(value[last_function_end:]))
             # TODO return datatype here
-            return " ".join([x[0] for x in valueList]), valueList[0][1]
+            if not any([x is None or x[1] == -1 for x in valueList]):
+                return " ".join([x[0] for x in valueList]), valueList[0][1]
+            return "", -1
 
         # TODO split by operators
+
         lastsplit = 0
         for i in range(len(value) - 1):
             # check if the value is and with whitespace aroud it
@@ -486,7 +498,7 @@ class Utils:
             return f[0], f[1]
         else:
             self.errors.append(Error("Value is not defined", self.Variables.currentLineIndex,
-                                     self.Variables.currentLine.index(value,after_col),
+                                     self.Variables.currentLine.index(value, after_col),
                                      end_column=len(self.Variables.currentLine)))
             return "", -1
 
@@ -556,7 +568,7 @@ class Utils:
             self.errors.append(
                 Error(f"Array initializer can not have different datatypes at line {self.Variables.currentLineIndex}",
                       self.Variables.currentLineIndex, self.Variables.currentLine.index(value)))
-            return "",-1
+            return "", -1
 
         return f"{{{', '.join([x[0] for x in args])}}}", dt
 
