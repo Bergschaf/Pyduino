@@ -1,5 +1,7 @@
 #main
-float[] i = [3.34,2.32,4.2]
-continue
-for i in range(1323):
-    break
+int x = 2
+print(x)
+if x == 2:
+    print("x equals two!")
+print("x")
+print("x does not equal to two.")

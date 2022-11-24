@@ -58,9 +58,18 @@ class Compiler(Utils):
 
     def compile(self):
         self.errors.clear()
+        if self.Variables.totalLineCount == 0:
+            return
         self.compiling = True
+        _ , line = next(self.Variables.iterator)
+        if self.mode == "pc":
+            if line.replace(" ", "") != "#main":
+                self.errors.append(Error("Missing #main at the beginning of the file", 0, 0, end_column=len(line)))
+        else:
+            if line.replace(" ", "") != "#board":
+                self.errors.append(Error("Missing #board at the beginning of the board part", 0, 0, end_column=len(line)))
+        self.Variables.inLoop = 0
         for self.Variables.currentLineIndex, line in self.Variables.iterator:
-            self.Variables.inLoop = False
             self.Variables.code_done.append(self.do_line(line))
         self.compiling = False
 
@@ -108,3 +117,28 @@ class Compiler(Utils):
     def get_completion(self, line, col):
         while self.compiling:
             pass
+
+    @staticmethod
+    def get_compiler(code: list):
+        code_pc = []
+        code_board = []
+        code = [i.replace("\n", "") for i in code]
+        if code[0].replace(" ", "") == "#main":
+            for i in range(len(code)):
+                if code[i].replace(" ", "") == "#board":
+                    code_pc = code[:i]
+                    code_board = code[i:]
+                    break
+            else:
+                code_pc = code
+        elif code[0].replace(" ", "") == "#board":
+            for i in range(len(code)):
+                if code[i].replace(" ", "") == "#main":
+                    code_board = code[:i]
+                    code_pc = code[i:]
+                    break
+                else:
+                    code_board = code
+        else:
+            code_pc = code.copy()
+        return Compiler(code_pc, "pc"), Compiler(code_board, "arduino")

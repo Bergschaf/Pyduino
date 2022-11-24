@@ -12,4 +12,5 @@ class Variables:
         self.builtins_needed = []
         self.indentations = []
         self.totalLineCount = 0
-        self.inLoop = False
+        self.inLoop = 0
+        self.inIndentation = 0

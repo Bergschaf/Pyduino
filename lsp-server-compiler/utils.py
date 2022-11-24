@@ -96,6 +96,10 @@ class Utils:
 
     def do_line(self, line):
         instruction = line.strip()
+        if self.get_line_indentation(line) != self.Variables.inIndentation:
+            self.errors.append(Error(f"Indentation error", self.Variables.currentLineIndex, 0))
+        if (len(line) - len(line.lstrip())) % Constants.DEFAULT_INDEX_LEVEL != 0:
+            self.errors.append(Error(f"Indentation error", self.Variables.currentLineIndex, 0))
         if instruction == "":
             return ""
         self.Variables.currentColumnIndex = line.index(instruction)
@@ -143,7 +147,7 @@ class Utils:
         if (f := self.Builtins.check_builtin(function_name, args, kwargs)) is not None:
             # and f[2]: TODO only let functions like cout through if the return value isn'T used
             return f[0], f[1]
-            # TODO check if function is defined
+            #  TODO check if function is defined
 
         """
         :return: (function translated to C++, return type, False here if the C++ representation works not as a function
@@ -156,18 +160,22 @@ class Utils:
         :param line: The complete line of the variable definition
         :return: The definition converted to C++
         """
+        if "=" not in line:
+            self.errors.append(Error("No value assigned to variable",
+                                     self.Variables.currentLineIndex, self.Variables.currentLine.find(line)))
+            return ""
         line = line.strip()
         datatype = line.split("=")[0].strip().split(" ")[0].strip()
         if datatype in Constants.PRIMITIVE_TYPES:
             name = line.split("=")[0].strip().split(" ")[1].strip()
             value = line.split("=")[1].strip()
             value, dt = self.do_value(value)
-            if dt != datatype and dt is not None:
-                self.errors.append(Error(f"Datatype mismatch: {datatype} != {dt}", self.Variables.currentLineIndex,
-                                         self.Variables.currentLine.find(line)))
-                return ""
-
-            if self.variable_in_scope(name, self.Variables.currentLineIndex):
+            if dt != -1:
+                if dt != datatype:
+                    self.errors.append(Error(f"Datatype mismatch: {datatype} != {dt}", self.Variables.currentLineIndex,
+                                             self.Variables.currentLine.find(line)))
+                    return ""
+            if self.variable_in_scope(name, self.Variables.currentLineIndex)[1]:
                 self.errors.append(Error(f"Variable '{name}' already defined in this scope",
                                          self.Variables.currentLineIndex, self.Variables.currentLine.find(name)))
                 return ""
@@ -181,7 +189,7 @@ class Utils:
                 if dt != datatype[:-2]:
                     self.errors.append(Error(f"Datatype mismatch: {datatype} != {dt}", self.Variables.currentLineIndex,
                                              self.Variables.currentLine.find(line)))
-            if self.variable_in_scope(name, self.Variables.currentLineIndex):
+            if self.variable_in_scope(name, self.Variables.currentLineIndex)[1]:
                 self.errors.append(Error(f"Variable '{name}' already defined in this scope",
                                          self.Variables.currentLineIndex, self.Variables.currentLine.find(name)))
                 return ""
@@ -203,7 +211,7 @@ class Utils:
         value, dt = self.do_value(value)
         if dt == -1:
             return ""
-        if not self.variable_in_scope(name, self.Variables.currentLineIndex):
+        if not self.variable_in_scope(name, self.Variables.currentLineIndex)[0]:
             self.errors.append(Error(f"Variable '{name}' not defined in this scope", self.Variables.currentLineIndex,
                                      self.Variables.currentLine.find(name)))
             return ""
@@ -234,9 +242,11 @@ class Utils:
             end_indentation_index = self.Variables.totalLineCount - 1
         self.Variables.code_done.append(f"if ({condition}) {{")
         if_code = []
+        self.Variables.inIndentation += 1
         while self.Variables.currentLineIndex < end_indentation_index:
             self.Variables.currentLineIndex, l = next(self.Variables.iterator)
             if_code.append(self.do_line(l))
+        self.Variables.inIndentation -= 1
         if_code.append("}")
         return "\n".join(if_code)
 
@@ -260,9 +270,13 @@ class Utils:
             end_indentation_index = self.Variables.totalLineCount - 1
         self.Variables.code_done.append(f"while ({condition}) {{")
         if_code = []
+        self.Variables.inLoop += 1
+        self.Variables.inIndentation += 1
         while self.Variables.currentLineIndex < end_indentation_index:
             self.Variables.currentLineIndex, l = next(self.Variables.iterator)
             if_code.append(self.do_line(l))
+        self.Variables.inLoop -= 1
+        self.Variables.inLoop -= 1
         if_code.append("}")
         return "\n".join(if_code)
 
@@ -347,19 +361,23 @@ class Utils:
         if dt != -1:
             self.add_variable_to_scope(counter_variable, dt[:-2], self.Variables.currentLineIndex)
         [self.Variables.code_done.append(x) for x in for_code]
-        self.Variables.inLoop = True
+        self.Variables.inLoop += 1
+        self.Variables.inIndentation += 1
         while self.Variables.currentLineIndex < end_indentation_index:
             self.Variables.currentLineIndex, l = next(self.Variables.iterator)
             self.Variables.code_done.append(self.do_line(l))
+        self.Variables.inLoop -= 1
+        self.Variables.inIndentation -= 1
         return "}\n"
 
     def do_break_continue(self, line):
-        if not self.Variables.inLoop:
+        if 0 == self.Variables.inLoop:
             self.errors.append(Error(f"Can only {line} in a loop", self.Variables.currentLineIndex,
                                      self.Variables.indentations[self.Variables.currentLineIndex] * 4,
                                      end_column=len(self.Variables.currentLine)))
             return ""
         return line + ";"
+
     def do_value(self, value, after_col=0) -> (str, str):
         """
         :param after_col: value is the first occurence of the string value after this  column in the current line
@@ -464,7 +482,13 @@ class Utils:
 
         elif "[" in value and value[-1] == "]":
             start = value.index("[")
-            arg, dt = self.variable_in_scope(value[:start], self.Variables.currentLineIndex)
+            arg, dt = self.variable_in_scope(value[:start], self.Variables.currentLineIndex, after_col=after_col)
+            if not dt:
+                self.errors.append(Error(f"Variable is not defined in this scope", self.Variables.currentLineIndex,
+                                         self.Variables.currentLine.index(value, after_col),
+                                         self.Variables.currentLine.index(value, after_col) + len(value)))
+                return "", -1
+
             if dt not in Constants.ITERABLES:
                 self.errors.append(Error(f"Can only get element out of iterable type, not out of '{dt}'",
                                          self.Variables.currentLineIndex,
@@ -491,8 +515,8 @@ class Utils:
         elif value == "False":
             return "false", "bool"
 
-        elif s := self.variable_in_scope(value, self.Variables.currentLineIndex):
-            return value, s[1]
+        elif s := self.variable_in_scope(value, self.Variables.currentLineIndex, after_col=after_col)[1]:
+            return value, s
 
         elif (f := self.check_function_execution(value)) is not None:
             return f[0], f[1]
@@ -503,13 +527,13 @@ class Utils:
             return "", -1
 
     def add_variable_to_scope(self, name, datatype, line_index):
+        print("add to scope", name, datatype)
         for start, end in self.Variables.scope.keys():
-            if start <= line_index <= end and self.Variables.indentations[
-                line_index] == self.Variables.indentations[start]:
+            if start <= line_index <= end and self.Variables.indentations[line_index] == \
+                    self.Variables.indentations[start]:
                 self.Variables.scope[(start, end)][0].append((name, datatype, line_index))
-                return
 
-    def variable_in_scope(self, name, line_index):
+    def variable_in_scope(self, name, line_index, after_col=0):
         """
         :return: (name, datatype) if variable is in scope, -1,-1 if there is an error
         """
@@ -517,7 +541,9 @@ class Utils:
             start = name.index("[")
             index = name[start + 1:-1]
             name = name[:start]
-            _, dt = self.variable_in_scope(name, line_index)
+            _, dt = self.variable_in_scope(name, line_index, after_col=after_col)
+            if not dt:
+                return False, False
             if dt not in Constants.ITERABLES:
                 self.errors.append(Error(f"Can only get element out of iterable type, not out of '{dt}'",
                                          self.Variables.currentLineIndex,
@@ -540,8 +566,7 @@ class Utils:
                 for i in self.Variables.scope[(start, end)][0]:
                     if i[0] == name and i[2] <= line_index:
                         return i[:2]
-
-        return False
+        return False, False
 
     @staticmethod
     def get_line_indentation(line):
