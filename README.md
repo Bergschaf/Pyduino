@@ -2,7 +2,7 @@
 
 Pyduino is a new programming language that allows you to write code for the Arduino Microcontroller in a Python-like syntax.
 It is designed to be easy to learn and use, and is a great way to get started with programming. The core features of Pyduino are:
-- Easy to leran, Python-like syntax
+- Easy to learn, Python-like syntax
 - The same syntax runs on both the Arduino and the PC
 - PC and Arduino can be connected via the serial port
 - The PC can acces Arduino's pins and sensors
