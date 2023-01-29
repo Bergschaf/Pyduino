@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from server import pyduino_server
+from .server import pyduino_server
 
 logging.basicConfig(filename="pygls.log", level=logging.DEBUG, filemode="w")
 
