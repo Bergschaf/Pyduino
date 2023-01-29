@@ -42,3 +42,13 @@ class Transpiler:
         instruction = line.strip()
 
 
+    def finish(self):
+        """
+        TODO add String function here in the c++ version:
+        std::string String(int value) { return std::to_string(value); }
+        std::string String(float value) { return std::to_string(value); }
+        for all datatypes
+
+        :return:
+        """
+

@@ -10,6 +10,27 @@ class Position:
         self.line = line
         self.col = col
 
+    def distance(self, other:'Position', data:'Data'):
+        return len(data.getCode(Range.fromPositions(self.bigger(other), self.smaller(other))))
+
+    def bigger(self, other):
+        if self.line > other.line:
+            return self
+        if self.line < other.line:
+            return other
+        if self.col > other.col:
+            return self
+        return other
+
+    def smaller(self, other):
+        if self.line < other.line:
+            return self
+        if self.line > other.line:
+            return other
+        if self.col < other.col:
+            return self
+        return other
+
     def __str__(self):
         return f"{self.line}:{self.col}"
 
@@ -33,7 +54,7 @@ class Range:
         self.end = Position(end_line if end_line is not None else start_line,
                             end_col if end_col is not None else start_col)
 
-    def in_range(self,position:Position):
+    def in_range(self, position: Position):
         return self.start.line <= position.line <= self.end.line and self.start.col <= position.col <= self.end.col
 
     def __str__(self):
@@ -65,11 +86,12 @@ class Data:
         self.errors: list[Error] = []
         self.enumerator: enumerate = enumerate(code)
         self.code_done: list[str] = []
+        self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
 
-    def getCode(self, location: Range | Position, newline=True) -> str:
+    def getCode(self, location: Range | Position, newline=False) -> str:
         if isinstance(location, Range):
             if newline:
                 return self.code[location.start.line][location.start.col:] + "\n".join(
@@ -141,6 +163,14 @@ class StringNotFound_ThrowError(StringNotFound_Fallback):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         raise SyntaxError(message)
 
+class StringNotFound_DoNothing(StringNotFound_Fallback):
+    """
+    This fallback will do nothing.
+    """
+
+    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+        pass
+
 
 class Range_Fallback(ABC):
     """
@@ -152,6 +182,10 @@ class Range_Fallback(ABC):
     def fallback(location: 'CurrentLocation'):
         pass
 
+class Range_SingleChar(Range_Fallback):
+    @staticmethod
+    def fallback(location: 'CurrentLocation'):
+        return Range(location.getCurrentPosition(), location.getCurrentPosition())
 
 class Range_WholeLine(Range_Fallback):
     @staticmethod
@@ -191,19 +225,17 @@ class InvalidLine_Skip(InvalidLine_Fallback):
 
 
 class CurrentLocation:
-    def __init__(self, code: list[str], indentations: list[int], line_offset: int = 0,
+    def __init__(self, code: list[str], indentations: list[int],
                  default_Range_Fallback: type(Range_Fallback) = None):
         self.code = code
         self.indentations = indentations  # list of indentation levels, 1 for each four spaces
-
-        self.line_offset = line_offset
 
         self.default_Range_Fallback: type(Range_Fallback) = Range_WholeLine \
             if default_Range_Fallback is None else default_Range_Fallback
         # the method that will be used to produced a range (or an error) if the requested string is
         # not found but a range is required
-        self.position = Position(0, 0)  # TODO WIHTOUT OFFSET
-        self.range: Range = Range(0, 0, 0, 0)  # TODO WIHTOUT OFFSET
+        self.position = Position(0, 0)
+        self.range: Range = Range(0, 0, 0, 0)
 
     def next_line(self):
         self.position.line += 1
@@ -226,12 +258,12 @@ class CurrentLocation:
         while pos < offset:
             pos += 1
             position.col += 1
-            if position.col >= len(self.code[position.line - self.line_offset]):
+            if position.col >= len(self.code[position.line]):
                 if include_newline:
                     pos += 1
                 if not include_indentation:
                     position.line += 1
-                    position.col = self.indentations[position.line - self.line_offset] * 4
+                    position.col = self.indentations[position.line] * 4
                 else:
                     position.line += 1
                     position.col = 0
@@ -242,21 +274,21 @@ class CurrentLocation:
         If with_indent is True, the range will start at the first character of the line.
         If with_indent is False, the range will start at the first non-whitespace character of the line."""
         if with_indent:
-            return Range(self.position.line + self.line_offset, 0, end_col=len(self.code[self.position.line]))
+            return Range(self.position.line, 0, end_col=len(self.code[self.position.line]))
         else:
-            return Range(self.position.line + self.line_offset, self.indentations[self.position.line] * 4,
+            return Range(self.position.line, self.indentations[self.position.line] * 4,
                          end_col=len(self.code[self.position.line]))
 
     def getCurrentPosition(self) -> Position:
         """Returns a positon object for the current position. (Might not be accurate)"""
-        return Position(self.position.line + self.line_offset, self.position.col)
+        return Position(self.position.line, self.position.col)
 
     def getCurrentRange(self) -> Range:
         """Returns a range object for the current position. (Might not be accurate)"""
-        return Range(self.range.start.line + self.line_offset, self.range.start.col, self.range.end.line + self.line_offset, self.range.end.col)
+        return Range(self.range.start.line, self.range.start.col, self.range.end.line, self.range.end.col)
 
     def getRangeFromString(self, string: str, spaces_around: bool = False,
-                           fallback: type(Range_Fallback) = None,
+                           fallback: type(Range_Fallback) = Range_WholeLine,
                            start_beginning: bool = False, line=None, col=None) -> Range:
         """
         space_around: If True, the string will be surrounded by whitespace.
@@ -289,13 +321,42 @@ class CurrentLocation:
         if pos == -1:
             return fallback.fallback(self)
         else:
-            return Range(line + self.line_offset, pos, end_col=pos + len(string))
+            return Range(line, pos, end_col=pos + len(string))
+
+    def getFullWordRange(self, position: Position, word: str = None, fallback: type[Range_Fallback] = Range_SingleChar) -> Range:
+        """
+        Tries to find the range of a word at the position. If word is None, the range of the word at the given position will be returned.
+        :param position: The beginning of the word
+        :param word:
+        :param fallback:
+        :return:
+        """
+        if word is None:
+            for i, w in enumerate(self.code[position.line][position.col:]):
+                if w in " \t":
+                    end = i
+                    break
+            else:
+                end = len(self.code[position.line]) - 1
+
+            for i, w in enumerate(self.code[position.line][:position.col:-1]):
+                if w in " \t":
+                    start = i
+                    break
+            else:
+                start = 0
+            return Range(position.line, position.col - start, end_col=position.col + end)
+        else:
+            if self.code[position.line][position.col:].startswith(word):
+                return Range(position.line, position.col, end_col=position.col + len(word))
+            self.position = position
+            return fallback.fallback(self)
+
 
     def setCursorToString(self, string: str, spaces_around: bool = False):
         """
         :param string:
         :param spaces_around: True if the string should be surrounded by whitespace
-        :param currentLine: True if the string is in the current line
         :return:
         """
         self.range = self.getRangeFromString(string, spaces_around, start_beginning=True)
@@ -402,3 +463,24 @@ class StringUtils:
         error_fallback.fallback(self.data, range, custom_message=f"No closing bracket found" \
                                                                  "for '{bracket}'", string=bracket)
         invalid_line_fallback.fallback(self.transpiler)
+
+    def searchOutsideBrackets(self, value:str, range:Range, fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> Position | bool:
+        """
+        Searches for the given value outside of brackets.
+        """
+        i = 0
+        code = self.data.getCode(range, newline=False)
+        brackets = "([{\""
+        while i < len(code):
+            if code[i] in brackets:
+                end_pos = self.findClosingBracketInRange(code[i],Range.fromPositions(self.location.getPositionOffset(range.start, i),range.end))
+                i = end_pos.distance(range.start)
+
+            elif code[i:].startswith(value):
+                return self.location.getPositionOffset(range.start, i)
+            i += 1
+        fallback.fallback(self.data, range, custom_message=f"Could not find '{value}' outside of brackets", string=value)
+        return False
+
+
+
