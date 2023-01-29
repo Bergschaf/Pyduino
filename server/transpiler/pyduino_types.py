@@ -27,6 +27,7 @@ class PyduinoType(ABC):
 
     @abstractmethod
     def divmod(self):
+        pass
 
 class PyduinoInt(PyduinoType):
     @staticmethod
