@@ -1,4 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from transpiler import Transpiler
 
 
 class Position:
@@ -24,10 +28,13 @@ class Range:
         if complete_line:
             if data is None:
                 raise ValueError("Data is required to complete line")
-            end_col = len(data.code[start_line])
+            end_col = len(data.code[end_line])
         self.start = Position(start_line, start_col)
         self.end = Position(end_line if end_line is not None else start_line,
                             end_col if end_col is not None else start_col)
+
+    def in_range(self,position:Position):
+        return self.start.line <= position.line <= self.end.line and self.start.col <= position.col <= self.end.col
 
     def __str__(self):
         return f"{self.start} - {self.end}"
@@ -46,13 +53,18 @@ class Error:
         return f"{self.message} at line {self.range}"
 
 
+class InvalidLineError(Exception):
+    pass
+
+
 class Data:
     def __init__(self, code: list[str], line_offset: int):
         self.code: list[str] = code
         self.line_offset: int = line_offset
         self.indentations: list[int] = []
         self.errors: list[Error] = []
-        self.enumerator:enumerate = enumerate(code)
+        self.enumerator: enumerate = enumerate(code)
+        self.code_done: list[str] = []
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
@@ -142,25 +154,40 @@ class Range_Fallback(ABC):
 
 
 class Range_WholeLine(Range_Fallback):
+    @staticmethod
     def fallback(location: 'CurrentLocation'):
-        return location.getLine()
+        return location.getCurrentLineRange()
 
 
 class Range_WholeLineWithIndent(Range_Fallback):
+    @staticmethod
     def fallback(location: 'CurrentLocation'):
-        return location.getLine(with_indent=True)
+        return location.getCurrentLineRange(with_indent=True)
 
 
 class Range_ThrowError(Range_Fallback):
+    @staticmethod
     def fallback(location: 'CurrentLocation'):
-        raise SyntaxError("Could not find string in line " + str(location.getPosition()))
+        raise SyntaxError("Could not find string in line " + str(location.getCurrentPosition()))
 
 
 class InvalidLine_Fallback():
     @staticmethod
     @abstractmethod
-    def fallback(transpiler: 'Transpiler', line: str, location: 'CurrentLocation'):
+    def fallback(transpiler: 'Transpiler'):
         pass
+
+
+class InvalidLine_ThrowError(InvalidLine_Fallback):
+    @staticmethod
+    def fallback(transpiler: 'Transpiler'):
+        raise SyntaxError(f"Invalid line at {transpiler.location.line}: " + transpiler.location.getCurrentLine())
+
+
+class InvalidLine_Skip(InvalidLine_Fallback):
+    @staticmethod
+    def fallback(transpiler: 'Transpiler'):
+        raise InvalidLineError()
 
 
 class CurrentLocation:
@@ -175,12 +202,15 @@ class CurrentLocation:
             if default_Range_Fallback is None else default_Range_Fallback
         # the method that will be used to produced a range (or an error) if the requested string is
         # not found but a range is required
-        self.line = 0
-        self.col = 0
+        self.position = Position(0, 0)  # TODO WIHTOUT OFFSET
+        self.range: Range = Range(0, 0, 0, 0)  # TODO WIHTOUT OFFSET
 
     def next_line(self):
-        self.line += 1
-        self.col = self.indentations[self.line] * 4
+        self.position.line += 1
+        self.position.col = self.indentations[self.position.line] * 4
+
+    def getCurrentLine(self):
+        return self.code[self.position.line]
 
     def getPositionOffset(self, position: Position, offset: int, include_newline=False,
                           include_indentation=True) -> Position:
@@ -212,14 +242,18 @@ class CurrentLocation:
         If with_indent is True, the range will start at the first character of the line.
         If with_indent is False, the range will start at the first non-whitespace character of the line."""
         if with_indent:
-            return Range(self.line + self.line_offset, 0, end_col=len(self.code[self.line]))
+            return Range(self.position.line + self.line_offset, 0, end_col=len(self.code[self.position.line]))
         else:
-            return Range(self.line + self.line_offset, self.indentations[self.line] * 4,
-                         end_col=len(self.code[self.line]))
+            return Range(self.position.line + self.line_offset, self.indentations[self.position.line] * 4,
+                         end_col=len(self.code[self.position.line]))
 
     def getCurrentPosition(self) -> Position:
         """Returns a positon object for the current position. (Might not be accurate)"""
-        return Position(self.line + self.line_offset, self.col)
+        return Position(self.position.line + self.line_offset, self.position.col)
+
+    def getCurrentRange(self) -> Range:
+        """Returns a range object for the current position. (Might not be accurate)"""
+        return Range(self.range.start.line + self.line_offset, self.range.start.col, self.range.end.line + self.line_offset, self.range.end.col)
 
     def getRangeFromString(self, string: str, spaces_around: bool = False,
                            fallback: type(Range_Fallback) = None,
@@ -234,9 +268,9 @@ class CurrentLocation:
         Returns a range object for the first occurrence of the given string in the current line
         """
         if line is None:
-            line = self.line
+            line = self.position.line
         if col is None:
-            col = self.col
+            col = self.position.col
 
         if fallback is None:
             fallback = self.default_Range_Fallback
@@ -257,11 +291,22 @@ class CurrentLocation:
         else:
             return Range(line + self.line_offset, pos, end_col=pos + len(string))
 
+    def setCursorToString(self, string: str, spaces_around: bool = False):
+        """
+        :param string:
+        :param spaces_around: True if the string should be surrounded by whitespace
+        :param currentLine: True if the string is in the current line
+        :return:
+        """
+        self.range = self.getRangeFromString(string, spaces_around, start_beginning=True)
+        self.position.col = self.range.start.col
+
 
 class StringUtils:
-    def __init__(self, location: CurrentLocation, data: 'Data'):
-        self.data = data
-        self.location = location
+    def __init__(self, location: CurrentLocation, data: 'Data', transpiler: 'Transpiler'):
+        self.transpiler = transpiler
+        self.data: Data = data
+        self.location: CurrentLocation = location
 
     def getIndentation(self, line: str, line_id: int) -> int:
         """Returns the indentation level of the given line.
@@ -282,9 +327,8 @@ class StringUtils:
 
         return indentations
 
-    def findClosingBracketInCode(self, bracket: str, pos: Position,
-                                 fallback: type[
-                                     StringNotFound_Fallback] = StringNotFound_ErrorFirstLine) -> Position:
+    def findClosingBracketInCode(self, bracket: str, pos: Position, fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
+                                 invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip) -> Position:
         """
         Searches for the closing bracket of the given bracket in the complete code.
         :param bracket:
@@ -294,9 +338,9 @@ class StringUtils:
         """
         pass
 
-    def findClosingBracketInLine(self, bracket: str, line: int, col:int = None,
-                                 fallback: type[
-                                     StringNotFound_Fallback] = StringNotFound_ErrorFirstLine) -> Position:
+    def findClosingBracketInLine(self, bracket: str, line: int, col: int = None,
+                                 fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
+                                 invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip) -> Position:
         """
         Searches for the closing bracket of the given bracket in the given line.
         :param bracket:
@@ -307,10 +351,18 @@ class StringUtils:
         """
         if col is None:
             col = 0
-        return self.findClosingBracketInRange(bracket, Range(line, col, complete_line=True), fallback)
+        return self.findClosingBracketInRange(bracket, Range(line, col, complete_line=True),
+                                              fallback)
 
-    def findClosingBracketInRange(self, bracket: str, range: Range, error_fallback: type[
-        StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> Position:
+    def findClosingBracketInRange(self, bracket: str, range: Range, error_fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange,
+                                  invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip) -> Position:
+        """
+        :param bracket:
+        :param range:
+        :param error_fallback: What error to raise (or show) if the closing bracket is not found.
+        :param invalid_line_fallback: What to do when no closing bracket is found
+        :return:
+        """
         opening_brackets = "([{\""
 
         if bracket not in opening_brackets:
@@ -348,4 +400,5 @@ class StringUtils:
                 return self.location.getPositionOffset(range.start, i)
 
         error_fallback.fallback(self.data, range, custom_message=f"No closing bracket found" \
-                                                           "for '{bracket}'", string=bracket)
+                                                                 "for '{bracket}'", string=bracket)
+        invalid_line_fallback.fallback(self.transpiler)

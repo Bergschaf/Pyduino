@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from error import Error
+from pyduino_utils import *
 
 
 class PyduinoType(ABC):
