@@ -1,7 +1,6 @@
-from pyduino_types import *
+from pyduino_utils import *
 from value import Value
-if TYPE_CHECKING:
-    from transpiler import Transpiler
+
 
 class Variable:
     def __init__(self, name: str):

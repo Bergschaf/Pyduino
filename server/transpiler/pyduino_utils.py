@@ -11,7 +11,7 @@ class Position:
         self.col = col
 
     def distance(self, other:'Position', data:'Data'):
-        return len(data.getCode(Range.fromPositions(self.bigger(other), self.smaller(other))))
+        return len(data.getCode(Range.fromPositions(self.smaller(other),self.bigger(other))))
 
     def bigger(self, other):
         if self.line > other.line:
@@ -49,7 +49,7 @@ class Range:
         if complete_line:
             if data is None:
                 raise ValueError("Data is required to complete line")
-            end_col = len(data.code[end_line])
+            end_col = len(data.code[end_line if end_line is not None else start_line])
         self.start = Position(start_line, start_col)
         self.end = Position(end_line if end_line is not None else start_line,
                             end_col if end_col is not None else start_col)
@@ -77,9 +77,12 @@ class Error:
 class InvalidLineError(Exception):
     pass
 
+class EndOfFileError(Exception):
+    pass
+
 
 class Data:
-    def __init__(self, code: list[str], line_offset: int):
+    def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
         self.code: list[str] = code
         self.line_offset: int = line_offset
         self.indentations: list[int] = []
@@ -87,16 +90,22 @@ class Data:
         self.enumerator: enumerate = enumerate(code)
         self.code_done: list[str] = []
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
+        self.strict_mode: bool = strict_mode # If true, the transpiler will stop on the first error
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
+        if self.strict_mode:
+            raise SyntaxError(message)
 
-    def getCode(self, location: Range | Position, newline=False) -> str:
+    def getCode(self, location: Range | Position) -> str:
+        # TODO newline option does not work
         if isinstance(location, Range):
-            if newline:
-                return self.code[location.start.line][location.start.col:] + "\n".join(
-                    self.code[location.start.line + 1:location.end.line]) + "\n" + \
-                       self.code[location.end.line][:location.end.col]
+            if location.start.line != location.end.line:
+                return self.code[location.start.line][location.start.col:] + "".join(
+                        self.code[location.start.line + 1:location.end.line]) + \
+                           self.code[location.end.line][:location.end.col]
+            else:
+                return self.code[location.start.line][location.start.col:location.end.col]
         else:
             return self.code[location.line][location.col]
 
@@ -226,7 +235,7 @@ class InvalidLine_Skip(InvalidLine_Fallback):
 
 class CurrentLocation:
     def __init__(self, code: list[str], indentations: list[int],
-                 default_Range_Fallback: type(Range_Fallback) = None):
+                 default_Range_Fallback: type(Range_Fallback) = Range_WholeLine):
         self.code = code
         self.indentations = indentations  # list of indentation levels, 1 for each four spaces
 
@@ -239,6 +248,8 @@ class CurrentLocation:
 
     def next_line(self):
         self.position.line += 1
+        if self.position.line >= len(self.code):
+            raise EndOfFileError()
         self.position.col = self.indentations[self.position.line] * 4
 
     def getCurrentLine(self):
@@ -437,9 +448,9 @@ class StringUtils:
         opening_brackets = "([{"
         closing_brackets = ")]}"
 
-        code = self.data.getCode(range, newline=False)
+        code = self.data.getCode(range)
 
-        enumerator = enumerate(code)
+        enumerator = enumerate(code[1:])
 
         for i, char in enumerator:
             if char in opening_brackets:
@@ -458,7 +469,7 @@ class StringUtils:
                         self.location.getPositionOffset(range.start, len(code))))
 
             if all(x == 0 for x in bracket_levels):
-                return self.location.getPositionOffset(range.start, i)
+                return self.location.getPositionOffset(range.start, i + 1)
 
         error_fallback.fallback(self.data, range, custom_message=f"No closing bracket found" \
                                                                  "for '{bracket}'", string=bracket)
@@ -469,12 +480,12 @@ class StringUtils:
         Searches for the given value outside of brackets.
         """
         i = 0
-        code = self.data.getCode(range, newline=False)
+        code = self.data.getCode(range)
         brackets = "([{\""
         while i < len(code):
             if code[i] in brackets:
                 end_pos = self.findClosingBracketInRange(code[i],Range.fromPositions(self.location.getPositionOffset(range.start, i),range.end))
-                i = end_pos.distance(range.start)
+                i = end_pos.distance(range.start,data=self.data)
 
             elif code[i:].startswith(value):
                 return self.location.getPositionOffset(range.start, i)
