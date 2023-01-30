@@ -510,7 +510,8 @@ class StringUtils:
                 return False
         return True
 
-    def splitCommaOutsideBrackets(self, value: str) -> list[str]:
+    @staticmethod
+    def splitCommaOutsideBrackets(value: str) -> list[str]:
         """
         Splits a string by commas outside of brackets. Example:
         "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
@@ -531,9 +532,8 @@ class StringUtils:
                     while next(enumerator)[1] != '"':
                         pass
                 except StopIteration:
-                    self.data.newError("Missing closing quotation mark", Range.fromPositions(
-                        self.location.getPositionOffset(self.location.range.start, start),
-                        self.location.getPositionOffset(self.location.range.start, len(value))))
+                    pass
+                    # TODO: Error
 
             if char == "," and all(x == 0 for x in bracket_levels):
                 result.append(value[start:i])

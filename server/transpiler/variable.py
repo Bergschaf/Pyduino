@@ -56,6 +56,30 @@ class PyduinoType(ABC):
         return type(self)()
 
 
+class PyduinoAny(PyduinoType):
+    def len(self):
+        return False, "Cannot get length of any", None
+
+    def add(self, other):
+        return False, f"Cannot add {other} to any", None
+
+    def sub(self, other):
+        return False, f"Cannot subtract {other} from any", None
+
+    def mul(self, other):
+        return False, f"Cannot multiply {other} with any", None
+
+    def div(self, other):
+        return False, f"Cannot divide {other} by any", None
+
+    def divmod(self, other):
+        return False, f"Cannot divide {other} by any", None
+
+    @staticmethod
+    def check_type(str: str):
+        return False
+
+
 class PyduinoInt(PyduinoType):
     def len(self):
         return False, "Cannot get length of int", None
@@ -188,9 +212,10 @@ class PyduinoString(PyduinoType):
 
 
 class PyduinoArray(PyduinoType):
-    def __init__(self, item: PyduinoType, name: str = None):
+    def __init__(self, item: PyduinoType, name: str = None, size: int = 0):
         super().__init__(name=name)
         self.item: PyduinoType = item
+        self.size = size
 
     def add(self, other):
         return False, f"Cannot add {other} to array", None
@@ -216,13 +241,21 @@ class PyduinoArray(PyduinoType):
         return True, item
 
     @staticmethod
-    def check_type(str: str):
-        if not str.startswith("[") or not str.endswith("]"):
+    def check_type(string: str):
+        if not string.startswith("[") or not string.endswith("]"):
             return False
-
-
-
-
+        string = StringUtils.splitCommaOutsideBrackets(string[1:-1])
+        if len(string) == 0:
+            return PyduinoArray(PyduinoAny())
+        items = [PyduinoType.check_type(item.strip()) for item in string]
+        if False in items:
+            return False
+        if not all(str(items[0]) == str(item) for item in items):
+            return False
+        if type(items[0]) == PyduinoArray:
+            if not all(items[0].size == item.size for item in items):
+                return False
+        return PyduinoArray(items[0], size=len(items))
 
     def __str__(self):
         return f"{self.item}[]"
@@ -320,6 +353,4 @@ class Variable:
 
 
 if __name__ == '__main__':
-    x = PyduinoArray(PyduinoArray(PyduinoArray(PyduinoInt())))
-    print(x)
-    print(x.copy())
+    print(PyduinoArray.check_type("[[1,2,3                  ],[1,2,3],[1,2.2,3]]"))
