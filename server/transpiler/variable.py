@@ -76,6 +76,12 @@ class PyduinoType():
     def not_(self):
         return False, f"Cannot negate {self.name}"
 
+    def is_iterable(self):
+        return False
+
+    def dimensions(self):
+        return []
+
     @staticmethod
     def check_type(str: str) -> 'PyduinoType':
         """
@@ -129,6 +135,9 @@ class PyduinoBool(PyduinoType):
         if string == "True" or string == "False":
             return PyduinoBool(string.lower())
         return False
+
+    def __str__(self):
+        return "bool"
 
 
 class PyduinoInt(PyduinoType):
@@ -341,6 +350,7 @@ class PyduinoArray(PyduinoType):
 
     @staticmethod
     def check_type(string: str):
+        # TODO add error messages
         if not string.startswith("[") or not string.endswith("]"):
             return False
         items = StringUtils.splitOutsideBrackets(string[1:-1], [","])
@@ -358,6 +368,16 @@ class PyduinoArray(PyduinoType):
             string = string.replace("  ", " ")
 
         return PyduinoArray(items[0], size=len(items), name=string.replace("[", "{").replace("]", "}"))
+
+    def is_iterable(self):
+        return True
+
+    def dimensions(self):
+        dimensions = []
+        dimensions.append(self.size)
+        if self.item.is_iterable():
+            dimensions += self.item.dimensions()
+        return dimensions
 
     def __str__(self):
         return f"{self.item}[]"
@@ -387,54 +407,60 @@ class Value:
         if var: return var
 
         # resolve brackets
-        values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS, True)
+        values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS + ["not"], True)
         values = [v.strip() for v in values]
 
-        if len(values) == 1:
-            if value[0] == "(" and value[-1] == ")":
-                v = Value.do_value(value[1:-1], transpiler)
-                return Constant(f"({v.name})", v.type)
+        for i,v in enumerate(values):
+            if v.startswith("(") and v.endswith(")"):
+                values[i] = Value.do_value(v[1:-1],transpiler)
+                # check all the operators
 
-        # check all the operators
+        for o in transpiler.data.OPERATION_ORDER:
+            shift_left = 0
+            for i in range(1, len(values) - 1):
+                i -= shift_left
+                if values[i] in o:
+                    if type(values[i - 1]) is str:
+                        v1 = Value.do_value(values[i - 1], transpiler)
+                    else:
+                        v1 = values[i - 1]
+
+                    if type(values[i + 1]) is str:
+                        v2 = Value.do_value(values[i + 1], transpiler)
+                    else:
+                        v2 = values[i + 1]
+
+                    if v1 and v2:
+                        possible, t = v1.type.operator(values[i], v2.type)
+                        if possible:
+                            values[i - 1] = Constant(t.name, t)
+                            del values[i]
+                            del values[i]
+                            shift_left += 2
+                        else:
+                            transpiler.data.newError(t, transpiler.location.range)
+                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+
+        # check for not
+
         shift_left = 0
-        for i in range(1, len(values) - 1):
-            if values[i-1] == "not":
-                v = Value.do_value(values[i], transpiler)
-                possible, t = v.type.not_()
+        for i in range(1, len(values)):
+            i -= shift_left
+            if values[i - 1] == "not":
+                possible, t = values[i].type.not_()
                 if possible:
                     values[i] = Constant(t.name, t)
-                    del values[i-1]
+                    del values[i - 1]
                     shift_left += 1
                 else:
                     transpiler.data.newError(t, transpiler.location.range)
                     transpiler.data.invalid_line_fallback()
-            i -= shift_left
-            if values[i] in transpiler.data.OPERATORS:
-                if type(values[i - 1]) is str:
-                    v1 = Value.do_value(values[i - 1], transpiler)
-                else:
-                    v1 = values[i - 1]
 
-                if type(values[i + 1]) is str:
-                    v2 = Value.do_value(values[i + 1], transpiler)
-                else:
-                    v2 = values[i + 1]
-
-                if v1 and v2:
-                    possible, t = v1.type.operator(values[i], v2.type)
-                    if possible:
-                        values[i - 1] = Constant(t.name, t)
-                        del values[i]
-                        del values[i]
-                        shift_left += 2
-                    else:
-                        transpiler.data.newError(t, transpiler.location.range)
-                        transpiler.data.invalid_line_fallback.fallback(transpiler)
-
-        if len(values) == 1:
+        if len(values) == 1 and type(values[0]) is not str:
             return values[0]
         else:
-            raise Exception("Invalid value")
+            transpiler.data.newError(f"Invalid value {values}", transpiler.location.range)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
 class Constant(Value):
@@ -473,36 +499,23 @@ class Variable(Value):
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        # validate datatype
-        for key in Types.keys():
-            if datatype.startswith(key):
-                array_def = datatype[len(key):]
-                if array_def:
-                    if len(array_def) % 2 != 0:
-                        transpiler.data.newError(f"Invalid array definition", transpiler.location.getRangeFromString(array_def))
-                        transpiler.data.invalid_line_fallback.fallback(transpiler)
-                        return True
-
-                    for i in range(0, len(array_def), 2):
-                        if array_def[i] != "[" or array_def[i + 1] != "]":
-                            transpiler.data.newError(f"Invalid array definition", transpiler.location.getRangeFromString(array_def))
-                            transpiler.data.invalid_line_fallback.fallback(transpiler)
-                            return True
-
-                    var = Types[key]()
-                    for _ in range(len(array_def) // 2):
-                        var = PyduinoArray(var)
-                    var.name = name
-                    break
-                else:
-                    var = Types[key](name)
-                    break
-        else:
-            transpiler.data.newError(f"Invalid datatype '{datatype}'", transpiler.location.getRangeFromString(datatype))
+        value = Value.do_value(value, transpiler)
+        variable = Variable(name, value.type)
+        c_value = value.type.name
+        value.type.name = name
+        if str(value.type) != datatype:
+            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'", name_range)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        transpiler.scope.add_Variable(var, name_range.start)
+        if value.type.is_iterable():
+            base_type = datatype.split("[")[0]
+            c_code = f"{base_type} {name}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
+        else:
+            c_code = f"{datatype} {name} = {c_value};"
+
+        transpiler.data.code_done.append(c_code)
+
         return True
 
 

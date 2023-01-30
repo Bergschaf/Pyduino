@@ -10,7 +10,7 @@ class Transpiler:
         :param mode: main or board
         :param line_offset: The line offset of the code segment
         """
-        self.data: Data = Data(code, line_offset, strict_mode=True)
+        self.data: Data = Data(code, line_offset)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
 
         self.utils = StringUtils(self.location, self.data, self)
@@ -65,12 +65,7 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=["int[][] y = 0", "int x = 2"], mode='main', line_offset=0)
-    print(Transpiler.data.indentations)
+    Transpiler = Transpiler(code=['string[] x = ["hello", 2]', "int x = 2"], mode='main', line_offset=0)
     Transpiler.transpileTo(2)
-    print([(str(i[0]), str([str(ii) + "  " + ii.name for ii in i[1]])) for i in Transpiler.scope.variables.items()])
     print([str(e) for e in Transpiler.data.errors])
-    def print_type(type:'Constant'):
-        print(str(type.type) + " " + type.type.name)
-
-    print_type(Value.do_value("not 32 > 2",Transpiler))
+    print(Transpiler.data.code_done)

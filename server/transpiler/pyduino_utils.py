@@ -93,7 +93,8 @@ class Data:
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
 
-        self.OPERATORS = ["+", "-", "*", "/", "%", "and", "or", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
+        self.OPERATORS = ["+", "-", "*", "/", "%", " and ", " or ", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
+        self.OPERATION_ORDER = [["*", "/", "%"], ["+", "-"], ["<", ">", "==", "!=", "<=", ">="], ["and", "or"]]
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
@@ -542,14 +543,16 @@ class StringUtils:
                 if keep_separators:
                     result.append(char)
                 start = i + 1
-                # multticharacter separators
-            if any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):
+
+            # multticharacter separators
+            elif any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):
                 separator = [x for x in separators if len(x) > 1 and value[i:].startswith(x)][0]
                 result.append(value[start:i])
                 if keep_separators:
                     result.append(separator)
                 start = i + len(separator)
-                while i < start:
+                while i + 1 < start:
                     i, char = next(enumerator)
         result.append(value[start:])
+        result = [x for x in result if x != ""]
         return result
