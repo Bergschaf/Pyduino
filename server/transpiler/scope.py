@@ -50,12 +50,12 @@ class Scope:
         fallback.fallback(self.data, self.location.getFullWordRange(position, word=name),name,custom_message= f"Function '{name}' is not defined in this scope")
         return False
 
-    def add_Variable(self, variable: Variable, position: Position):
+    def add_Variable(self, variable: 'Variable', position: 'Position'):
         for i in self.variables:
             if i.in_range(position):
                 self.variables[i].append(variable)
 
-    def add_Function(self, function: Function, position: Position):
+    def add_Function(self, function: 'Function', position: 'Position'):
         for i in self.functions:
             if i.in_range(position):
                 self.functions[i].append(function)

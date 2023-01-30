@@ -1,6 +1,6 @@
 from pyduino_utils import *
 from scope import Scope
-from control import Control
+from variable import *
 
 class Transpiler:
     def __init__(self, code:list[str], mode='main', line_offset=0):
@@ -17,6 +17,8 @@ class Transpiler:
         self.data.indentations = self.utils.getIndentations(self.data.code)
 
         self.scope = Scope(self.data)
+
+        self.checks = [Variable.check_definition] # the functions to check for different instruction types
 
 
     def next_line(self):
@@ -40,7 +42,9 @@ class Transpiler:
 
     def do_line(self, line:str):
         instruction = line.strip()
-
+        for check in self.checks:
+            if check(self,instruction,self.location.position.line):
+                return
 
     def finish(self):
         """
@@ -51,4 +55,9 @@ class Transpiler:
 
         :return:
         """
+
+if __name__ == '__main__':
+    Transpiler = Transpiler(code=["int x = 0","int y = 2"], mode='main', line_offset=0)
+    Transpiler.transpileTo(2)
+    print(Transpiler.scope.variables)
 

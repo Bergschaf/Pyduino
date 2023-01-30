@@ -1,40 +1,33 @@
 import typing
-
 from pyduino_utils import *
+from variable import Variable
 
+class PyduinoType(ABC,Variable):
 
-class PyduinoType(ABC):
-
-    @staticmethod
     @abstractmethod
-    def len():
+    def len(self):
         """(True if possible, False if not possible), (C Code for getting length of Datatype or the Error Message), return Type"""
         pass
 
-    @staticmethod
     @abstractmethod
-    def add(other):
+    def add(self,other):
         """(True if possible, False if not possible), C Code for adding the Datatypes, return Type"""
         pass
 
-    @staticmethod
     @abstractmethod
-    def sub(other):
+    def sub(self,other):
         pass
 
-    @staticmethod
     @abstractmethod
-    def mul(other):
+    def mul(self,other):
         pass
 
-    @staticmethod
     @abstractmethod
-    def div(other):
+    def div(self,other):
         pass
 
-    @staticmethod
     @abstractmethod
-    def divmod(other):
+    def divmod(self,other):
         """
         the type is the left side of the divmod
         :return:
@@ -43,13 +36,11 @@ class PyduinoType(ABC):
 
 
 class PyduinoInt(PyduinoType):
-    @staticmethod
-    def len():
+    def len(self):
         return False, "Cannot get length of int", None
 
-    @staticmethod
-    def add(other):
-        if other is PyduinoInt:
+    def add(self,other):
+        if str(other) is self.__str__():
             return True, "({} + {})", PyduinoInt
         if other is PyduinoFloat:
             return True, "((float){} + {})", PyduinoFloat
@@ -57,32 +48,28 @@ class PyduinoInt(PyduinoType):
             return True, "String({}) + {}", PyduinoString
         return False, f"Cannot add {other} to int", None
 
-    @staticmethod
-    def sub(other):
+    def sub(self,other):
         if other is PyduinoInt:
             return True, "({} - {})", PyduinoInt
         if other is PyduinoFloat:
             return True, "((float){} - {})", PyduinoFloat
         return False, f"Cannot subtract {other} from int", None
 
-    @staticmethod
-    def mul(other):
+    def mul(self,other):
         if other is PyduinoInt:
             return True, "({} * {})", PyduinoInt
         if other is PyduinoFloat:
             return True, "((float){} * {})", PyduinoFloat
         return False, f"Cannot multiply int with {other}", None
 
-    @staticmethod
-    def div(other):
+    def div(self,other):
         if other is PyduinoInt:
             return True, "((float){} / (float){})", PyduinoFloat
         if other is PyduinoFloat:
             return True, "((float){} / {})", PyduinoFloat
         return False, f"Cannot divide int by {other}", None
 
-    @staticmethod
-    def divmod(other):
+    def divmod(self,other):
         if other is PyduinoInt:
             return True, "({} % {})", PyduinoInt
         return False, f"Cannot get the remainder of int and {other}", None
@@ -90,13 +77,11 @@ class PyduinoInt(PyduinoType):
     def __str__(self):
         return "int"
 
-class PyduinoFloat():
-    @staticmethod
-    def len():
+class PyduinoFloat(PyduinoType):
+    def len(self):
         return False, "Cannot get length of float", None
 
-    @staticmethod
-    def add(other):
+    def add(self,other):
         if other is PyduinoInt:
             return True, "({} + (float){})", PyduinoFloat
         if other is PyduinoFloat:
@@ -105,32 +90,28 @@ class PyduinoFloat():
             return True, "String({}) + {}", PyduinoString
         return False, f"Cannot add {other} to float", None
 
-    @staticmethod
-    def sub(other):
+    def sub(self,other):
         if other is PyduinoInt:
             return True, "({} - (float){})", PyduinoFloat
         if other is PyduinoFloat:
             return True, "({} - {})", PyduinoFloat
         return False, f"Cannot subtract {other} from float", None
 
-    @staticmethod
-    def mul(other):
+    def mul(self,other):
         if other is PyduinoInt:
             return True, "({} * (float){})", PyduinoFloat
         if other is PyduinoFloat:
             return True, "({} * {})", PyduinoFloat
         return False, f"Cannot multiply float with {other}", None
 
-    @staticmethod
-    def div(other):
+    def div(self,other):
         if other is PyduinoInt:
             return True, "({} / (float){})", PyduinoFloat
         if other is PyduinoFloat:
             return True, "({} / {})", PyduinoFloat
         return False, f"Cannot divide float by {other}", None
 
-    @staticmethod
-    def divmod(other):
+    def divmod(self,other):
         if other is PyduinoInt:
             return True, "((float){} % (float){})", PyduinoFloat
         return False, f"Cannot get the remainder of float and {other}", None
@@ -140,12 +121,11 @@ class PyduinoFloat():
 
 
 class PyduinoString(PyduinoType):
-    @staticmethod
-    def len():
+    iterable = False
+    def len(self):
         return True, "{}.length()", PyduinoInt
 
-    @staticmethod
-    def add(other):
+    def add(self,other):
         if other is PyduinoInt:
             return True, "String({}) + String({})", PyduinoString
         if other is PyduinoFloat:
@@ -154,20 +134,16 @@ class PyduinoString(PyduinoType):
             return True, "String({}) + {}", PyduinoString
         return False, f"Cannot add {other} to string", None
 
-    @staticmethod
-    def sub(other):
+    def sub(self,other):
         return False, f"Cannot subtract {other} from string", None
 
-    @staticmethod
-    def mul(other):
+    def mul(self,other):
         return False, f"Cannot multiply string with {other}", None
 
-    @staticmethod
-    def div(other):
+    def div(self,other):
         return False, f"Cannot divide string by {other}", None
 
-    @staticmethod
-    def divmod(other):
+    def divmod(self,other):
         return False, f"Cannot get the remainder of string and {other}", None
 
     def __str__(self):
@@ -175,41 +151,30 @@ class PyduinoString(PyduinoType):
 
 
 class PyduinoArray(PyduinoType):
-    def __init__(self,dtype:PyduinoType):
-        self.dtype = dtype
+    def __init__(self, item: PyduinoType, name: str):
+        super().__init__(name)
+        self.item:PyduinoType = item
 
-    @staticmethod
-    def add(other):
+    def add(self,other):
         return False, f"Cannot add {other} to array", None
 
-    @staticmethod
-    def len():
+    def len(self):
         return True, "{}.length()", PyduinoInt
 
-    @staticmethod
-    def sub(other):
+    def sub(self,other):
         return False, f"Cannot subtract {other} from array", None
 
-    @staticmethod
-    def mul(other):
+    def mul(self,other):
         return False, f"Cannot multiply array with {other}", None
 
-    @staticmethod
-    def div(other):
+    def div(self,other):
         return False, f"Cannot divide array by {other}", None
 
-    @staticmethod
-    def divmod(other):
+    def divmod(self,other):
         return False, f"Cannot get the remainder of array and {other}", None
 
     def __str__(self):
-        return f"{self.dtype}[]"
+        return f"{self.item}[]"
 
 
-
-Types = {"int": PyduinoInt(), "float": PyduinoFloat(), "string": PyduinoString(), "int[]": PyduinoArray(PyduinoInt()), "float[]": PyduinoArray(PyduinoFloat()),
-         "string[]": PyduinoArray(PyduinoString())}
-
-if __name__ == '__main__':
-    print(str(Types["int"]))
-    print(str(Types["float[]"]))
+Types = {"int": PyduinoInt, "float": PyduinoFloat, "str": PyduinoString}
