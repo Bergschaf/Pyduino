@@ -93,6 +93,8 @@ class Data:
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
 
+        self.OPERATORS = ["+", "-", "*", "/", "%", "and", "or", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
+
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
         if self.strict_mode:
@@ -511,7 +513,7 @@ class StringUtils:
         return True
 
     @staticmethod
-    def splitCommaOutsideBrackets(value: str) -> list[str]:
+    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: bool = False) -> list[str]:
         """
         Splits a string by commas outside of brackets. Example:
         "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
@@ -535,8 +537,19 @@ class StringUtils:
                     pass
                     # TODO: Error
 
-            if char == "," and all(x == 0 for x in bracket_levels):
+            if char in separators and all(x == 0 for x in bracket_levels):
                 result.append(value[start:i])
+                if keep_separators:
+                    result.append(char)
                 start = i + 1
+                # multticharacter separators
+            if any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):
+                separator = [x for x in separators if len(x) > 1 and value[i:].startswith(x)][0]
+                result.append(value[start:i])
+                if keep_separators:
+                    result.append(separator)
+                start = i + len(separator)
+                while i < start:
+                    i, char = next(enumerator)
         result.append(value[start:])
         return result

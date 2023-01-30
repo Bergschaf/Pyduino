@@ -32,13 +32,12 @@ class Scope:
                 self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
                 self.functions[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
 
-    def get_Variable(self, name: str, position: Position, fallback: type[StringNotFound_Fallback]=StringNotFound_ErrorCompleteRange):
+    def get_Variable(self, name: str, position: Position):
         for i in self.variables:
             if i.in_range(position):
                 for j in self.variables[i]:
                     if j.name == name:
                         return j
-        fallback.fallback(self.data, self.location.getFullWordRange(position, word=name),name,custom_message= f"Variable '{name}' is not defined in this scope")
         return False
 
     def get_Function(self, name: str, position: Position, fallback: type[StringNotFound_Fallback]=StringNotFound_ErrorCompleteRange):

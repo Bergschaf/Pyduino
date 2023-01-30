@@ -70,3 +70,7 @@ if __name__ == '__main__':
     Transpiler.transpileTo(2)
     print([(str(i[0]), str([str(ii) + "  " + ii.name for ii in i[1]])) for i in Transpiler.scope.variables.items()])
     print([str(e) for e in Transpiler.data.errors])
+    def print_type(type:'Constant'):
+        print(str(type.type) + " " + type.type.name)
+
+    print_type(Value.do_value("not 32 > 2",Transpiler))

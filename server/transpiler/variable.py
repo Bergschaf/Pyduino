@@ -4,48 +4,86 @@ if TYPE_CHECKING:
     from transpiler import Transpiler
 
 
-class PyduinoType(ABC):
+class PyduinoType():
     def __init__(self, name: str = None):
         self.name = name
 
-    @abstractmethod
+    def operator(self, operator: str, other: 'PyduinoType'):
+        MAP = {
+            "+": self.add,
+            "-": self.sub,
+            "*": self.mul,
+            "/": self.div,
+            "%": self.divmod,
+            "and": self.and_,
+            "or": self.or_,
+            ">": self.greater,
+            "<": self.less,
+            ">=": self.greater_equal,
+            "<=": self.less_equal,
+            "==": self.equal,
+            "!=": self.not_equal}
+
+        return MAP[operator](other)
+
     def len(self):
         """(True if possible, False if not possible), return Value with C code"""
-        pass
+        return False, f"Cannot get the length of {self.name}"
 
-    @abstractmethod
     def add(self, other: 'PyduinoType'):
-        pass
+        return False, f"Cannot add {self.name} and {other.name}"
 
-    @abstractmethod
     def sub(self, other: 'PyduinoType'):
-        pass
+        return False, f"Cannot subtract {self.name} and {other.name}"
 
-    @abstractmethod
     def mul(self, other: 'PyduinoType'):
-        pass
+        return False, f"Cannot multiply {self.name} and {other.name}"
 
-    @abstractmethod
     def div(self, other: 'PyduinoType'):
-        pass
+        return False, f"Cannot divide {self.name} and {other.name}"
 
-    @abstractmethod
     def divmod(self, other: 'PyduinoType'):
         """
         the type is the left side of the divmod
         :return:
         """
-        pass
+        return False, f"Cannot get the remainder {self.name} and {other.name}"
+
+    def and_(self, other: 'PyduinoType'):
+        return False, f"Cannot use the 'and' operator on {self.name} and {other.name}"
+
+    def or_(self, other: 'PyduinoType'):
+        return False, f"Cannot use the 'or' operator on {self.name} and {other.name}"
+
+    def greater(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def less(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def greater_equal(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def less_equal(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def equal(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def not_equal(self, other: 'PyduinoType'):
+        return False, f"Cannot compare {self.name} and {other.name}"
+
+    def not_(self):
+        return False, f"Cannot negate {self.name}"
 
     @staticmethod
-    @abstractmethod
     def check_type(str: str) -> 'PyduinoType':
         """
         Checks if the value in the string belongs to the type, returns an object if it does
         :param str:
         :return:
         """
-        for type in PyduinoType.__subclasses__():
+        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray]:
             t = type.check_type(str)
             if t:
                 return t
@@ -57,33 +95,43 @@ class PyduinoType(ABC):
 
 
 class PyduinoAny(PyduinoType):
-    def len(self):
-        return False, "Cannot get length of any", None
-
-    def add(self, other):
-        return False, f"Cannot add {other} to any", None
-
-    def sub(self, other):
-        return False, f"Cannot subtract {other} from any", None
-
-    def mul(self, other):
-        return False, f"Cannot multiply {other} with any", None
-
-    def div(self, other):
-        return False, f"Cannot divide {other} by any", None
-
-    def divmod(self, other):
-        return False, f"Cannot divide {other} by any", None
-
     @staticmethod
     def check_type(str: str):
         return False
 
 
-class PyduinoInt(PyduinoType):
-    def len(self):
-        return False, "Cannot get length of int", None
+class PyduinoBool(PyduinoType):
+    def and_(self, other):
+        if str(other) == "bool":
+            return True, PyduinoBool(f"({self.name} && {other.name})")
+        return False, f"Cannot and {other} with bool"
 
+    def or_(self, other):
+        if str(other) == "bool":
+            return True, PyduinoBool(f"({self.name} || {other.name})")
+        return False, f"Cannot or {other} with bool"
+
+    def equal(self, other):
+        if str(other) == "bool":
+            return True, PyduinoBool(f"({self.name} == {other.name})")
+        return False, f"Cannot compare {other} to bool"
+
+    def not_equal(self, other):
+        if str(other) == "bool":
+            return True, PyduinoBool(f"({self.name} != {other.name})")
+        return False, f"Cannot compare {other} to bool"
+
+    def not_(self):
+        return True, PyduinoBool(f"!{self.name}")
+
+    @staticmethod
+    def check_type(string: str) -> 'PyduinoType':
+        if string == "True" or string == "False":
+            return PyduinoBool(string.lower())
+        return False
+
+
+class PyduinoInt(PyduinoType):
     def add(self, other):
         if str(other) == "int":
             return True, PyduinoInt(f"({self.name} + {other.name})")
@@ -91,33 +139,75 @@ class PyduinoInt(PyduinoType):
             return True, PyduinoFloat(f"((float){self.name} + {other.name})")
         if str(other) == "str":
             return True, PyduinoString(f"(String({self.name}) + {other.name})")
-        return False, f"Cannot add {other} to int", None
+        return False, f"Cannot add {other} to int"
 
     def sub(self, other):
         if str(other) == "int":
             return True, PyduinoInt(f"({self.name} - {other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"((float){self.name} - {other.name})")
-        return False, f"Cannot subtract {other} from int", None
+        return False, f"Cannot subtract {other} from int"
 
     def mul(self, other):
         if str(other) == "int":
             return True, PyduinoInt(f"({self.name} * {other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"((float){self.name} * {other.name})")
-        return False, f"Cannot multiply int with {other}", None
+        return False, f"Cannot multiply int with {other}"
 
     def div(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"((float){self.name} / (float){other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"((float){self.name} / {other.name})")
-        return False, f"Cannot divide int by {other}", None
+        return False, f"Cannot divide int by {other}"
 
     def divmod(self, other):
         if str(other) == "int":
             return True, PyduinoInt(f"({self.name} % {other.name})")
-        return False, f"Cannot get the remainder of int and {other}", None
+        return False, f"Cannot get the remainder of int and {other}"
+
+    def greater(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} > {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} > {other.name})")
+        return False, f"Cannot compare {other} to int"
+
+    def less(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} < {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} < {other.name})")
+        return False, f"Cannot compare {other} to int"
+
+    def greater_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} >= {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} >= {other.name})")
+        return False, f"Cannot compare {other} to int"
+
+    def less_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} <= {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} <= {other.name})")
+        return False, f"Cannot compare {other} to int"
+
+    def equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} == {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} == {other.name})")
+        return False, f"Cannot compare {other} to int"
+
+    def not_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} != {other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"((float){self.name} != {other.name})")
+        return False, f"Cannot compare {other} to int"
 
     @staticmethod
     def check_type(str: str):
@@ -130,9 +220,6 @@ class PyduinoInt(PyduinoType):
 
 
 class PyduinoFloat(PyduinoType):
-    def len(self):
-        return False, "Cannot get length of float", None
-
     def add(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"({self.name} + (float){other.name})")
@@ -140,31 +227,70 @@ class PyduinoFloat(PyduinoType):
             return True, PyduinoFloat(f"({self.name} + {other.name})")
         if str(other) == "str":
             return True, PyduinoString(f"(String({self.name}) + {other.name})")
-        return False, f"Cannot add {other} to float", None
+        return False, f"Cannot add {other} to float"
 
     def sub(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"({self.name} - (float){other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"({self.name} - {other.name})")
-        return False, f"Cannot subtract {other} from float", None
+        return False, f"Cannot subtract {other} from float"
 
     def mul(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"({self.name} * (float){other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"({self.name} * {other.name})")
-        return False, f"Cannot multiply float with {other}", None
+        return False, f"Cannot multiply float with {other}"
 
     def div(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"({self.name} / (float){other.name})")
         if str(other) == "float":
             return True, PyduinoFloat(f"({self.name} / {other.name})")
-        return False, f"Cannot divide float by {other}", None
+        return False, f"Cannot divide float by {other}",
 
-    def divmod(self, other):
-        return False, f"Cannot get the remainder of float and {other}", None
+    def greater(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} > (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} > {other.name})")
+        return False, f"Cannot compare {other} to float"
+
+    def less(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} < (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} < {other.name})")
+        return False, f"Cannot compare {other} to float"
+
+    def greater_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} >= (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} >= {other.name})")
+        return False, f"Cannot compare {other} to float"
+
+    def less_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} <= (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} <= {other.name})")
+        return False, f"Cannot compare {other} to float"
+
+    def equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} == (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} == {other.name})")
+        return False, f"Cannot compare {other} to float"
+
+    def not_equal(self, other):
+        if str(other) == "int":
+            return True, PyduinoBool(f"({self.name} != (float){other.name})")
+        if str(other) == "float":
+            return True, PyduinoBool(f"({self.name} != {other.name})")
+        return False, f"Cannot compare {other} to float"
 
     @staticmethod
     def check_type(str: str):
@@ -189,18 +315,6 @@ class PyduinoString(PyduinoType):
             return True, PyduinoString(f"(String({self.name}) + {other.name})")
         return False, f"Cannot add {other} to string", None
 
-    def sub(self, other):
-        return False, f"Cannot subtract {other} from string", None
-
-    def mul(self, other):
-        return False, f"Cannot multiply string with {other}", None
-
-    def div(self, other):
-        return False, f"Cannot divide string by {other}", None
-
-    def divmod(self, other):
-        return False, f"Cannot get the remainder of string and {other}", None
-
     @staticmethod
     def check_type(str: str):
         if str[0] == '"' and str[-1] == '"':
@@ -217,23 +331,8 @@ class PyduinoArray(PyduinoType):
         self.item: PyduinoType = item
         self.size = size
 
-    def add(self, other):
-        return False, f"Cannot add {other} to array", None
-
     def len(self):
-        return True, PyduinoInt(f"{self.name}.length()")
-
-    def sub(self, other):
-        return False, f"Cannot subtract {other} from array", None
-
-    def mul(self, other):
-        return False, f"Cannot multiply array with {other}", None
-
-    def div(self, other):
-        return False, f"Cannot divide array by {other}", None
-
-    def divmod(self, other):
-        return False, f"Cannot get the remainder of array and {other}", None
+        return True, PyduinoInt(f"({self.name}.length())")
 
     def getitem(self, id: PyduinoType):
         item = self.item.copy()
@@ -244,7 +343,7 @@ class PyduinoArray(PyduinoType):
     def check_type(string: str):
         if not string.startswith("[") or not string.endswith("]"):
             return False
-        items = StringUtils.splitCommaOutsideBrackets(string[1:-1])
+        items = StringUtils.splitOutsideBrackets(string[1:-1], [","])
         if len(items) == 0:
             return PyduinoArray(PyduinoAny())
         items = [PyduinoType.check_type(item.strip()) for item in items]
@@ -281,14 +380,66 @@ class Value:
         # has to set location.position and location.range before calling
         # TODO add detailed errors, errors will always cover the complete value
 
-        type = PyduinoType.check_type(value)
-        if type: return Constant(type.name, type)
+        t = PyduinoType.check_type(value)
+        if t: return Constant(t.name, t)
 
-        var = transpiler.scope.get_Variable(value, transpiler.location.position, fallback=StringNotFound_DoNothing)
+        var = transpiler.scope.get_Variable(value, transpiler.location.position)
         if var: return var
+
+        # resolve brackets
+        values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS, True)
+        values = [v.strip() for v in values]
+
+        if len(values) == 1:
+            if value[0] == "(" and value[-1] == ")":
+                v = Value.do_value(value[1:-1], transpiler)
+                return Constant(f"({v.name})", v.type)
+
+        # check all the operators
+        shift_left = 0
+        for i in range(1, len(values) - 1):
+            if values[i-1] == "not":
+                v = Value.do_value(values[i], transpiler)
+                possible, t = v.type.not_()
+                if possible:
+                    values[i] = Constant(t.name, t)
+                    del values[i-1]
+                    shift_left += 1
+                else:
+                    transpiler.data.newError(t, transpiler.location.range)
+                    transpiler.data.invalid_line_fallback()
+            i -= shift_left
+            if values[i] in transpiler.data.OPERATORS:
+                if type(values[i - 1]) is str:
+                    v1 = Value.do_value(values[i - 1], transpiler)
+                else:
+                    v1 = values[i - 1]
+
+                if type(values[i + 1]) is str:
+                    v2 = Value.do_value(values[i + 1], transpiler)
+                else:
+                    v2 = values[i + 1]
+
+                if v1 and v2:
+                    possible, t = v1.type.operator(values[i], v2.type)
+                    if possible:
+                        values[i - 1] = Constant(t.name, t)
+                        del values[i]
+                        del values[i]
+                        shift_left += 2
+                    else:
+                        transpiler.data.newError(t, transpiler.location.range)
+                        transpiler.data.invalid_line_fallback.fallback(transpiler)
+
+        if len(values) == 1:
+            return values[0]
+        else:
+            raise Exception("Invalid value")
+
 
 class Constant(Value):
     pass
+
 
 class Variable(Value):
     @staticmethod
@@ -317,7 +468,7 @@ class Variable(Value):
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        if transpiler.scope.get_Variable(name, name_range.start, fallback=StringNotFound_DoNothing):
+        if transpiler.scope.get_Variable(name, name_range.start):
             transpiler.data.newError(f"Variable '{name}' is already defined", name_range)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
