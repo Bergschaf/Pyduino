@@ -494,4 +494,18 @@ class StringUtils:
         return False
 
 
+    @staticmethod
+    def is_identifier(value: str) -> bool:
+        """
+        :param value: The value to check
+        :return: True if the value is an identifier, False if not
+        """
+        if value.isnumeric():
+            return False
+        for i in value:
+            if not i.isalnum() and i != "_":
+                return False
+        return True
+
+
 

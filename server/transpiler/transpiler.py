@@ -65,7 +65,7 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=["int[][] y = 0", "int y = 2"], mode='main', line_offset=0)
+    Transpiler = Transpiler(code=["int[][] y = 0", "int x = 2"], mode='main', line_offset=0)
     print(Transpiler.data.indentations)
     Transpiler.transpileTo(2)
     print([(str(i[0]), str([str(ii) + "  " + ii.name for ii in i[1]])) for i in Transpiler.scope.variables.items()])
