@@ -10,8 +10,8 @@ class Position:
         self.line = line
         self.col = col
 
-    def distance(self, other:'Position', data:'Data'):
-        return len(data.getCode(Range.fromPositions(self.smaller(other),self.bigger(other))))
+    def distance(self, other: 'Position', data: 'Data'):
+        return len(data.getCode(Range.fromPositions(self.smaller(other), self.bigger(other))))
 
     def bigger(self, other):
         if self.line > other.line:
@@ -77,6 +77,7 @@ class Error:
 class InvalidLineError(Exception):
     pass
 
+
 class EndOfFileError(Exception):
     pass
 
@@ -90,7 +91,7 @@ class Data:
         self.enumerator: enumerate = enumerate(code)
         self.code_done: list[str] = []
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
-        self.strict_mode: bool = strict_mode # If true, the transpiler will stop on the first error
+        self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
@@ -102,8 +103,8 @@ class Data:
         if isinstance(location, Range):
             if location.start.line != location.end.line:
                 return self.code[location.start.line][location.start.col:] + "".join(
-                        self.code[location.start.line + 1:location.end.line]) + \
-                           self.code[location.end.line][:location.end.col]
+                    self.code[location.start.line + 1:location.end.line]) + \
+                       self.code[location.end.line][:location.end.col]
             else:
                 return self.code[location.start.line][location.start.col:location.end.col]
         else:
@@ -172,6 +173,7 @@ class StringNotFound_ThrowError(StringNotFound_Fallback):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         raise SyntaxError(message)
 
+
 class StringNotFound_DoNothing(StringNotFound_Fallback):
     """
     This fallback will do nothing.
@@ -191,10 +193,12 @@ class Range_Fallback(ABC):
     def fallback(location: 'CurrentLocation'):
         pass
 
+
 class Range_SingleChar(Range_Fallback):
     @staticmethod
     def fallback(location: 'CurrentLocation'):
         return Range(location.getCurrentPosition(), location.getCurrentPosition())
+
 
 class Range_WholeLine(Range_Fallback):
     @staticmethod
@@ -363,7 +367,6 @@ class CurrentLocation:
             self.position = position
             return fallback.fallback(self)
 
-
     def setCursorToString(self, string: str, spaces_around: bool = False):
         """
         :param string:
@@ -475,7 +478,8 @@ class StringUtils:
                                                                  "for '{bracket}'", string=bracket)
         invalid_line_fallback.fallback(self.transpiler)
 
-    def searchOutsideBrackets(self, value:str, range:Range, fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> Position | bool:
+    def searchOutsideBrackets(self, value: str, range: Range,
+                              fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> Position | bool:
         """
         Searches for the given value outside of brackets.
         """
@@ -484,15 +488,14 @@ class StringUtils:
         brackets = "([{\""
         while i < len(code):
             if code[i] in brackets:
-                end_pos = self.findClosingBracketInRange(code[i],Range.fromPositions(self.location.getPositionOffset(range.start, i),range.end))
-                i = end_pos.distance(range.start,data=self.data)
+                end_pos = self.findClosingBracketInRange(code[i], Range.fromPositions(self.location.getPositionOffset(range.start, i), range.end))
+                i = end_pos.distance(range.start, data=self.data)
 
             elif code[i:].startswith(value):
                 return self.location.getPositionOffset(range.start, i)
             i += 1
         fallback.fallback(self.data, range, custom_message=f"Could not find '{value}' outside of brackets", string=value)
         return False
-
 
     @staticmethod
     def is_identifier(value: str) -> bool:
@@ -507,5 +510,33 @@ class StringUtils:
                 return False
         return True
 
+    def splitCommaOutsideBrackets(self, value: str) -> list[str]:
+        """
+        Splits a string by commas outside of brackets. Example:
+        "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
+        """
+        bracket_levels = [0] * 3  # 0: (), 1: [], 2: {}
+        result = []
 
+        start = 0
+        enumerator = enumerate(value)
+        for i, char in enumerator:
+            if char in "([{":
+                bracket_levels["([{".index(char)] += 1
+            elif char in ")]}":
+                bracket_levels[")]}".index(char)] -= 1
 
+            if char == '"':
+                try:
+                    while next(enumerator)[1] != '"':
+                        pass
+                except StopIteration:
+                    self.data.newError("Missing closing quotation mark", Range.fromPositions(
+                        self.location.getPositionOffset(self.location.range.start, start),
+                        self.location.getPositionOffset(self.location.range.start, len(value))))
+
+            if char == "," and all(x == 0 for x in bracket_levels):
+                result.append(value[start:i])
+                start = i + 1
+        result.append(value[start:])
+        return result

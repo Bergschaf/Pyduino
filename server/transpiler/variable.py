@@ -1,5 +1,8 @@
 from pyduino_utils import *
 
+if TYPE_CHECKING:
+    from transpiler import Transpiler
+
 
 class PyduinoType(ABC):
     def __init__(self, name: str = None):
@@ -33,6 +36,20 @@ class PyduinoType(ABC):
         :return:
         """
         pass
+
+    @staticmethod
+    @abstractmethod
+    def check_type(str: str):
+        """
+        Checks if the value in the string belongs to the type, returns an object if it does
+        :param str:
+        :return:
+        """
+        for type in PyduinoType.__subclasses__():
+            t = type.check_type(str)
+            if t:
+                return t
+        return False
 
     def copy(self) -> 'PyduinoType':
         # TODO returns type without name
@@ -78,6 +95,12 @@ class PyduinoInt(PyduinoType):
             return True, PyduinoInt(f"({self.name} % {other.name})")
         return False, f"Cannot get the remainder of int and {other}", None
 
+    @staticmethod
+    def check_type(str: str):
+        if str.isdigit():
+            return PyduinoInt(str)
+        return False
+
     def __str__(self):
         return "int"
 
@@ -119,6 +142,12 @@ class PyduinoFloat(PyduinoType):
     def divmod(self, other):
         return False, f"Cannot get the remainder of float and {other}", None
 
+    @staticmethod
+    def check_type(str: str):
+        if str.replace(".", "", 1).isdigit() and "." in str:
+            return PyduinoFloat(str)
+        return False
+
     def __str__(self):
         return "float"
 
@@ -148,6 +177,12 @@ class PyduinoString(PyduinoType):
     def divmod(self, other):
         return False, f"Cannot get the remainder of string and {other}", None
 
+    @staticmethod
+    def check_type(str: str):
+        if str[0] == '"' and str[-1] == '"':
+            return PyduinoString(str)
+        return False
+
     def __str__(self):
         return "string"
 
@@ -161,7 +196,7 @@ class PyduinoArray(PyduinoType):
         return False, f"Cannot add {other} to array", None
 
     def len(self):
-        return True,PyduinoInt(f"{self.name}.length()")
+        return True, PyduinoInt(f"{self.name}.length()")
 
     def sub(self, other):
         return False, f"Cannot subtract {other} from array", None
@@ -180,6 +215,15 @@ class PyduinoArray(PyduinoType):
         item.name = f"{self.name}[{id.name}]"
         return True, item
 
+    @staticmethod
+    def check_type(str: str):
+        if not str.startswith("[") or not str.endswith("]"):
+            return False
+
+
+
+
+
     def __str__(self):
         return f"{self.item}[]"
 
@@ -197,18 +241,16 @@ class Value:
         self.type = type
 
     @staticmethod
-    def do_value() -> 'Value':
-        pass
-
-    @staticmethod
-    def resolveBrackets(range: Range, location: CurrentLocation, data: Data) -> str:
-        location.range = range
-        location.position = range.start
-
-        valueList = []  # List of values
+    def do_value(value: str, transpiler: 'Transpiler') -> 'Value':
+        # has to set location.position and location.range before calling
+        # TODO add detailed errors, errors will always cover the complete value
+        # TODO remove all unnecessary spaces
+        # TODO IMPORTANT ^ for the check_type function, especially for ARRAYS
+        PyduinoType.check_type(value)
 
 
 class Variable:
+
     def __init__(self, name: str, type: 'PyduinoType'):
         self.name = name
         self.type = PyduinoType
