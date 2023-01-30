@@ -39,7 +39,7 @@ class PyduinoType(ABC):
 
     @staticmethod
     @abstractmethod
-    def check_type(str: str):
+    def check_type(str: str) -> 'PyduinoType':
         """
         Checks if the value in the string belongs to the type, returns an object if it does
         :param str:
@@ -244,10 +244,10 @@ class PyduinoArray(PyduinoType):
     def check_type(string: str):
         if not string.startswith("[") or not string.endswith("]"):
             return False
-        string = StringUtils.splitCommaOutsideBrackets(string[1:-1])
-        if len(string) == 0:
+        items = StringUtils.splitCommaOutsideBrackets(string[1:-1])
+        if len(items) == 0:
             return PyduinoArray(PyduinoAny())
-        items = [PyduinoType.check_type(item.strip()) for item in string]
+        items = [PyduinoType.check_type(item.strip()) for item in items]
         if False in items:
             return False
         if not all(str(items[0]) == str(item) for item in items):
@@ -255,7 +255,10 @@ class PyduinoArray(PyduinoType):
         if type(items[0]) == PyduinoArray:
             if not all(items[0].size == item.size for item in items):
                 return False
-        return PyduinoArray(items[0], size=len(items))
+        while "  " in string:
+            string = string.replace("  ", " ")
+
+        return PyduinoArray(items[0], size=len(items), name=string.replace("[", "{").replace("]", "}"))
 
     def __str__(self):
         return f"{self.item}[]"
@@ -270,24 +273,24 @@ Types = {"int": PyduinoInt, "float": PyduinoFloat, "str": PyduinoString}
 class Value:
 
     def __init__(self, name: str, type: PyduinoType):
-        self.name = name  # the C++ representation of the value (for example '1' or 'test[x]'
+        self.name = name
         self.type = type
 
     @staticmethod
-    def do_value(value: str, transpiler: 'Transpiler') -> 'Value':
+    def do_value(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
         # has to set location.position and location.range before calling
         # TODO add detailed errors, errors will always cover the complete value
-        # TODO remove all unnecessary spaces
-        # TODO IMPORTANT ^ for the check_type function, especially for ARRAYS
-        PyduinoType.check_type(value)
 
+        type = PyduinoType.check_type(value)
+        if type: return Constant(type.name, type)
 
-class Variable:
+        var = transpiler.scope.get_Variable(value, transpiler.location.position, fallback=StringNotFound_DoNothing)
+        if var: return var
 
-    def __init__(self, name: str, type: 'PyduinoType'):
-        self.name = name
-        self.type = PyduinoType
+class Constant(Value):
+    pass
 
+class Variable(Value):
     @staticmethod
     def check_definition(transpiler: 'Transpiler', instruction: str, line: int) -> bool:
         instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
@@ -353,4 +356,5 @@ class Variable:
 
 
 if __name__ == '__main__':
-    print(PyduinoArray.check_type("[[1,2,3                  ],[1,2,3],[1,2.2,3]]"))
+    print(PyduinoType.check_type("[[1,2,3                  ],[1,2,3],[1,2,3]]").name)
+    print(PyduinoType.check_type("1").name)
