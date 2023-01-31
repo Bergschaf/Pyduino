@@ -1,4 +1,4 @@
-from pyduino_utils import *
+from server.transpiler.pyduino_utils import *
 
 if TYPE_CHECKING:
     from transpiler import Transpiler

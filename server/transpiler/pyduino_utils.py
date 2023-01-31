@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from transpiler import Transpiler
+    from server.transpiler.transpiler import Transpiler
 
 
 class Position:

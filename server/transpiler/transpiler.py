@@ -1,6 +1,5 @@
-from pyduino_utils import *
-from scope import Scope
-from variable import *
+from server.transpiler.scope import Scope
+from server.transpiler.variable import *
 
 
 class Transpiler:

@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from variable import Variable
-    from function import Function
+    from server.transpiler.variable import Variable
+    from server.transpiler.function import Function
 
-from pyduino_utils import *
+from server.transpiler.pyduino_utils import *
 
 
 class Scope:
