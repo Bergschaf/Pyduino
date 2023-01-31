@@ -76,6 +76,9 @@ class PyduinoType():
     def not_(self):
         return False, f"Cannot negate {self.name}"
 
+    def get_item(self, index: 'PyduinoType'):
+        return False, f"Cannot get item {index} from {self.name}"
+
     def is_iterable(self):
         return False
 
@@ -343,9 +346,11 @@ class PyduinoArray(PyduinoType):
     def len(self):
         return True, PyduinoInt(f"({self.name}.length())")
 
-    def getitem(self, id: PyduinoType):
+    def get_item(self, index: 'PyduinoType'):
+        if str(index) != "int":
+            return False, f"Cannot index array with {index}"
         item = self.item.copy()
-        item.name = f"{self.name}[{id.name}]"
+        item.name = f"{self.name}[{index.name}]"
         return True, item
 
     @staticmethod
@@ -400,19 +405,13 @@ class Value:
         # has to set location.position and location.range before calling
         # TODO add detailed errors, errors will always cover the complete value
 
-        t = PyduinoType.check_type(value)
-        if t: return Constant(t.name, t)
-
-        var = transpiler.scope.get_Variable(value, transpiler.location.position)
-        if var: return var
-
         # resolve brackets
         values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS + ["not"], True)
         values = [v.strip() for v in values]
 
-        for i,v in enumerate(values):
+        for i, v in enumerate(values):
             if v.startswith("(") and v.endswith(")"):
-                values[i] = Value.do_value(v[1:-1],transpiler)
+                values[i] = Value.do_value(v[1:-1], transpiler)
                 # check all the operators
 
         for o in transpiler.data.OPERATION_ORDER:
@@ -442,7 +441,6 @@ class Value:
                             transpiler.data.invalid_line_fallback.fallback(transpiler)
 
         # check for not
-
         shift_left = 0
         for i in range(1, len(values)):
             i -= shift_left
@@ -459,8 +457,47 @@ class Value:
         if len(values) == 1 and type(values[0]) is not str:
             return values[0]
         else:
-            transpiler.data.newError(f"Invalid value {values}", transpiler.location.range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return Value.do_value_single(value, transpiler)
+
+    @staticmethod
+    def do_value_single(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
+        """
+        The value has to be a single value, no operators
+        :param value:
+        :param transpiler:
+        :return:
+        """
+
+        t = PyduinoType.check_type(value)
+        if t: return Constant(t.name, t)
+
+        var = transpiler.scope.get_Variable(value, transpiler.location.position)
+        if var: return var
+
+        # check if it is a getitem
+        for i in range(len(value) - 1):
+            if value[i] in transpiler.data.VALID_NAME_END_CHARACTERS and value[i + 1] == "[":
+                var = transpiler.scope.get_Variable(value[:i + 1], transpiler.location.position)
+                if var:
+                    indices = StringUtils.splitOutsideBrackets(value[i+1:], ["[]"], True, split_after_brackets=True)
+                    for id in indices:
+                        if not(id[0] == "[" and id[-1] == "]"):
+                            transpiler.data.newError(f"Invalid index {id}", transpiler.location.range)
+                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+
+                    indices = [Value.do_value(id[1:-1], transpiler) for id in indices]
+                    value = var
+                    for ind in indices:
+                        possible, value = value.type.get_item(ind.type)
+                        if not possible:
+                            transpiler.data.newError(value, transpiler.location.range)
+                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+                        value = Constant(value.name, value)
+                    return value
+        # check if it is a function call
+
+        transpiler.data.newError(f"Invalid value {value}", transpiler.location.range)
+        transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
 class Constant(Value):
@@ -489,6 +526,16 @@ class Variable(Value):
 
         name_range = transpiler.location.getRangeFromString(name)
 
+        value = Value.do_value(value, transpiler)
+        variable = Variable(name, value.type)
+        c_value = value.type.name
+        value.type.name = name
+
+        if str(value.type) != datatype:
+            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'", name_range)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return True
+
         if not StringUtils.is_identifier(name):
             transpiler.data.newError(f"'{name}' is not a valid variable name", name_range)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
@@ -499,21 +546,13 @@ class Variable(Value):
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        value = Value.do_value(value, transpiler)
-        variable = Variable(name, value.type)
-        c_value = value.type.name
-        value.type.name = name
-        if str(value.type) != datatype:
-            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'", name_range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
-            return True
-
         if value.type.is_iterable():
             base_type = datatype.split("[")[0]
             c_code = f"{base_type} {name}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
         else:
             c_code = f"{datatype} {name} = {c_value};"
 
+        transpiler.scope.add_Variable(variable, name_range.start)
         transpiler.data.code_done.append(c_code)
 
         return True

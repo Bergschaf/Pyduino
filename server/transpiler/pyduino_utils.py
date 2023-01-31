@@ -95,6 +95,7 @@ class Data:
 
         self.OPERATORS = ["+", "-", "*", "/", "%", " and ", " or ", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
         self.OPERATION_ORDER = [["*", "/", "%"], ["+", "-"], ["<", ">", "==", "!=", "<=", ">="], ["and", "or"]]
+        self.VALID_NAME_END_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
     def newError(self, message: str, range: Range):
         self.errors.append(Error(message, range))
@@ -514,10 +515,12 @@ class StringUtils:
         return True
 
     @staticmethod
-    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: bool = False) -> list[str]:
+    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: bool = False, split_after_brackets: bool = False) -> list[str]:
         """
         Splits a string by commas outside of brackets. Example:
         "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
+        :param split_after_brackets If true, the string will be split after each brakcet (that is on the outside) Example:
+        "a,v,[32,(2,)2],2(2,2),2" -> ["a,v", "[32,(2,)2]", "2", "(2,2)", "2"]
         """
         bracket_levels = [0] * 3  # 0: (), 1: [], 2: {}
         result = []
@@ -543,6 +546,11 @@ class StringUtils:
                 if keep_separators:
                     result.append(char)
                 start = i + 1
+
+            if split_after_brackets:
+                if char in ")]}" and all(x == 0 for x in bracket_levels):
+                    result.append(value[start:i + 1])
+                    start = i + 1
 
             # multticharacter separators
             elif any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):

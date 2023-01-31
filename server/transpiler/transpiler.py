@@ -49,6 +49,16 @@ class Transpiler:
 
     def do_line(self, line: str):
         instruction = line.strip()
+        if "#" in instruction:
+            instruction = instruction.split("#")[0].strip()
+        if instruction == "":
+            return
+        if instruction.endswith(";"):
+            instruction = instruction[:-1]
+            # error on the semicolon
+            pos = Position(self.location.position.line, len(
+                self.data.code[self.location.position.line]))
+            self.data.newError("We don't do that here", Range.fromPositions(pos, pos))
         for check in self.checks:
             if check(self, instruction, self.location.position.line):
                 return
@@ -65,7 +75,8 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=['string[] x = ["hello", 2]', "int x = 2"], mode='main', line_offset=0)
+    Transpiler = Transpiler(code=['int[][] x = [[1,2,3],[4,5,6],[7,8,9]]', 'int y = x[2][0]'], mode='main', line_offset=0)
     Transpiler.transpileTo(2)
     print([str(e) for e in Transpiler.data.errors])
     print(Transpiler.data.code_done)
+    print(Transpiler.scope.variables)
