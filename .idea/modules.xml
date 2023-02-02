@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Pyduino.iml" filepath="$PROJECT_DIR$/.idea/Pyduino.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Pyduino2.iml" filepath="$PROJECT_DIR$/.idea/Pyduino2.iml" />
     </modules>
   </component>
 </project>

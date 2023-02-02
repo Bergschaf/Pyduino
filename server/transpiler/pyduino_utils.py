@@ -34,6 +34,16 @@ class Position:
     def __str__(self):
         return f"{self.line}:{self.col}"
 
+    @staticmethod
+    def last_char(data: 'Data', line: int):
+        """
+        Returns the last character of a line
+        :param data:
+        :param line:
+        :return:
+        """
+        return Position(line, len(data.code[line]))
+
 
 class Range:
     def __init__(self, start_line, start_col, end_line=None, end_col=None, complete_line=False,
@@ -63,6 +73,12 @@ class Range:
     @staticmethod
     def fromPositions(pos1: Position, pos2: Position):
         return Range(pos1.line, pos1.col, pos2.line, pos2.col)
+
+    @staticmethod
+    def fromPosition(pos: Position):
+        return Range(pos.line, pos.col, pos.line, pos.col)
+
+
 
 
 class Error:

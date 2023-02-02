@@ -1,0 +1,3 @@
+D:/Projects/Pyduino/cmake-build-debug/CMakeFiles/Pyduino.dir
+D:/Projects/Pyduino/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/Projects/Pyduino/cmake-build-debug/CMakeFiles/rebuild_cache.dir

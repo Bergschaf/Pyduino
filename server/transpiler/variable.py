@@ -76,6 +76,21 @@ class PyduinoType():
     def not_(self):
         return False, f"Cannot negate {self.name}"
 
+    def to_int(self):
+        return False, f"Cannot convert {self.name} to int"
+
+    def to_float(self):
+        return False, f"Cannot convert {self.name} to float"
+
+    def to_string(self):
+        return False, f"Cannot convert {self.name} to string"
+
+    def to_bool(self):
+        return False, f"Cannot convert {self.name} to bool"
+
+    def to_array(self):
+        return False, f"Cannot convert {self.name} to array"
+
     def get_item(self, index: 'PyduinoType'):
         return False, f"Cannot get item {index} from {self.name}"
 
@@ -132,6 +147,18 @@ class PyduinoBool(PyduinoType):
 
     def not_(self):
         return True, PyduinoBool(f"!{self.name}")
+
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, PyduinoInt(f"({self.name} ? 1 : 0)")
+
+    def to_float(self):
+        return True, PyduinoFloat(f"({self.name} ? 1.0 : 0.0)")
+
+    def to_bool(self):
+        return True, self
 
     @staticmethod
     def check_type(string: str) -> 'PyduinoType':
@@ -221,6 +248,18 @@ class PyduinoInt(PyduinoType):
             return True, PyduinoBool(f"((float){self.name} != {other.name})")
         return False, f"Cannot compare {other} to int"
 
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, self
+
+    def to_float(self):
+        return True, PyduinoFloat(f"(float){self.name}")
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != 0)")
+
     @staticmethod
     def check_type(str: str):
         if str.isdigit():
@@ -304,6 +343,18 @@ class PyduinoFloat(PyduinoType):
             return True, PyduinoBool(f"({self.name} != {other.name})")
         return False, f"Cannot compare {other} to float"
 
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, PyduinoInt(f"(int){self.name}")
+
+    def to_float(self):
+        return True, self
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != 0)")
+
     @staticmethod
     def check_type(str: str):
         if str.replace(".", "", 1).isdigit() and "." in str:
@@ -320,12 +371,27 @@ class PyduinoString(PyduinoType):
 
     def add(self, other):
         if str(other) == "int":
-            return True, PyduinoString(f"(String({self.name}) + String({other.name}))")
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
         if str(other) == "float":
-            return True, PyduinoString(f"(String({self.name}) + String({other.name}))")
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
+        if str(other) == "bool":
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
         if str(other) == "str":
-            return True, PyduinoString(f"(String({self.name}) + {other.name})")
-        return False, f"Cannot add {other} to string", None
+            return True, PyduinoString(f"({self.name} + {other.name})")
+
+        return False, f"Cannot add {other} to string"
+
+    def to_string(self):
+        return True, self.copy()
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != \"\")")
+
+    def equal(self, other):
+        if str(other) == "str":
+            return True, PyduinoBool(f"({self.name} == {other.name})")
+        return False, f"Cannot compare {other} to string"
+
 
     @staticmethod
     def check_type(str: str):
@@ -334,7 +400,7 @@ class PyduinoString(PyduinoType):
         return False
 
     def __str__(self):
-        return "string"
+        return "str"
 
 
 class PyduinoArray(PyduinoType):
@@ -376,6 +442,12 @@ class PyduinoArray(PyduinoType):
 
     def is_iterable(self):
         return True
+
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name}.length() != 0)")
 
     def dimensions(self):
         dimensions = []
