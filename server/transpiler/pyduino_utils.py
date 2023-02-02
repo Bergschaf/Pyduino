@@ -31,6 +31,10 @@ class Position:
             return self
         return other
 
+    def shift_to_end(self, data: 'Data'):
+        # shifts the position to the end of the line
+        return Position(self.line, len(data.code[self.line]))
+
     def __str__(self):
         return f"{self.line}:{self.col}"
 
@@ -79,8 +83,6 @@ class Range:
         return Range(pos.line, pos.col, pos.line, pos.col)
 
 
-
-
 class Error:
     def __init__(self, message: str, range: Range):
         self.message = message
@@ -124,9 +126,9 @@ class Data:
             if location.start.line != location.end.line:
                 return self.code[location.start.line][location.start.col:] + "".join(
                     self.code[location.start.line + 1:location.end.line]) + \
-                       self.code[location.end.line][:location.end.col]
+                       self.code[location.end.line][:location.end.col + 1]
             else:
-                return self.code[location.start.line][location.start.col:location.end.col]
+                return self.code[location.start.line][location.start.col:location.end.col + 1]
         else:
             return self.code[location.line][location.col]
 
@@ -267,14 +269,19 @@ class CurrentLocation:
             if default_Range_Fallback is None else default_Range_Fallback
         # the method that will be used to produced a range (or an error) if the requested string is
         # not found but a range is required
-        self.position = Position(0, 0)
+        self.position = Position(-1, 0)
         self.range: Range = Range(0, 0, 0, 0)
+
+        self.loop_level = 0
+
+        self.last_line = len(code) - 1
 
     def next_line(self):
         self.position.line += 1
         if self.position.line >= len(self.code):
             raise EndOfFileError()
         self.position.col = self.indentations[self.position.line] * 4
+        self.range = Range.fromPositions(self.position, Position(self.position.line, len(self.code[self.position.line]) - 1))
 
     def getCurrentLine(self):
         return self.code[self.position.line]
@@ -580,3 +587,28 @@ class StringUtils:
         result.append(value[start:])
         result = [x for x in result if x != ""]
         return result
+
+    @staticmethod
+    def check_colon(line: str, transpiler: 'Transpiler') -> str:
+        # returns line without colon
+        if not line.endswith(":"):
+            transpiler.data.newError("Expected ':'", Range.fromPosition(Position.last_char(transpiler.data, transpiler.location.position.line)))
+
+        return line[:-1]
+
+    @staticmethod
+    def get_indentation_range(start_line: int, transpiler: 'Transpiler') -> int:
+        """
+        Returns the last position with the same indentation as the given line
+        """
+        indent = transpiler.location.indentations[start_line]
+        for i in range(transpiler.location.position.line + 1, len(transpiler.location.indentations)):
+            if transpiler.location.indentations[i] < indent:
+                end_line = i - 1
+                break
+        else:
+            end_line = len(transpiler.location.indentations) - 1
+        return end_line
+
+
+

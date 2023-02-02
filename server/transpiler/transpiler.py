@@ -1,5 +1,6 @@
 from server.transpiler.scope import Scope
 from server.transpiler.variable import *
+from server.transpiler.control import Control
 
 
 class Transpiler:
@@ -12,19 +13,19 @@ class Transpiler:
         self.data: Data = Data(code, line_offset)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
 
-        self.utils = StringUtils(self.location, self.data, self)
+        self.utils: StringUtils = StringUtils(self.location, self.data, self)
 
         self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
 
         self.scope = Scope(self.data, self.location)
 
-        self.checks = [Variable.check_definition]  # the functions to check for different instruction types
+        self.checks = [Variable.check_definition, Control.check]  # the functions to check for different instruction types
 
     def next_line(self):
         index, line = next(self.data.enumerator)
-        self.do_line(line)
         self.location.next_line()
+        self.do_line(line)
 
     def transpileTo(self, line: int):
         """
@@ -45,6 +46,11 @@ class Transpiler:
                 print("Invalid Line")
                 # The line is invalid, so it is skipped
                 pass
+            except Exception as e:
+                print("Something went wrong, line: ", self.location.position.line)
+                # Something went wrong
+                print(e)
+                break
 
     def do_line(self, line: str):
         instruction = line.strip()
@@ -58,8 +64,9 @@ class Transpiler:
             pos = Position(self.location.position.line, len(
                 self.data.code[self.location.position.line]))
             self.data.newError("We don't do that here", Range.fromPositions(pos, pos))
+
         for check in self.checks:
-            if check(self, instruction, self.location.position.line):
+            if check(instruction, self):
                 return
 
     def finish(self):
@@ -74,8 +81,7 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=['int[][] x = [[1,2,3],[4,5,6],[7,8,9]]', 'int y = x[2][0]'], mode='main', line_offset=0)
-    Transpiler.transpileTo(2)
-    print([str(e) for e in Transpiler.data.errors])
+    Transpiler = Transpiler(code=['int x = 2', 'if x == 2:', '    int y = 3',"else:", "    int[] thgrsdf = [2]"])
+    Transpiler.transpileTo(5)
     print(Transpiler.data.code_done)
-    print(Transpiler.scope.variables)
+    print([str(e) for e in Transpiler.data.errors])

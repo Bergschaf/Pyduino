@@ -392,7 +392,6 @@ class PyduinoString(PyduinoType):
             return True, PyduinoBool(f"({self.name} == {other.name})")
         return False, f"Cannot compare {other} to string"
 
-
     @staticmethod
     def check_type(str: str):
         if str[0] == '"' and str[-1] == '"':
@@ -551,9 +550,9 @@ class Value:
             if value[i] in transpiler.data.VALID_NAME_END_CHARACTERS and value[i + 1] == "[":
                 var = transpiler.scope.get_Variable(value[:i + 1], transpiler.location.position)
                 if var:
-                    indices = StringUtils.splitOutsideBrackets(value[i+1:], ["[]"], True, split_after_brackets=True)
+                    indices = StringUtils.splitOutsideBrackets(value[i + 1:], ["[]"], True, split_after_brackets=True)
                     for id in indices:
-                        if not(id[0] == "[" and id[-1] == "]"):
+                        if not (id[0] == "[" and id[-1] == "]"):
                             transpiler.data.newError(f"Invalid index {id}", transpiler.location.range)
                             transpiler.data.invalid_line_fallback.fallback(transpiler)
 
@@ -578,10 +577,16 @@ class Constant(Value):
 
 class Variable(Value):
     @staticmethod
-    def check_definition(transpiler: 'Transpiler', instruction: str, line: int) -> bool:
+    def check_definition(instruction: str, transpiler: 'Transpiler') -> bool:
+        line = transpiler.location.position.line
         instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
         operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range, fallback=StringNotFound_DoNothing)
+
         if not operator_location:
+            return False
+
+        equal = transpiler.data.getCode(Range(line, operator_location.col - 1, line, operator_location.col + 1))
+        if equal[0] == "=" or equal[-1] == "=":
             return False
 
         split = instruction.split("=")
