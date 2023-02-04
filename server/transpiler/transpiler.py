@@ -1,6 +1,7 @@
 from server.transpiler.scope import Scope
 from server.transpiler.variable import *
 from server.transpiler.control import Control
+from server.transpiler.function import Function
 
 
 class Transpiler:
@@ -18,9 +19,10 @@ class Transpiler:
         self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
 
-        self.scope = Scope(self.data, self.location)
+        self.scope: Scope = Scope(self.data, self.location)
 
-        self.checks = [Variable.check_definition, Control.check]  # the functions to check for different instruction types
+        self.checks = [Variable.check_definition, Control.check_condition, Function.check_definition,
+                       Function.checK_return]  # the functions to check for different instruction types
 
     def next_line(self):
         index, line = next(self.data.enumerator)
@@ -46,11 +48,11 @@ class Transpiler:
                 print("Invalid Line")
                 # The line is invalid, so it is skipped
                 pass
-            except Exception as e:
-                print("Something went wrong, line: ", self.location.position.line)
-                # Something went wrong
-                print(e)
-                break
+            # except Exception as e: TODO remove comment
+            #    print("Something went wrong, line: ", self.location.position.line)
+            #    # Something went wrong
+            #    print(e)
+            #    break
 
     def do_line(self, line: str):
         instruction = line.strip()
@@ -81,7 +83,7 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=['int x = 2', 'if x == 2:', '    int y = 3',"else:", "    int[] thgrsdf = [2]"])
-    Transpiler.transpileTo(5)
+    Transpiler = Transpiler(code=['int f():', '    return'], mode='main', line_offset=0)
+    Transpiler.transpileTo(2)
     print(Transpiler.data.code_done)
     print([str(e) for e in Transpiler.data.errors])

@@ -94,6 +94,9 @@ class PyduinoType():
     def get_item(self, index: 'PyduinoType'):
         return False, f"Cannot get item {index} from {self.name}"
 
+    def is_type(self, other: 'PyduinoType'):
+        return str(self) == str(other)
+
     def is_iterable(self):
         return False
 
@@ -107,10 +110,28 @@ class PyduinoType():
         :param str:
         :return:
         """
-        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray]:
+        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray, PyduinoVoid]:
             t = type.check_type(str)
             if t:
                 return t
+        return False
+
+    @staticmethod
+    def get_type_from_string(name: str) -> 'PyduinoType | bool':
+        """
+        Returns the type of the typename in the string (for example "int" or "float")
+        :param self:
+        :param str:
+        :return:
+        """
+        for type in [PyduinoBool(), PyduinoInt(), PyduinoFloat(), PyduinoString(), PyduinoArray, PyduinoVoid()]:
+            if type.is_typename(name):
+                return type.is_typename(name)
+        return False
+
+    def is_typename(self, name: str) -> 'PyduinoType':
+        if str(self) == name:
+            return type(self)()
         return False
 
     def copy(self) -> 'PyduinoType':
@@ -123,12 +144,25 @@ class PyduinoAny(PyduinoType):
     def check_type(str: str):
         return False
 
+
+class PyduinoUndefined(PyduinoType):
+    @staticmethod
+    def check_type(str: str):
+        return False
+
+    def __str__(self):
+        return "undefined"
+
+
 class PyduinoVoid(PyduinoType):
     @staticmethod
     def check_type(str: str):
         if str == "void":
             return PyduinoVoid()
         return False
+
+    def __str__(self):
+        return "void"
 
 
 class PyduinoBool(PyduinoType):
@@ -461,6 +495,14 @@ class PyduinoArray(PyduinoType):
         if self.item.is_iterable():
             dimensions += self.item.dimensions()
         return dimensions
+
+    @staticmethod
+    def is_typename(name: str) -> 'PyduinoType':
+        if name.endswith("[]"):
+            item = PyduinoType.get_type_from_string(name[:-2])
+            if item:
+                return PyduinoArray(item)
+        return False
 
     def __str__(self):
         return f"{self.item}[]"

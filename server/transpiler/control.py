@@ -4,7 +4,7 @@ from server.transpiler.variable import *
 
 class Control:
     @staticmethod
-    def check(instuction: str, transpiler: 'Transpiler'):
+    def check_condition(instuction: str, transpiler: 'Transpiler'):
         """
         :param line:
         :param transpiler:

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from server.transpiler.transpiler import Transpiler
+    from server.transpiler.function import Function
 
 
 class Position:
@@ -12,6 +13,9 @@ class Position:
 
     def distance(self, other: 'Position', data: 'Data'):
         return len(data.getCode(Range.fromPositions(self.smaller(other), self.bigger(other))))
+
+    def add_line(self, offset: int):
+        return Position(self.line + offset, self.col)
 
     def bigger(self, other):
         if self.line > other.line:
@@ -110,6 +114,7 @@ class Data:
         self.code_done: list[str] = []
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
+        self.in_function: Function = None
 
         self.OPERATORS = ["+", "-", "*", "/", "%", " and ", " or ", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
         self.OPERATION_ORDER = [["*", "/", "%"], ["+", "-"], ["<", ">", "==", "!=", "<=", ">="], ["and", "or"]]
@@ -599,7 +604,7 @@ class StringUtils:
     @staticmethod
     def get_indentation_range(start_line: int, transpiler: 'Transpiler') -> int:
         """
-        Returns the last position with the same indentation as the given line
+        Returns the last line with the same indentation as the given line
         """
         indent = transpiler.location.indentations[start_line]
         for i in range(transpiler.location.position.line + 1, len(transpiler.location.indentations)):
@@ -610,5 +615,30 @@ class StringUtils:
             end_line = len(transpiler.location.indentations) - 1
         return end_line
 
+    def get_arguments(self,line: str) -> tuple[list[str], list[tuple[str, str]]]:
+        """
+        Returns the arguments of a function call or definition
+        line with brackets
+        :return arguments, keyword arguments (as tuples)
+        """
+        line = line.strip()[1:-1]
+
+        if line == "":
+            return [], []
+
+        arguments = StringUtils.splitOutsideBrackets(line, [","])
+        args, kwargs = [], []
+
+        for arg in arguments:
+            x = StringUtils.splitOutsideBrackets(arg, ["="], keep_separators=True)
+            if len(x) == 1 and kwargs:
+                self.data.newError("Positional argument after keyword argument", self.location.getRangeFromString(arg))
+            elif len(x) == 1:
+                args.append(x[0].strip())
+            elif len(x) == 3:
+                kwargs.append((x[0].strip(), x[2].strip()))
+            else:
+                self.data.newError("Invalid Argument (Contains '=')", self.location.getRangeFromString(arg))
+        return args, kwargs
 
 
