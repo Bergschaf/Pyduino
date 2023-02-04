@@ -123,6 +123,13 @@ class PyduinoAny(PyduinoType):
     def check_type(str: str):
         return False
 
+class PyduinoVoid(PyduinoType):
+    @staticmethod
+    def check_type(str: str):
+        if str == "void":
+            return PyduinoVoid()
+        return False
+
 
 class PyduinoBool(PyduinoType):
     def and_(self, other):
