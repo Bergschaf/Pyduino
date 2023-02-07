@@ -49,15 +49,15 @@ Instruction     1
 Value           SizeValue
 EndCharacter    1
 
-Size: 8 + SizeValue
+Size: 5 + SizeValue
 
 Serial Response:
 
-StartCharacter  1
+ResponseStartCharacter  1
 Request ID      1
 SizeResponse (in bytes) 1
 Response        SizeResponse
-EndCharacter    1
+ResponseEndCharacter    1
 
-Size: 6 + SizeResponse
+Size: 4 + SizeResponse
 

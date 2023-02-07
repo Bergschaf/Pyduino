@@ -1,4 +1,4 @@
-from pyduino_utils import *
+from server.transpiler.pyduino_utils import *
 
 if TYPE_CHECKING:
     from transpiler import Transpiler
@@ -76,6 +76,27 @@ class PyduinoType():
     def not_(self):
         return False, f"Cannot negate {self.name}"
 
+    def to_int(self):
+        return False, f"Cannot convert {self.name} to int"
+
+    def to_float(self):
+        return False, f"Cannot convert {self.name} to float"
+
+    def to_string(self) -> 'tuple[bool,PyduinoType]':
+        return False, f"Cannot convert {self.name} to string"
+
+    def to_bool(self):
+        return False, f"Cannot convert {self.name} to bool"
+
+    def to_array(self):
+        return False, f"Cannot convert {self.name} to array"
+
+    def get_item(self, index: 'PyduinoType'):
+        return False, f"Cannot get item {index} from {self.name}"
+
+    def is_type(self, other: 'PyduinoType'):
+        return str(self) == str(other)
+
     def is_iterable(self):
         return False
 
@@ -89,10 +110,28 @@ class PyduinoType():
         :param str:
         :return:
         """
-        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray]:
+        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray, PyduinoVoid]:
             t = type.check_type(str)
             if t:
                 return t
+        return False
+
+    @staticmethod
+    def get_type_from_string(name: str) -> 'PyduinoType | bool':
+        """
+        Returns the type of the typename in the string (for example "int" or "float")
+        :param self:
+        :param str:
+        :return:
+        """
+        for type in [PyduinoBool(), PyduinoInt(), PyduinoFloat(), PyduinoString(), PyduinoArray, PyduinoVoid()]:
+            if type.is_typename(name):
+                return type.is_typename(name)
+        return False
+
+    def is_typename(self, name: str) -> 'PyduinoType':
+        if str(self) == name:
+            return type(self)()
         return False
 
     def copy(self) -> 'PyduinoType':
@@ -102,22 +141,34 @@ class PyduinoType():
 
 class PyduinoAny(PyduinoType):
     @staticmethod
-    def check_type(s: str):
+    def check_type(str: str):
         return False
+
+    def is_type(self, other: 'PyduinoType'):
+        return True
+
+    def __str__(self):
+        return "any"
 
 
 class PyduinoUndefined(PyduinoType):
     @staticmethod
-    def check_type(s: str) -> 'PyduinoType':
+    def check_type(str: str):
         return False
+
+    def __str__(self):
+        return "undefined"
 
 
 class PyduinoVoid(PyduinoType):
     @staticmethod
-    def check_type(s: str):
-        if s == "void":
-            return PyduinoVoid("void")
+    def check_type(str: str):
+        if str == "void":
+            return PyduinoVoid()
         return False
+
+    def __str__(self):
+        return "void"
 
 
 class PyduinoBool(PyduinoType):
@@ -143,6 +194,18 @@ class PyduinoBool(PyduinoType):
 
     def not_(self):
         return True, PyduinoBool(f"!{self.name}")
+
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, PyduinoInt(f"({self.name} ? 1 : 0)")
+
+    def to_float(self):
+        return True, PyduinoFloat(f"({self.name} ? 1.0 : 0.0)")
+
+    def to_bool(self):
+        return True, self
 
     @staticmethod
     def check_type(string: str) -> 'PyduinoType':
@@ -232,6 +295,18 @@ class PyduinoInt(PyduinoType):
             return True, PyduinoBool(f"((float){self.name} != {other.name})")
         return False, f"Cannot compare {other} to int"
 
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, self
+
+    def to_float(self):
+        return True, PyduinoFloat(f"(float){self.name}")
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != 0)")
+
     @staticmethod
     def check_type(str: str):
         if str.isdigit():
@@ -315,6 +390,18 @@ class PyduinoFloat(PyduinoType):
             return True, PyduinoBool(f"({self.name} != {other.name})")
         return False, f"Cannot compare {other} to float"
 
+    def to_string(self):
+        return True, PyduinoString(f"String({self.name})")
+
+    def to_int(self):
+        return True, PyduinoInt(f"(int){self.name}")
+
+    def to_float(self):
+        return True, self
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != 0)")
+
     @staticmethod
     def check_type(str: str):
         if str.replace(".", "", 1).isdigit() and "." in str:
@@ -331,12 +418,26 @@ class PyduinoString(PyduinoType):
 
     def add(self, other):
         if str(other) == "int":
-            return True, PyduinoString(f"(String({self.name}) + String({other.name}))")
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
         if str(other) == "float":
-            return True, PyduinoString(f"(String({self.name}) + String({other.name}))")
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
+        if str(other) == "bool":
+            return True, PyduinoString(f"({self.name} + String({other.name}))")
         if str(other) == "str":
-            return True, PyduinoString(f"(String({self.name}) + {other.name})")
-        return False, f"Cannot add {other} to string", None
+            return True, PyduinoString(f"({self.name} + {other.name})")
+
+        return False, f"Cannot add {other} to string"
+
+    def to_string(self):
+        return True, self.copy()
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.name} != \"\")")
+
+    def equal(self, other):
+        if str(other) == "str":
+            return True, PyduinoBool(f"({self.name} == {other.name})")
+        return False, f"Cannot compare {other} to string"
 
     @staticmethod
     def check_type(str: str):
@@ -345,7 +446,7 @@ class PyduinoString(PyduinoType):
         return False
 
     def __str__(self):
-        return "string"
+        return "str"
 
 
 class PyduinoArray(PyduinoType):
@@ -355,11 +456,13 @@ class PyduinoArray(PyduinoType):
         self.size = size
 
     def len(self):
-        return True, PyduinoInt(f"({self.name}.length())")
+        return True, PyduinoInt(f"(sizeof({self.name}) / sizeof({self.name}[0]))")
 
-    def getitem(self, id: PyduinoType):
+    def get_item(self, index: 'PyduinoType'):
+        if str(index) != "int":
+            return False, f"Cannot index array with {index}"
         item = self.item.copy()
-        item.name = f"{self.name}[{id.name}]"
+        item.name = f"{self.name}[{index.name}]"
         return True, item
 
     @staticmethod
@@ -375,7 +478,7 @@ class PyduinoArray(PyduinoType):
             return False
         if not all(str(items[0]) == str(item) for item in items):
             return False
-        if type(items[0]) == PyduinoArray:
+        if type(items[0]) is PyduinoArray:
             if not all(items[0].size == item.size for item in items):
                 return False
         while "  " in string:
@@ -386,12 +489,34 @@ class PyduinoArray(PyduinoType):
     def is_iterable(self):
         return True
 
+    def to_string(self):
+        if not self.item.is_iterable():
+            return True, PyduinoString(f"arrayToString({self.name}, {self.len()[1].name})")
+        else:
+            # TODO return: "int[2][2]" (Datatype and Dimensions)
+            depth = len(self.dimensions())
+            quote = '"'
+            first = "[0]"
+            dimensions = f"{''.join([f' + {quote}[{quote} + String(sizeof({self.name}{first * i}) / sizeof({self.name}{first * (i + 1)})) + {quote}]{quote}' for i in range(depth)])}"
+            return True, PyduinoString(f'"{self.name}"{dimensions}')
+
+    def to_bool(self):
+        return True, PyduinoBool(f"({self.len()[1].name} != 0)")
+
     def dimensions(self):
         dimensions = []
         dimensions.append(self.size)
         if self.item.is_iterable():
             dimensions += self.item.dimensions()
         return dimensions
+
+    @staticmethod
+    def is_typename(name: str) -> 'PyduinoType':
+        if name.endswith("[]"):
+            item = PyduinoType.get_type_from_string(name[:-2])
+            if item:
+                return PyduinoArray(item)
+        return False
 
     def __str__(self):
         return f"{self.item}[]"
@@ -413,12 +538,6 @@ class Value:
     def do_value(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
         # has to set location.position and location.range before calling
         # TODO add detailed errors, errors will always cover the complete value
-
-        t = PyduinoType.check_type(value)
-        if t: return Constant(t.name, t)
-
-        var = transpiler.scope.get_Variable(value, transpiler.location.position)
-        if var: return var
 
         # resolve brackets
         values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS + ["not"], True)
@@ -456,7 +575,6 @@ class Value:
                             transpiler.data.invalid_line_fallback.fallback(transpiler)
 
         # check for not
-
         shift_left = 0
         for i in range(1, len(values)):
             i -= shift_left
@@ -473,8 +591,47 @@ class Value:
         if len(values) == 1 and type(values[0]) is not str:
             return values[0]
         else:
-            transpiler.data.newError(f"Invalid value {values}", transpiler.location.range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return Value.do_value_single(value, transpiler)
+
+    @staticmethod
+    def do_value_single(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
+        """
+        The value has to be a single value, no operators
+        :param value:
+        :param transpiler:
+        :return:
+        """
+
+        t = PyduinoType.check_type(value)
+        if t: return Constant(t.name, t)
+
+        var = transpiler.scope.get_Variable(value, transpiler.location.position)
+        if var: return var
+
+        # check if it is a getitem
+        for i in range(len(value) - 1):
+            if value[i] in transpiler.data.VALID_NAME_END_CHARACTERS and value[i + 1] == "[":
+                var = transpiler.scope.get_Variable(value[:i + 1], transpiler.location.position)
+                if var:
+                    indices = StringUtils.splitOutsideBrackets(value[i + 1:], ["[]"], True, split_after_brackets=True)
+                    for id in indices:
+                        if not (id[0] == "[" and id[-1] == "]"):
+                            transpiler.data.newError(f"Invalid index {id}", transpiler.location.range)
+                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+
+                    indices = [Value.do_value(id[1:-1], transpiler) for id in indices]
+                    value = var
+                    for ind in indices:
+                        possible, value = value.type.get_item(ind.type)
+                        if not possible:
+                            transpiler.data.newError(value, transpiler.location.range)
+                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+                        value = Constant(value.name, value)
+                    return value
+        # check if it is a function call
+
+        transpiler.data.newError(f"Invalid value {value}", transpiler.location.range)
+        transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
 class Constant(Value):
@@ -483,11 +640,16 @@ class Constant(Value):
 
 class Variable(Value):
     @staticmethod
-    def check_definition(transpiler: 'Transpiler', instruction: str, line: int) -> bool:
+    def check_definition(instruction: str, transpiler: 'Transpiler') -> bool:
+        line = transpiler.location.position.line
         instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
-        operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range,
-                                                                   fallback=StringNotFound_DoNothing)
+        operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range, fallback=StringNotFound_DoNothing)
+
         if not operator_location:
+            return False
+
+        equal = transpiler.data.getCode(Range(line, operator_location.col - 1, line, operator_location.col + 1))
+        if equal[0] == "=" or equal[-1] == "=":
             return False
 
         split = instruction.split("=")
@@ -504,6 +666,16 @@ class Variable(Value):
 
         name_range = transpiler.location.getRangeFromString(name)
 
+        value = Value.do_value(value, transpiler)
+        variable = Variable(name, value.type)
+        c_value = value.type.name
+        value.type.name = name
+
+        if str(value.type) != datatype:
+            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'", name_range)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return True
+
         if not StringUtils.is_identifier(name):
             transpiler.data.newError(f"'{name}' is not a valid variable name", name_range)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
@@ -514,27 +686,15 @@ class Variable(Value):
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        value = Value.do_value(value, transpiler)
-        variable = Variable(name, value.type)
-        c_value = value.type.name
-        value.type.name = name
-        if str(value.type) != datatype:
-            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'",
-                                     name_range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
-            return True
-
         if value.type.is_iterable():
             base_type = datatype.split("[")[0]
             c_code = f"{base_type} {name}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
         else:
             c_code = f"{datatype} {name} = {c_value};"
 
+        transpiler.scope.add_Variable(variable, name_range.start)
         transpiler.data.code_done.append(c_code)
 
         return True
 
 
-if __name__ == '__main__':
-    print(PyduinoType.check_type("[[1,2,3                  ],[1,2,3],[1,2,3]]").name)
-    print(PyduinoType.check_type("1").name)

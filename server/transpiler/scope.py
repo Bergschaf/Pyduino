@@ -51,7 +51,7 @@ class Scope:
 
     def add_Variable(self, variable: 'Variable', position: 'Position'):
         for i in self.variables:
-            if i.in_range(position):
+            if i.in_range(position) and self.data.indentations[i.start.line] == self.data.indentations[position.line]:
                 self.variables[i].append(variable)
 
     def add_Function(self, function: 'Function', position: 'Position'):

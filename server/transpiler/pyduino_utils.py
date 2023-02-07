@@ -17,6 +17,9 @@ class Position:
     def add_line(self, offset: int):
         return Position(self.line + offset, self.col)
 
+    def add_col(self, offset: int):
+        return Position(self.line, self.col + offset)
+
     def bigger(self, other):
         if self.line > other.line:
             return self
@@ -105,6 +108,7 @@ class EndOfFileError(Exception):
 
 
 class Data:
+    sys_var_index = 0
     def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
         self.code: list[str] = code
         self.line_offset: int = line_offset
@@ -598,6 +602,7 @@ class StringUtils:
         # returns line without colon
         if not line.endswith(":"):
             transpiler.data.newError("Expected ':'", Range.fromPosition(Position.last_char(transpiler.data, transpiler.location.position.line)))
+            return line
 
         return line[:-1]
 
@@ -640,5 +645,10 @@ class StringUtils:
             else:
                 self.data.newError("Invalid Argument (Contains '=')", self.location.getRangeFromString(arg))
         return args, kwargs
+
+    @staticmethod
+    def next_sysvar():
+        Data.sys_var_index += 1
+        return f"__sysvar_{Data.sys_var_index}"
 
 
