@@ -125,7 +125,7 @@ class Data:
         if self.strict_mode:
             raise SyntaxError(message)
 
-    def getCode(self, location: Range | Position) -> str:
+    def getCode(self, location: 'Range | Position') -> str:
         # TODO newline option does not work
         if isinstance(location, Range):
             if location.start.line != location.end.line:
@@ -511,7 +511,7 @@ class StringUtils:
         invalid_line_fallback.fallback(self.transpiler)
 
     def searchOutsideBrackets(self, value: str, range: Range,
-                              fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> Position | bool:
+                              fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> 'Position | bool':
         """
         Searches for the given value outside of brackets.
         """

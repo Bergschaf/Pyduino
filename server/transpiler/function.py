@@ -1,6 +1,7 @@
 from server.transpiler.variable import *
 
 
+
 class Function:
     def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Value]):
         self.name = name
