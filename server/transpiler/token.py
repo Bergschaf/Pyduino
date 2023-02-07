@@ -43,6 +43,7 @@ class Token:
     def get_token(string: str, range: Range) -> 'Token':
         if string == "":
             return None
+        range = Range.fromPositions(range.start.add_col(len(string) - len(string.lstrip())), range.end.add_col(-len(string) + len(string.rstrip())))
         string = string.strip()
         if string in TOKENS.keys():
             return Token(TOKENS[string], range)
@@ -148,6 +149,7 @@ class Derived_Datatype(Token):
         super().__init__(type, location, None)
         self.dimensions = dimensions
         self.datatype = datatype
+        # TODO built array detection in the tokenizer
 
 
 TOKENS = {
@@ -184,4 +186,4 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print([str(t) for t in Token.tokenize("1 (+ 2) + 3", Position(0, 0))])
+    print([str(t) for t in Token.tokenize("int (+ 2) + 3", Position(0, 0))])
