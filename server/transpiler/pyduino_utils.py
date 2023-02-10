@@ -547,7 +547,7 @@ class StringUtils:
         return True
 
     @staticmethod
-    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: bool = False, split_after_brackets: bool = False) -> list[str]:
+    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: list = [], split_after_brackets: bool = False) -> list[str]:
         """
         Splits a string by commas outside of brackets. Example:
         "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
@@ -556,6 +556,7 @@ class StringUtils:
         """
         bracket_levels = [0] * 3  # 0: (), 1: [], 2: {}
         result = []
+        separators += keep_separators
 
         start = 0
         enumerator = enumerate(value)
@@ -573,26 +574,29 @@ class StringUtils:
                     pass
                     # TODO: Error
 
-            if char in separators and all(x == 0 for x in bracket_levels):
+            if any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):
+                separator = [x for x in separators if len(x) > 1 and value[i:].startswith(x)][0]
                 result.append(value[start:i])
-                if keep_separators:
+                if separator in keep_separators:
+                    result.append(separator)
+                start = i + len(separator)
+                while i + 1 < start:
+                    i, char = next(enumerator)
+
+            elif char in separators and all(x == 0 for x in bracket_levels):
+
+                result.append(value[start:i])
+                if char in keep_separators:
                     result.append(char)
                 start = i + 1
 
-            if split_after_brackets:
+            elif split_after_brackets:
                 if char in ")]}" and all(x == 0 for x in bracket_levels):
                     result.append(value[start:i + 1])
                     start = i + 1
 
             # multticharacter separators
-            elif any(value[i:].startswith(x) for x in separators if len(x) > 1) and all(x == 0 for x in bracket_levels):
-                separator = [x for x in separators if len(x) > 1 and value[i:].startswith(x)][0]
-                result.append(value[start:i])
-                if keep_separators:
-                    result.append(separator)
-                start = i + len(separator)
-                while i + 1 < start:
-                    i, char = next(enumerator)
+
         result.append(value[start:])
         result = [x for x in result if x != ""]
         return result

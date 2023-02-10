@@ -31,7 +31,7 @@ class Token:
                 else:
                     break
 
-            if char == " " and bracket_levels == [0, 0, 0]:
+            if char == " " and bracket_levels == [0, 0, 0]: # TODO check for separators like and, or, not, <, ==, >, +, -, *
                 tokens.append(
                     Token.get_token(string[last_space.col - start.col:i], Range.fromPositions(last_space, Position(start.line, start.col + i))))
                 last_space = Position(start.line, start.col + i)
