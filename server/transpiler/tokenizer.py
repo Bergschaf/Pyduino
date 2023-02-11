@@ -31,20 +31,42 @@ class Token:
                 else:
                     break
 
-            if char == " " and bracket_levels == [0, 0, 0]: # TODO check for separators like and, or, not, <, ==, >, +, -, *
+            if bracket_levels != [0, 0, 0]:
+                continue
+
+            if any(string[i:2] == t for t in NO_SPACE_TOKENS_LEN2):
                 tokens.append(
-                    Token.get_token(string[last_space.col - start.col:i], Range.fromPositions(last_space, Position(start.line, start.col + i))))
+                    Token.get_token(string[last_space.col - start.col:i],
+                                    Range.fromPositions(last_space, Position(start.line, start.col + i))))
                 last_space = Position(start.line, start.col + i)
-        tokens.append(Token.get_token(string[last_space.col:], Range.fromPositions(last_space, Position(start.line, start.col + len(string)))))
+
+                tokens.append(Token.get_token(string[i:i + 2], Range.fromPositions(last_space, last_space.add_col(2))))
+                next(enumerator)
+
+            elif char == " " or any(char == t for t in NO_SPACE_TOKENS_LEN1):
+                tokens.append(Token.get_token(string[last_space.col - start.col:i],
+                                    Range.fromPositions(last_space, Position(start.line, start.col + i))))
+                last_space = Position(start.line, start.col + i)
+
+                if char == " ":
+                    continue
+
+                tokens.append(Token.get_token(char, Range.fromPositions(last_space, last_space.add_col(1))))
+                last_space = last_space.add_col(1)
+
+        tokens.append(Token.get_token(string[last_space.col:],
+                                      Range.fromPositions(last_space, Position(start.line, start.col + len(string)))))
 
         return [t for t in tokens if t is not None]
 
     @staticmethod
     def get_token(string: str, range: Range) -> 'Token':
+
+        range = Range.fromPositions(range.start.add_col(len(string) - len(string.lstrip())),
+                                    range.end.add_col(-len(string) + len(string.rstrip())))
+        string = string.strip()
         if string == "":
             return None
-        range = Range.fromPositions(range.start.add_col(len(string) - len(string.lstrip())), range.end.add_col(-len(string) + len(string.rstrip())))
-        string = string.strip()
         if string in TOKENS.keys():
             return Token(TOKENS[string], range)
 
@@ -68,10 +90,8 @@ class Token:
 
 
 class Operator(Token):
-    def __init__(self, type: TokenType, location: Range, left: Token, right: Token, value=None):
-        super().__init__(type, location, value)
-        self.left = left
-        self.right = right
+    def __init__(self, type: TokenType, location: Range, _):
+        super().__init__(type, location, None)
 
 
 class Math_Operator(Operator):
@@ -152,6 +172,8 @@ class Derived_Datatype(Token):
         # TODO built array detection in the tokenizer
 
 
+NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":"]
+NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
     "+": Math_Operator.PLUS,
     "-": Math_Operator.MINUS,
@@ -186,4 +208,4 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print([str(t) for t in Token.tokenize("int (+ 2) + 3", Position(0, 0))])
+    print([str(t) for t in Token.tokenize("int + 2,2,2 + 3.22", Position(0, 0))])

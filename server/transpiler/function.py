@@ -127,9 +127,6 @@ class Function:
         if not StringUtils.is_identifier(name):
             return False
 
-        if instruction[-1] == ')':
-            if StringUtils.find
-
 
 
 
