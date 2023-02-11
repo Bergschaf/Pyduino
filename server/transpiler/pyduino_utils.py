@@ -107,41 +107,6 @@ class EndOfFileError(Exception):
     pass
 
 
-class Data:
-    sys_var_index = 0
-    def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
-        self.code: list[str] = code
-        self.line_offset: int = line_offset
-        self.indentations: list[int] = []
-        self.errors: list[Error] = []
-        self.enumerator: enumerate = enumerate(code)
-        self.code_done: list[str] = []
-        self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
-        self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
-        self.in_function: Function = None
-
-        self.OPERATORS = ["+", "-", "*", "/", "%", " and ", " or ", "<", ">", "==", "!=", "<=", ">="]  # TODO not is a special case
-        self.OPERATION_ORDER = [["*", "/", "%"], ["+", "-"], ["<", ">", "==", "!=", "<=", ">="], ["and", "or"]]
-        self.VALID_NAME_END_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
-
-    def newError(self, message: str, range: Range):
-        self.errors.append(Error(message, range))
-        if self.strict_mode:
-            raise SyntaxError(message)
-
-    def getCode(self, location: 'Range | Position') -> str:
-        # TODO newline option does not work
-        if isinstance(location, Range):
-            if location.start.line != location.end.line:
-                return self.code[location.start.line][location.start.col:] + "".join(
-                    self.code[location.start.line + 1:location.end.line]) + \
-                       self.code[location.end.line][:location.end.col + 1]
-            else:
-                return self.code[location.start.line][location.start.col:location.end.col + 1]
-        else:
-            return self.code[location.line][location.col]
-
-
 class StringNotFound_Fallback(ABC):
     """
     This is a fallback that is used when a string is not found in a range.
@@ -149,7 +114,7 @@ class StringNotFound_Fallback(ABC):
 
     @staticmethod
     @abstractmethod
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         pass
 
 
@@ -158,7 +123,7 @@ class StringNotFound_ErrorFirstLine(StringNotFound_Fallback):
     This fallback will underline the first line of the range.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         data.newError(message, Range(range.start.line, 0, complete_line=True, data=data))
 
@@ -168,7 +133,7 @@ class StringNotFound_ErrorCompleteRange(StringNotFound_Fallback):
     This fallback will underline the whole range.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         data.newError(message, range)
 
@@ -178,7 +143,7 @@ class StringNotFound_ErrorStart(StringNotFound_Fallback):
     This fallback will underline the start position of the range.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         data.newError(message, Range(range.start.line, range.start.col, range.start.line,
                                      range.start.col + 1))
@@ -189,7 +154,7 @@ class StringNotFound_ErrorEnd(StringNotFound_Fallback):
     This fallback will underline the end position of the range.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         data.newError(message,
                       Range(range.end.line, range.end.col - 1, range.end.line, range.end.col))
@@ -200,7 +165,7 @@ class StringNotFound_ThrowError(StringNotFound_Fallback):
     This fallback will throw a SyntaxError.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         message = f"Could not find string '{string}' in range {range}" if custom_message is None else custom_message
         raise SyntaxError(message)
 
@@ -210,7 +175,7 @@ class StringNotFound_DoNothing(StringNotFound_Fallback):
     This fallback will do nothing.
     """
 
-    def fallback(data: Data, range: Range, string: str, custom_message: str = None):
+    def fallback(data: 'Data', range: Range, string: str, custom_message: str = None):
         pass
 
 
@@ -265,6 +230,7 @@ class InvalidLine_ThrowError(InvalidLine_Fallback):
 class InvalidLine_Skip(InvalidLine_Fallback):
     @staticmethod
     def fallback(transpiler: 'Transpiler'):
+        print([str(e) for e in transpiler.data.errors])
         raise InvalidLineError()
 
 
@@ -290,7 +256,8 @@ class CurrentLocation:
         if self.position.line >= len(self.code):
             raise EndOfFileError()
         self.position.col = self.indentations[self.position.line] * 4
-        self.range = Range.fromPositions(self.position, Position(self.position.line, len(self.code[self.position.line]) - 1))
+        self.range = Range.fromPositions(self.position,
+                                         Position(self.position.line, len(self.code[self.position.line]) - 1))
 
     def getCurrentLine(self):
         return self.code[self.position.line]
@@ -374,7 +341,8 @@ class CurrentLocation:
         else:
             return Range(line, pos, end_col=pos + len(string))
 
-    def getFullWordRange(self, position: Position, word: str = None, fallback: type[Range_Fallback] = Range_SingleChar) -> Range:
+    def getFullWordRange(self, position: Position, word: str = None,
+                         fallback: type[Range_Fallback] = Range_SingleChar) -> Range:
         """
         Tries to find the range of a word at the position. If word is None, the range of the word at the given position will be returned.
         :param position: The beginning of the word
@@ -438,7 +406,8 @@ class StringUtils:
 
         return indentations
 
-    def findClosingBracketInCode(self, bracket: str, pos: Position, fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
+    def findClosingBracketInCode(self, bracket: str, pos: Position,
+                                 fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
                                  invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip) -> Position:
         """
         Searches for the closing bracket of the given bracket in the complete code.
@@ -465,7 +434,8 @@ class StringUtils:
         return self.findClosingBracketInRange(bracket, Range(line, col, complete_line=True),
                                               fallback)
 
-    def findClosingBracketInRange(self, bracket: str, range: Range, error_fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange,
+    def findClosingBracketInRange(self, bracket: str, range: Range,
+                                  error_fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange,
                                   invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip) -> Position:
         """
         :param bracket:
@@ -515,7 +485,8 @@ class StringUtils:
         invalid_line_fallback.fallback(self.transpiler)
 
     def searchOutsideBrackets(self, value: str, range: Range,
-                              fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> 'Position | bool':
+                              fallback: type[
+                                  StringNotFound_Fallback] = StringNotFound_ErrorCompleteRange) -> 'Position | bool':
         """
         Searches for the given value outside of brackets.
         """
@@ -524,13 +495,15 @@ class StringUtils:
         brackets = "([{\""
         while i < len(code):
             if code[i] in brackets:
-                end_pos = self.findClosingBracketInRange(code[i], Range.fromPositions(self.location.getPositionOffset(range.start, i), range.end))
+                end_pos = self.findClosingBracketInRange(code[i], Range.fromPositions(
+                    self.location.getPositionOffset(range.start, i), range.end))
                 i = end_pos.distance(range.start, data=self.data)
 
             elif code[i:].startswith(value):
                 return self.location.getPositionOffset(range.start, i)
             i += 1
-        fallback.fallback(self.data, range, custom_message=f"Could not find '{value}' outside of brackets", string=value)
+        fallback.fallback(self.data, range, custom_message=f"Could not find '{value}' outside of brackets",
+                          string=value)
         return False
 
     @staticmethod
@@ -547,7 +520,8 @@ class StringUtils:
         return True
 
     @staticmethod
-    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: list = [], split_after_brackets: bool = False) -> list[str]:
+    def splitOutsideBrackets(value: str, separators: list[str], keep_separators: list = [],
+                             split_after_brackets: bool = False) -> list[str]:
         """
         Splits a string by commas outside of brackets. Example:
         "a,v,[32,2,2],2(2,2),2" -> ["a,v", "[32,2,2]", "2(2,2)", "2"]
@@ -602,12 +576,12 @@ class StringUtils:
         return result
 
     @staticmethod
-    def check_colon(line: str, transpiler: 'Transpiler') -> str:
+    def check_colon(line: "list[Token]", transpiler: 'Transpiler') -> 'list[Token]':
         # returns line without colon
-        if not line.endswith(":"):
-            transpiler.data.newError("Expected ':'", Range.fromPosition(Position.last_char(transpiler.data, transpiler.location.position.line)))
+        from server.transpiler.tokenizer import Separator
+        if line[-1].type == Separator.COLON:
+            transpiler.data.newError("Expected ':'", line[-1].location)
             return line
-
         return line[:-1]
 
     @staticmethod
@@ -624,7 +598,7 @@ class StringUtils:
             end_line = len(transpiler.location.indentations) - 1
         return end_line
 
-    def get_arguments(self,line: str) -> tuple[list[str], list[tuple[str, str]]]:
+    def get_arguments(self, line: str) -> tuple[list[str], list[tuple[str, str]]]:
         """
         Returns the arguments of a function call or definition
         line with brackets
@@ -656,3 +630,50 @@ class StringUtils:
         return f"__sysvar_{Data.sys_var_index}"
 
 
+import server.transpiler.tokenizer as t
+
+
+class Data:
+    sys_var_index = 0
+
+    def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
+        self.code: list[str] = code
+        self.code_tokens: 'list[list[Token]]' = []
+        self.line_offset: int = line_offset
+        self.indentations: list[int] = []
+        self.errors: list[Error] = []
+        self.enumerator: enumerate = enumerate(code)
+        self.code_done: list[str] = []
+        self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
+        self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
+        self.in_function: Function = None
+
+        self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
+                          t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,
+                          t.Compare_Operator.NOT_EQUAL, t.Compare_Operator.LESS, t.Compare_Operator.GREATER,
+                          t.Compare_Operator.GREATER_EQUAL, t.Compare_Operator.LESS_EQUAL, t.Bool_Operator.AND,
+                          t.Bool_Operator.OR]
+        self.OPERATION_ORDER = [[t.Math_Operator.MULTIPLY, t.Math_Operator.DIVIDE, t.Math_Operator.MODULO],
+                                [t.Math_Operator.PLUS, t.Math_Operator.MINUS],
+                                [t.Compare_Operator.EQUAL, t.Compare_Operator.NOT_EQUAL, t.Compare_Operator.LESS,
+                                 t.Compare_Operator.GREATER, t.Compare_Operator.GREATER_EQUAL,
+                                 t.Compare_Operator.LESS_EQUAL],
+                                [t.Bool_Operator.AND], [t.Bool_Operator.OR]]
+        self.VALID_NAME_END_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+
+    def newError(self, message: str, range: Range):
+        self.errors.append(Error(message, range))
+        if self.strict_mode:
+            raise SyntaxError(message)
+
+    def getCode(self, location: 'Range | Position') -> str:
+        # TODO newline option does not work
+        if isinstance(location, Range):
+            if location.start.line != location.end.line:
+                return self.code[location.start.line][location.start.col:] + "".join(
+                    self.code[location.start.line + 1:location.end.line]) + \
+                    self.code[location.end.line][:location.end.col + 1]
+            else:
+                return self.code[location.start.line][location.start.col:location.end.col + 1]
+        else:
+            return self.code[location.line][location.col]

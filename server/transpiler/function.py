@@ -6,7 +6,7 @@ class Function:
     def standard_call(args: list[Variable], kwargs: list[Variable], transpiler: 'Transpiler', name: str):
         return f"{name}({', '.join([i.name for i in args])}, {', '.join([f'{i.name}' for i in kwargs])})"
 
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Value], on_call=standard_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Word], on_call=standard_call):
         self.name = name
         self.return_type = return_type
         self.args = args
@@ -63,11 +63,11 @@ class Function:
             if not StringUtils.is_identifier(name_str):
                 transpiler.data.newError(f"Invalid function argument: '{name_str}'", transpiler.location.getRangeFromString(name_str))
 
-            value = Value.do_value(value_str, transpiler)
+            value = Word.do_value(value_str, transpiler)
             if not value:
                 transpiler.data.newError(f"Invalid default value for argument {name_str}: '{value_str}'",
                                          transpiler.location.getRangeFromString(value_str))
-                value = Value("None", PyduinoUndefined())
+                value = Word("None", PyduinoUndefined())
 
             if not type.is_type(value.type):
                 transpiler.data.newError(f"Invalid default value for argument {name_str}: '{value_str}' is not of type {type}",
@@ -106,7 +106,7 @@ class Function:
         if type == "":
             type = PyduinoVoid()
         else:
-            var = Value.do_value(type, transpiler)
+            var = Word.do_value(type, transpiler)
             type = var.type
 
         if not transpiler.data.in_function.return_type.is_type(type):
@@ -138,7 +138,7 @@ class Function:
 
 
 class Builtin(Function):
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Value], on_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Word], on_call):
         super().__init__(name, return_type, args, kwargs)
         self.on_call = on_call
 

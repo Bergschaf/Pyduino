@@ -2,6 +2,7 @@ from server.transpiler.scope import Scope
 from server.transpiler.variable import *
 from server.transpiler.control import Control
 from server.transpiler.function import Function
+from server.transpiler.tokenizer import *
 
 
 class Transpiler:
@@ -20,6 +21,8 @@ class Transpiler:
 
         self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
+
+        self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
 
         self.scope: Scope = Scope(self.data, self.location)
 
@@ -56,21 +59,19 @@ class Transpiler:
             #    print(e)
             #    break
 
-    def do_line(self, line: str):
-        instruction = line.strip()
-        if "#" in instruction:
-            instruction = instruction.split("#")[0].strip()
-        if instruction == "":
+    def do_line(self, line: list[Token]):
+        if Separator.HASHTAG in [t.type for t in line]:
+            line = line[:[t.type for t in line].index(Separator.HASHTAG)]
+
+        if not line:
             return
-        if instruction.endswith(";"):
-            instruction = instruction[:-1]
-            # error on the semicolon
-            pos = Position(self.location.position.line, len(
-                self.data.code[self.location.position.line]))
-            self.data.newError("We don't do that here", Range.fromPositions(pos, pos))
+
+        if line[-1].type == Separator.SEMICOLON:
+            line = line[:-1]
+            self.data.newError("We don't do that here", line[-1].location)
 
         for check in self.checks:
-            if check(instruction, self):
+            if check(line, self):
                 return
 
     def finish(self):
@@ -86,9 +87,9 @@ class Transpiler:
 
 
 if __name__ == '__main__':
-    Transpiler = Transpiler(code=["int e = 3209", 'int f(int x      , int s = e):', '    int y = 234', '    return s', 'int x = 2', 'int y = 0'],
-                            mode='main', line_offset=0)
-    Transpiler.transpileTo(5)
-    print(Transpiler.data.code_done)
-    print([str(e) for e in Transpiler.data.errors])
-    print([(str(r[0]), [x.name for x in r[1]]) for r in Transpiler.scope.variables.items()])
+    Transpiler = Transpiler(
+        code=["(2-2==2) and True", 'int f(int x      , int s = e):', '    int y = 234', '    return s', 'int x = 2',
+              'int y = 0'],
+        mode='main', line_offset=0)
+    print(Transpiler.data.code_tokens[0])
+    print(Value.do_value(Transpiler.data.code_tokens[0],Transpiler).name)

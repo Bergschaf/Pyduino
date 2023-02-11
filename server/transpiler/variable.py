@@ -1,4 +1,5 @@
 from server.transpiler.pyduino_utils import *
+from server.transpiler.tokenizer import *
 
 if TYPE_CHECKING:
     from transpiler import Transpiler
@@ -533,104 +534,106 @@ class Value:
     def __init__(self, name: str, type: PyduinoType):
         self.name = name
         self.type = type
+        self.type.name = name
 
     @staticmethod
-    def do_value(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
-        # has to set location.position and location.range before calling
-        # TODO add detailed errors, errors will always cover the complete value
+    def do_value(values: list['Token'], transpiler: 'Transpiler') -> 'Constant | Variable':
+        # concentrate the values and algorithms
+        last_operator = 0
+        new_values = []
+        for i in range(len(values)):
+            if values[i].type in transpiler.data.OPERATORS:
+                new_values.append(Value.do_value_single(values[last_operator:i], transpiler))
+                new_values.append(values[i])
+                last_operator = i + 1
 
-        # resolve brackets
-        values = StringUtils.splitOutsideBrackets(value, transpiler.data.OPERATORS + ["not"], True)
-        values = [v.strip() for v in values]
+        if last_operator == 0:
+            return Value.do_value_single(values, transpiler)
 
-        for i, v in enumerate(values):
-            if v.startswith("(") and v.endswith(")"):
-                values[i] = Value.do_value(v[1:-1], transpiler)
-                # check all the operators
+        new_values.append(Value.do_value_single(values[last_operator:], transpiler))
+        values = new_values
 
-        for o in transpiler.data.OPERATION_ORDER:
+        for index, o in enumerate(transpiler.data.OPERATION_ORDER):
             shift_left = 0
-            for i in range(1, len(values) - 1):
-                i -= shift_left
-                if values[i] in o:
-                    if type(values[i - 1]) is str:
-                        v1 = Value.do_value(values[i - 1], transpiler)
-                    else:
-                        v1 = values[i - 1]
-
-                    if type(values[i + 1]) is str:
-                        v2 = Value.do_value(values[i + 1], transpiler)
-                    else:
-                        v2 = values[i + 1]
-
-                    if v1 and v2:
-                        possible, t = v1.type.operator(values[i], v2.type)
+            if index == 3:
+                # check for not
+                for i in range(1, len(values)):
+                    if values[i - 1].type == Bool_Operator.NOT:
+                        possible, t = values[i].type.not_()
                         if possible:
-                            values[i - 1] = Constant(t.name, t)
-                            del values[i]
-                            del values[i]
+                            values[i] = Constant(t.name, t)
+                            del values[i - 1]
                             shift_left += 2
                         else:
                             transpiler.data.newError(t, transpiler.location.range)
-                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+                            transpiler.data.invalid_line_fallback()
+            shift_left = 0
 
-        # check for not
-        shift_left = 0
-        for i in range(1, len(values)):
-            i -= shift_left
-            if values[i - 1] == "not":
-                possible, t = values[i].type.not_()
-                if possible:
-                    values[i] = Constant(t.name, t)
-                    del values[i - 1]
-                    shift_left += 1
-                else:
-                    transpiler.data.newError(t, transpiler.location.range)
-                    transpiler.data.invalid_line_fallback()
+            for i in range(1, len(values) - 1):
+                i -= shift_left
+                if values[i].type in o:
+                    possible, t = values[i - 1].type.operator(values[i].type.name, values[i + 1].type)
+                    if possible:
+                        values[i - 1] = Constant(t.name, t)
+                        del values[i]
+                        del values[i]
+                        shift_left += 2
+                    else:
+                        transpiler.data.newError(t, values[i + 1].location)
+                        transpiler.data.invalid_line_fallback()
 
-        if len(values) == 1 and type(values[0]) is not str:
-            return values[0]
-        else:
-            return Value.do_value_single(value, transpiler)
+        if len(values) > 1:
+            raise Exception("Invalid value")
+        return values[0]
 
     @staticmethod
-    def do_value_single(value: str, transpiler: 'Transpiler') -> 'Constant | Variable':
+    def do_value_single(value: list[Token], transpiler: 'Transpiler') -> 'Constant | Variable':
         """
         The value has to be a single value, no operators
         :param value:
         :param transpiler:
         :return:
         """
+        if len(value) == 0:
+            transpiler.data.newError(f"Invalid value None", transpiler.location.position)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
 
-        t = PyduinoType.check_type(value)
-        if t: return Constant(t.name, t)
-
-        var = transpiler.scope.get_Variable(value, transpiler.location.position)
-        if var: return var
-
-        # check if it is a getitem
-        for i in range(len(value) - 1):
-            if value[i] in transpiler.data.VALID_NAME_END_CHARACTERS and value[i + 1] == "[":
-                var = transpiler.scope.get_Variable(value[:i + 1], transpiler.location.position)
+        elif len(value) == 1:
+            v = value[0]
+            if v.type == Word.IDENTIFIER:
+                # check if it is a variable
+                var = transpiler.scope.get_Variable(v.value, v.location.start)
                 if var:
-                    indices = StringUtils.splitOutsideBrackets(value[i + 1:], ["[]"], True, split_after_brackets=True)
-                    for id in indices:
-                        if not (id[0] == "[" and id[-1] == "]"):
-                            transpiler.data.newError(f"Invalid index {id}", transpiler.location.range)
-                            transpiler.data.invalid_line_fallback.fallback(transpiler)
+                    return var
 
-                    indices = [Value.do_value(id[1:-1], transpiler) for id in indices]
-                    value = var
-                    for ind in indices:
-                        possible, value = value.type.get_item(ind.type)
-                        if not possible:
-                            transpiler.data.newError(value, transpiler.location.range)
-                            transpiler.data.invalid_line_fallback.fallback(transpiler)
-                        value = Constant(value.name, value)
-                    return value
-        # check if it is a function call
+            if v.type == Word.VALUE or v.type == Word.IDENTIFIER:
+                t = PyduinoType.check_type(v.value)
+                if t:
+                    return Constant(t.name, t)
 
-        transpiler.data.newError(f"Invalid value {value}", transpiler.location.range)
+            elif v.type == Brackets.ROUND:
+                return Value.do_value(v.inside, transpiler)
+
+
+        else:
+            # check function call
+
+            # check if it is a getitem
+            if value[0].type == Word.IDENTIFIER:
+                if all([v.type == Brackets.SQUARE for v in value[1:]]):
+                    # it is a getitem
+                    var = transpiler.scope.get_Variable(value[0].value, value[0].location.start)
+                    indices = [Value.do_value(b.inside, transpiler) for b in value[1:]]
+                    if var:
+                        for i in range(len(value) - 1, 1, -1):
+                            var = var.type.get_item(indices[i - 2].type)
+                            if not var:
+                                error = var
+                                value[0].location = value[i].location
+                                break
+                        return var
+
+        transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
@@ -640,10 +643,11 @@ class Constant(Value):
 
 class Variable(Value):
     @staticmethod
-    def check_definition(instruction: str, transpiler: 'Transpiler') -> bool:
+    def check_definition(instruction: list[Token], transpiler: 'Transpiler') -> bool:
         line = transpiler.location.position.line
         instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
-        operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range, fallback=StringNotFound_DoNothing)
+        operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range,
+                                                                   fallback=StringNotFound_DoNothing)
 
         if not operator_location:
             return False
@@ -672,7 +676,8 @@ class Variable(Value):
         value.type.name = name
 
         if str(value.type) != datatype:
-            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'", name_range)
+            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'",
+                                     name_range)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
@@ -696,5 +701,3 @@ class Variable(Value):
         transpiler.data.code_done.append(c_code)
 
         return True
-
-

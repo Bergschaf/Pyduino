@@ -4,18 +4,16 @@ from server.transpiler.variable import *
 
 class Control:
     @staticmethod
-    def check_condition(instuction: str, transpiler: 'Transpiler'):
+    def check_condition(instuction: list[Token], transpiler: 'Transpiler'):
         """
-        :param line:
-        :param transpiler:
         :return: True if the line is a control statement, False if not
         """
-        if instuction.startswith("if "):
+        if instuction[0].type == Keyword.IF:
             Control.do_if(instuction, transpiler)
             return True
 
     @staticmethod
-    def do_condition(condition: str, transpiler: 'Transpiler', condition_type: str):
+    def do_condition(condition: list[Token], transpiler: 'Transpiler', condition_type: str):
         """
         returns the c code for the control statement
         :param condition: the condition of the control statement
@@ -23,7 +21,7 @@ class Control:
         :param condition_type: if, while or for...
         :return:
         """
-        instruction = Value.do_value(condition, transpiler)
+        instruction = Word.do_value(condition, transpiler)
 
         possible, instruction = instruction.type.to_bool()
 
@@ -35,13 +33,8 @@ class Control:
         return instruction.name
 
     @staticmethod
-    def do_if(instruction: str, transpiler: 'Transpiler'):
+    def do_if(instruction: list[Token], transpiler: 'Transpiler'):
 
-        """
-        :param instruction: The instruction to transpile
-        :param data: The data object
-        :param location: The location object
-        """
         location, data, utils = transpiler.location, transpiler.data, transpiler.utils
 
         instruction = StringUtils.check_colon(instruction, transpiler)[2:]

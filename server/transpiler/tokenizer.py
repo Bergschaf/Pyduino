@@ -34,7 +34,7 @@ class Token:
             if bracket_levels != [0, 0, 0]:
                 continue
 
-            if any(string[i:2] == t for t in NO_SPACE_TOKENS_LEN2):
+            if any(string[i:i + 2] == t for t in NO_SPACE_TOKENS_LEN2):
                 tokens.append(
                     Token.get_token(string[last_space.col - start.col:i],
                                     Range.fromPositions(last_space, Position(start.line, start.col + i))))
@@ -42,10 +42,11 @@ class Token:
 
                 tokens.append(Token.get_token(string[i:i + 2], Range.fromPositions(last_space, last_space.add_col(2))))
                 next(enumerator)
+                last_space = last_space.add_col(2)
 
             elif char == " " or any(char == t for t in NO_SPACE_TOKENS_LEN1):
                 tokens.append(Token.get_token(string[last_space.col - start.col:i],
-                                    Range.fromPositions(last_space, Position(start.line, start.col + i))))
+                                              Range.fromPositions(last_space, Position(start.line, start.col + i))))
                 last_space = Position(start.line, start.col + i)
 
                 if char == " ":
@@ -54,10 +55,14 @@ class Token:
                 tokens.append(Token.get_token(char, Range.fromPositions(last_space, last_space.add_col(1))))
                 last_space = last_space.add_col(1)
 
-        tokens.append(Token.get_token(string[last_space.col:],
+        tokens.append(Token.get_token(string[last_space.col - start.col:],
                                       Range.fromPositions(last_space, Position(start.line, start.col + len(string)))))
 
         return [t for t in tokens if t is not None]
+
+    @staticmethod
+    def is_token(value):
+        return isinstance(value, Token)
 
     @staticmethod
     def get_token(string: str, range: Range) -> 'Token':
@@ -74,18 +79,14 @@ class Token:
             type = Brackets.ROUND if string[0] == "(" else Brackets.SQUARE
             return Brackets(type, range, Token.tokenize(string[1:-1], range.start.add_col(1)), string[-1] == string[0])
 
-        if string.isnumeric():
-            return Value(Value.NUMERIC_INT, range, string)
-
-        if string.replace(".", "", 1).isnumeric() and "." in string:
-            return Value(Value.NUMERIC_FLOAT, range, string)
-
         if StringUtils.is_identifier(string):
-            return Value(Value.IDENTIFIER, range, string)
+            return Word(Word.IDENTIFIER, range, string)
 
-        return Value(Value.WORD, range, string)
+        return Word(Word.VALUE, range, string)
 
-    def __str__(self):
+    def __repr__(self):
+        if self.type is Brackets.ROUND or self.type is Brackets.SQUARE:
+            return f"{self.type.name} [{[str(s) for s in self.inside]}]  {self.location}"
         return f"{self.type.name} {self.value} {self.location}"
 
 
@@ -118,11 +119,9 @@ class Bool_Operator(Operator):
     NOT = TokenType("not")
 
 
-class Value(Token):
-    NUMERIC_FLOAT = TokenType("numeric_float")
-    NUMERIC_INT = TokenType("numeric_int")
+class Word(Token):
     IDENTIFIER = TokenType("identifier")
-    WORD = TokenType("word")
+    VALUE = TokenType("value")
 
     def __init__(self, type, range, value):
         super().__init__(type, range, value)
@@ -141,6 +140,8 @@ class Brackets(Token):
 class Separator(Token):
     COMMA = TokenType(",")
     COLON = TokenType(":")
+    SEMICOLON = TokenType(";")
+    HASHTAG = TokenType("#")
 
 
 class Keyword(Token):
@@ -172,7 +173,7 @@ class Derived_Datatype(Token):
         # TODO built array detection in the tokenizer
 
 
-NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":"]
+NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
     "+": Math_Operator.PLUS,
@@ -192,6 +193,7 @@ TOKENS = {
     "not": Bool_Operator.NOT,
     ",": Separator.COMMA,
     ":": Separator.COLON,
+    "#": Separator.HASHTAG,
     "if": Keyword.IF,
     "else": Keyword.ELSE,
     "elif": Keyword.ELIF,
@@ -208,4 +210,5 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print([str(t) for t in Token.tokenize("int + 2,2,2 + 3.22", Position(0, 0))])
+    word = Word(Word.WORD, Range(Position(0, 0), Position(0, 4)), "test")
+    print(Token.is_token(word))
