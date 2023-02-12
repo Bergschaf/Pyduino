@@ -88,7 +88,7 @@ class Transpiler:
 
 if __name__ == '__main__':
     Transpiler = Transpiler(
-        code=["(2-2==2) and True", 'int f(int x      , int s = e):', '    int y = 234', '    return s', 'int x = 2',
+        code=["(2-2==2) and (((2)))", 'int f(int x      , int s = e):', '    int y = 234', '    return s', 'int x = 2',
               'int y = 0'],
         mode='main', line_offset=0)
     print(Transpiler.data.code_tokens[0])

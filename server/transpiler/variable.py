@@ -531,10 +531,11 @@ Types = {"int": PyduinoInt, "float": PyduinoFloat, "str": PyduinoString}
 
 class Value:
 
-    def __init__(self, name: str, type: PyduinoType):
+    def __init__(self, name: str, type: PyduinoType, location: 'Range'):
         self.name = name
         self.type = type
         self.type.name = name
+        self.location = location
 
     @staticmethod
     def do_value(values: list['Token'], transpiler: 'Transpiler') -> 'Constant | Variable':
@@ -561,7 +562,7 @@ class Value:
                     if values[i - 1].type == Bool_Operator.NOT:
                         possible, t = values[i].type.not_()
                         if possible:
-                            values[i] = Constant(t.name, t)
+                            values[i] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start, values[i].location.end))
                             del values[i - 1]
                             shift_left += 2
                         else:
@@ -574,7 +575,7 @@ class Value:
                 if values[i].type in o:
                     possible, t = values[i - 1].type.operator(values[i].type.name, values[i + 1].type)
                     if possible:
-                        values[i - 1] = Constant(t.name, t)
+                        values[i - 1] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start, values[i + 1].location.end))
                         del values[i]
                         del values[i]
                         shift_left += 2
@@ -609,7 +610,7 @@ class Value:
             if v.type == Word.VALUE or v.type == Word.IDENTIFIER:
                 t = PyduinoType.check_type(v.value)
                 if t:
-                    return Constant(t.name, t)
+                    return Constant(t.name, t, v.location)
 
             elif v.type == Brackets.ROUND:
                 return Value.do_value(v.inside, transpiler)
@@ -631,7 +632,7 @@ class Value:
                                 error = var
                                 value[0].location = value[i].location
                                 break
-                        return var
+                        return Constant(var.name, var, Range.fromPositions(value[0].location.start, value[-1].location.end))
 
         transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
