@@ -21,15 +21,15 @@ class Control:
         :param condition_type: if, while or for...
         :return:
         """
-        instruction = Word.do_value(condition, transpiler)
+        instruction = Value.do_value(condition, transpiler)
 
         possible, instruction = instruction.type.to_bool()
 
         if not possible:
             transpiler.data.newError(f"Invalid condition for the {condition_type}-statement: " + instruction,
                                      Range.fromPositions(transpiler.location.position,
-                                                         Position.last_char(transpiler.data, transpiler.location.position.line)))
-
+                                                         Position.last_char(transpiler.data,
+                                                                            transpiler.location.position.line)))
         return instruction.name
 
     @staticmethod
@@ -37,9 +37,9 @@ class Control:
 
         location, data, utils = transpiler.location, transpiler.data, transpiler.utils
 
-        instruction = StringUtils.check_colon(instruction, transpiler)[2:]
+        instruction = StringUtils.check_colon(instruction, transpiler)
 
-        condition = Control.do_condition(instruction, transpiler, "if")
+        condition = Control.do_condition(instruction[1:], transpiler, "if")
 
         data.code_done.append(f"if ({condition}) {{")
 
@@ -58,10 +58,9 @@ class Control:
             location.next_line()
             index, line = next(data.enumerator)
 
-            if line.strip().startswith("elif") and data.indentations[index] == data.indentations[if_position]:
-                instruction = line.strip()
+            if line[0].type == Keyword.ELIF and data.indentations[index] == data.indentations[if_position]:
 
-                instruction = StringUtils.check_colon(instruction, transpiler)[4:]
+                instruction = StringUtils.check_colon(instruction, transpiler)
 
                 condition = Control.do_condition(instruction, transpiler, "elif")
 
@@ -75,7 +74,8 @@ class Control:
                 transpiler.do_line(line)
                 break
 
-        if line.strip().startswith("else") and data.indentations[index] == data.indentations[if_position]:
+        if line[0].type == Keyword.ELSE and data.indentations[index] == data.indentations[if_position]:
+            StringUtils.check_colon(line, transpiler)
             data.code_done.append("else {")
             end_line = StringUtils.get_indentation_range(index + 1, transpiler)
             transpiler.transpileTo(end_line)

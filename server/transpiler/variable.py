@@ -118,21 +118,22 @@ class PyduinoType():
         return False
 
     @staticmethod
-    def get_type_from_string(name: str) -> 'PyduinoType | bool':
-        """
-        Returns the type of the typename in the string (for example "int" or "float")
-        :param self:
-        :param str:
-        :return:
-        """
-        for type in [PyduinoBool(), PyduinoInt(), PyduinoFloat(), PyduinoString(), PyduinoArray, PyduinoVoid()]:
-            if type.is_typename(name):
-                return type.is_typename(name)
-        return False
-
-    def is_typename(self, name: str) -> 'PyduinoType':
-        if str(self) == name:
-            return type(self)()
+    def get_type_from_token(tokens: list[Token]):
+        if len(tokens) == 1:
+            token = tokens[0]
+            if token.type == Datatype.INT:
+                return PyduinoInt()
+            elif token.type == Datatype.FLOAT:
+                return PyduinoFloat()
+            elif token.type == Datatype.BOOL:
+                return PyduinoBool()
+            elif token.type == Datatype.STRING:
+                return PyduinoString()
+            elif token.type == Datatype.VOID:
+                return PyduinoVoid()
+        else:
+            if PyduinoArray.is_typename(tokens):
+                return PyduinoArray.is_typename(tokens)
         return False
 
     def copy(self) -> 'PyduinoType':
@@ -505,18 +506,22 @@ class PyduinoArray(PyduinoType):
         return True, PyduinoBool(f"({self.len()[1].name} != 0)")
 
     def dimensions(self):
-        dimensions = []
-        dimensions.append(self.size)
+        dimensions = [self.size]
         if self.item.is_iterable():
             dimensions += self.item.dimensions()
         return dimensions
 
+    def set_dimensions(self, dimensions: list[int]):
+        self.size = dimensions[0]
+        if self.item.is_iterable():
+            self.item.set_dimensions(dimensions[1:])
+
     @staticmethod
-    def is_typename(name: str) -> 'PyduinoType':
-        if name.endswith("[]"):
-            item = PyduinoType.get_type_from_string(name[:-2])
-            if item:
-                return PyduinoArray(item)
+    def is_typename(tokens: list[Token]) -> 'PyduinoType':
+        if type(tokens[0].type) is Datatype:
+            if all(t.type == Brackets.SQUARE for t in tokens):
+                if all(not t.inside for t in tokens):
+                    return PyduinoArray(PyduinoType.get_type_from_token(tokens[:-1]))
         return False
 
     def __str__(self):
@@ -536,6 +541,7 @@ class Value:
         self.type = type
         self.type.name = name
         self.location = location
+        self.current_reference: Range = None
 
     @staticmethod
     def do_value(values: list['Token'], transpiler: 'Transpiler') -> 'Constant | Variable':
@@ -562,7 +568,8 @@ class Value:
                     if values[i - 1].type == Bool_Operator.NOT:
                         possible, t = values[i].type.not_()
                         if possible:
-                            values[i] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start, values[i].location.end))
+                            values[i] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start,
+                                                                                values[i].location.end))
                             del values[i - 1]
                             shift_left += 2
                         else:
@@ -575,7 +582,8 @@ class Value:
                 if values[i].type in o:
                     possible, t = values[i - 1].type.operator(values[i].type.name, values[i + 1].type)
                     if possible:
-                        values[i - 1] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start, values[i + 1].location.end))
+                        values[i - 1] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start,
+                                                                                values[i + 1].location.end))
                         del values[i]
                         del values[i]
                         shift_left += 2
@@ -632,7 +640,8 @@ class Value:
                                 error = var
                                 value[0].location = value[i].location
                                 break
-                        return Constant(var.name, var, Range.fromPositions(value[0].location.start, value[-1].location.end))
+                        return Constant(var.name, var,
+                                        Range.fromPositions(value[0].location.start, value[-1].location.end))
 
         transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
@@ -645,60 +654,57 @@ class Constant(Value):
 class Variable(Value):
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler') -> bool:
-        line = transpiler.location.position.line
-        instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
-        operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range,
-                                                                   fallback=StringNotFound_DoNothing)
-
-        if not operator_location:
+        # line = transpiler.location.position.line
+        # instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
+        # operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range,
+        #                                                           fallback=StringNotFound_DoNothing)
+        instruction_types = [i.type for i in instruction]
+        if Separator.ASSIGN not in instruction_types:
             return False
 
-        equal = transpiler.data.getCode(Range(line, operator_location.col - 1, line, operator_location.col + 1))
-        if equal[0] == "=" or equal[-1] == "=":
-            return False
-
-        split = instruction.split("=")
-        left = split[0].strip().split(" ")
-        if len(left) != 2:
-            transpiler.data.newError(f"Invalid variable definition", instruction_range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
+        left = instruction[:instruction_types.index(Separator.ASSIGN)]
+        value = instruction[instruction_types.index(Separator.ASSIGN) + 1:]
+        if len(left) < 2:
+            transpiler.data.newError(f"Invalid variable definition",
+                                     Range.fromPositions(instruction[0].location.start, instruction[-1].location.end))
             return True
 
-        datatype, name = left
-        datatype, name = datatype.strip(), name.strip()
+        if left[1].type != Word.IDENTIFIER:
+            transpiler.data.newError(f"{left[1].value} is not a valid variable name", left[1].location)
+            return True
 
-        value = "=".join(split[1:]).strip()
+        datatype_tkns = left[:-1]
+        name = left[-1]
+        datatype = PyduinoType.get_type_from_token(datatype_tkns)
 
-        name_range = transpiler.location.getRangeFromString(name)
+        if not datatype:
+            transpiler.data.newError(f"Invalid datatype {''.join([str(d.value) for d in datatype_tkns])}", Range.fromPositions(datatype_tkns[0].location.start, datatype_tkns[-1].location.end))
+            return True
 
         value = Value.do_value(value, transpiler)
-        variable = Variable(name, value.type)
         c_value = value.type.name
-        value.type.name = name
 
-        if str(value.type) != datatype:
-            transpiler.data.newError(f"Variable '{name}' is of type '{value.type}' but should be of type '{datatype}'",
-                                     name_range)
+        variable = Variable(name.value, value.type, value.location)
+        value.type.name = name.value
+
+        if transpiler.scope.get_Variable(name.value, variable.location.start):
+            transpiler.data.newError(f"Variable '{name}' is already defined", variable.location)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
-        if not StringUtils.is_identifier(name):
-            transpiler.data.newError(f"'{name}' is not a valid variable name", name_range)
-            transpiler.data.invalid_line_fallback.fallback(transpiler)
-            return True
-
-        if transpiler.scope.get_Variable(name, name_range.start):
-            transpiler.data.newError(f"Variable '{name}' is already defined", name_range)
+        if not datatype.is_type(value.type):
+            transpiler.data.newError(f"Cannot convert {value.type} to {datatype}", variable.location)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
 
         if value.type.is_iterable():
-            base_type = datatype.split("[")[0]
-            c_code = f"{base_type} {name}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
+            base_type = str(datatype).split("[")[0]
+            c_code = f"{base_type} {name.value}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
+            variable.type.set_dimensions(value.type.dimensions())
+
         else:
-            c_code = f"{datatype} {name} = {c_value};"
+            c_code = f"{datatype} {name.value} = {c_value};"
 
-        transpiler.scope.add_Variable(variable, name_range.start)
+        transpiler.scope.add_Variable(variable, variable.location.start)
         transpiler.data.code_done.append(c_code)
-
         return True

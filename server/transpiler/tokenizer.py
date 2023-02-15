@@ -87,7 +87,7 @@ class Token:
     def __repr__(self):
         if self.type is Brackets.ROUND or self.type is Brackets.SQUARE:
             return f"{self.type.name} [{[str(s) for s in self.inside]}]  {self.location}"
-        return f"{self.type.name} {self.value} {self.location}"
+        return f"{self.type.name} {self.value if self.value is not None else ''} {self.location}"
 
 
 class Operator(Token):
@@ -142,6 +142,7 @@ class Separator(Token):
     COLON = TokenType(":")
     SEMICOLON = TokenType(";")
     HASHTAG = TokenType("#")
+    ASSIGN = TokenType("=")
 
 
 class Keyword(Token):
@@ -156,24 +157,16 @@ class Keyword(Token):
     CONTINUE = TokenType("continue")
 
 
-class Primitive_Datatype(Token):
+class Datatype(Token):
     INT = TokenType("int")
     FLOAT = TokenType("float")
-    STRING = TokenType("string")
+    STRING = TokenType("str")
     BOOL = TokenType("bool")
+    VOID = TokenType("void")
 
 
-class Derived_Datatype(Token):
-    Array = TokenType("array")
 
-    def __init__(self, type, location: Range, dimensions: int, datatype: Primitive_Datatype):
-        super().__init__(type, location, None)
-        self.dimensions = dimensions
-        self.datatype = datatype
-        # TODO built array detection in the tokenizer
-
-
-NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">"]
+NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
     "+": Math_Operator.PLUS,
@@ -194,6 +187,7 @@ TOKENS = {
     ",": Separator.COMMA,
     ":": Separator.COLON,
     "#": Separator.HASHTAG,
+    "=": Separator.ASSIGN,
     "if": Keyword.IF,
     "else": Keyword.ELSE,
     "elif": Keyword.ELIF,
@@ -203,10 +197,11 @@ TOKENS = {
     "return": Keyword.RETURN,
     "break": Keyword.BREAK,
     "continue": Keyword.CONTINUE,
-    "int": Primitive_Datatype.INT,
-    "float": Primitive_Datatype.FLOAT,
-    "str": Primitive_Datatype.STRING,
-    "bool": Primitive_Datatype.BOOL
+    "int": Datatype.INT,
+    "float": Datatype.FLOAT,
+    "str": Datatype.STRING,
+    "bool": Datatype.BOOL,
+    "void": Datatype.VOID,
 }
 
 if __name__ == '__main__':

@@ -23,6 +23,7 @@ class Transpiler:
         self.location.indentations = self.data.indentations
 
         self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
+        self.data.enumerator = enumerate(self.data.code_tokens)
 
         self.scope: Scope = Scope(self.data, self.location)
 
@@ -88,8 +89,9 @@ class Transpiler:
 
 if __name__ == '__main__':
     Transpiler = Transpiler(
-        code=["(2-2==2) and (((2)))", 'int f(int x      , int s = e):', '    int y = 234', '    return s', 'int x = 2',
-              'int y = 0'],
+        code=["if 32498>3098324:","    int x = 321987 + ( 2 % 27)", "elif 2>3:", "    int y = 2", "else:", "    int z = 3"],
         mode='main', line_offset=0)
-    print(Transpiler.data.code_tokens[0])
-    print(Value.do_value(Transpiler.data.code_tokens[0],Transpiler).name)
+    print(Transpiler.transpileTo(2))
+    print(Transpiler.data.code_done)
+    print([str(e) for e in Transpiler.data.errors])
+

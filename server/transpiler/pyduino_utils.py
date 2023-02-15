@@ -579,7 +579,7 @@ class StringUtils:
     def check_colon(line: "list[Token]", transpiler: 'Transpiler') -> 'list[Token]':
         # returns line without colon
         from server.transpiler.tokenizer import Separator
-        if line[-1].type == Separator.COLON:
+        if line[-1].type != Separator.COLON:
             transpiler.data.newError("Expected ':'", line[-1].location)
             return line
         return line[:-1]
@@ -642,7 +642,7 @@ class Data:
         self.line_offset: int = line_offset
         self.indentations: list[int] = []
         self.errors: list[Error] = []
-        self.enumerator: enumerate = enumerate(code)
+        self.enumerator: enumerate = None
         self.code_done: list[str] = []
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
