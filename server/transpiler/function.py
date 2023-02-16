@@ -117,7 +117,7 @@ class Function:
         if type.is_type(PyduinoVoid()):
             transpiler.data.code_done.append("return;")
         else:
-            transpiler.data.code_done.append(f"return {var.name};")
+            transpiler.data.code_done.append(f"return {var.code};")
         return True
 
     @staticmethod
