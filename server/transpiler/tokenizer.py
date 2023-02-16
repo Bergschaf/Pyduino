@@ -87,7 +87,7 @@ class Token:
     def __repr__(self):
         if self.type is Brackets.ROUND or self.type is Brackets.SQUARE:
             return f"{self.type.name} [{[str(s) for s in self.inside]}]  {self.location}"
-        return f"{self.type.name} {self.value if self.value is not None else ''} {self.location}"
+        return f"{self.__class__.__name__} {self.type.name} {self.value if self.value is not None else ''} ({self.location})"
 
 
 class Operator(Token):
@@ -205,5 +205,4 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    word = Word(Word.WORD, Range(Position(0, 0), Position(0, 4)), "test")
-    print(Token.is_token(word))
+    print(Token.tokenize("int x = 0 + 2d", Position(0,0)))
