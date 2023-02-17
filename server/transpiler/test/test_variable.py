@@ -47,7 +47,7 @@ class TestValue(unittest.TestCase):
         for pair in pairs:
             print("Testing: " + pair[0])
             transpiler = Transpiler([pair[0]])
-            self.assertEqual(Word.do_value(pair[0], transpiler).name, pair[1])
+            self.assertEqual(Word.do_value(pair[0], transpiler).code, pair[1])
 
 
 if __name__ == '__main__':

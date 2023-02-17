@@ -30,7 +30,7 @@ class Control:
                                      Range.fromPositions(transpiler.location.position,
                                                          Position.last_char(transpiler.data,
                                                                             transpiler.location.position.line)))
-        return instruction.name
+        return instruction.code
 
     @staticmethod
     def do_if(instruction: list[Token], transpiler: 'Transpiler'):

@@ -580,7 +580,7 @@ class Value:
             for i in range(1, len(values) - 1):
                 i -= shift_left
                 if values[i].type in o:
-                    possible, t = values[i - 1].type.operator(values[i].type.name, values[i + 1].type)
+                    possible, t = values[i - 1].type.operator(values[i].type.code, values[i + 1].type)
                     if possible:
                         values[i - 1] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start,
                                                                                 values[i + 1].location.end))
@@ -640,7 +640,7 @@ class Value:
                                 error = var
                                 value[0].location = value[i].location
                                 break
-                        return Constant(var.name, var,
+                        return Constant(var.code, var,
                                         Range.fromPositions(value[0].location.start, value[-1].location.end))
 
         transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)

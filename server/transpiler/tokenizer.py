@@ -2,7 +2,8 @@ from pyduino_utils import *
 
 
 class TokenType:
-    def __init__(self, name):
+    def __init__(self, code, name):
+        self.code = code
         self.name = name
 
 
@@ -16,13 +17,25 @@ class Token:
     def tokenize(string: str, start: Position) -> list['Token']:
         bracket_levels = [0, 0, 0]
         last_space = start
+        last_bracket = start
         enumerator = enumerate(string)
         tokens = []
         for i, char in enumerator:
             if char in "([{":
+                if bracket_levels == [0, 0, 0]:
+                    last_bracket = Position(start.line, start.col + i)
                 bracket_levels["([{".index(char)] += 1
             elif char in ")]}":
                 bracket_levels[")]}".index(char)] -= 1
+                if bracket_levels == [0, 0, 0]:
+                    if last_space.col != last_bracket.col:
+                        tokens.append(Token.get_token(string[last_space.col - start.col:last_bracket.col - start.col],
+                                                      Range.fromPositions(last_space, last_bracket)))
+
+                    tokens.append(Token.get_token(string[last_bracket.col - start.col:i + 1],
+                                                  Range.fromPositions(last_bracket, Position(start.line, start.col + i + 1))))
+                    last_space = Position(start.line, start.col + i + 1)
+                    continue
 
             if char == "\"":
                 for j, char2 in enumerator:
@@ -86,8 +99,8 @@ class Token:
 
     def __repr__(self):
         if self.type is Brackets.ROUND or self.type is Brackets.SQUARE:
-            return f"{self.type.name} [{[str(s) for s in self.inside]}]  {self.location}"
-        return f"{self.__class__.__name__} {self.type.name} {self.value if self.value is not None else ''} ({self.location})"
+            return f"{self.type.name} {[str(s) for s in self.inside]}  {self.location}"
+        return f"{self.type.name}{f' {self.value} ' if self.value is not None else ''} ({self.location})"
 
 
 class Operator(Token):
@@ -96,40 +109,40 @@ class Operator(Token):
 
 
 class Math_Operator(Operator):
-    PLUS = TokenType("+")
-    MINUS = TokenType("-")
-    MULTIPLY = TokenType("*")
-    DIVIDE = TokenType("/")
-    MODULO = TokenType("%")
-    FLOOR_DIVIDE = TokenType("//")
+    PLUS = TokenType("+", "MATH_OPERATOR.PLUS")
+    MINUS = TokenType("-", "MATH_OPERATOR.MINUS")
+    MULTIPLY = TokenType("*", "MATH_OPERATOR.MULTIPLY")
+    DIVIDE = TokenType("/", "MATH_OPERATOR.DIVIDE")
+    MODULO = TokenType("%", "MATH_OPERATOR.MODULO")
+    FLOOR_DIVIDE = TokenType("//", "MATH_OPERATOR.FLOOR_DIVIDE")
 
 
 class Compare_Operator(Operator):
-    EQUAL = TokenType("==")
-    NOT_EQUAL = TokenType("!=")
-    GREATER = TokenType(">")
-    GREATER_EQUAL = TokenType(">=")
-    LESS = TokenType("<")
-    LESS_EQUAL = TokenType("<=")
+    EQUAL = TokenType("==", "Compare_Operator.EQUAL")
+    NOT_EQUAL = TokenType("!=", "Compare_Operator.NOT_EQUAL")
+    GREATER = TokenType(">", "Compare_Operator.GREATER")
+    GREATER_EQUAL = TokenType(">=", "Compare_Operator.GREATER_EQUAL")
+    LESS = TokenType("<", "Compare_Operator.LESS")
+    LESS_EQUAL = TokenType("<=", "Compare_Operator.LESS_EQUAL")
 
 
 class Bool_Operator(Operator):
-    AND = TokenType("and")
-    OR = TokenType("or")
-    NOT = TokenType("not")
+    AND = TokenType("and", "Bool_Operator.AND")
+    OR = TokenType("or", "Bool_Operator.OR")
+    NOT = TokenType("not", "Bool_Operator.NOT")
 
 
 class Word(Token):
-    IDENTIFIER = TokenType("identifier")
-    VALUE = TokenType("value")
+    IDENTIFIER = TokenType("identifier", "Word.IDENTIFIER")
+    VALUE = TokenType("value", "Word.VALUE")
 
     def __init__(self, type, range, value):
         super().__init__(type, range, value)
 
 
 class Brackets(Token):
-    ROUND = TokenType("()")
-    SQUARE = TokenType("[]")
+    ROUND = TokenType("()", "Brackets.ROUND")
+    SQUARE = TokenType("[]", "Brackets.SQUARE")
 
     def __init__(self, type, location: Range, inside: list[Token], closed: bool):
         super().__init__(type, location, None)
@@ -138,32 +151,31 @@ class Brackets(Token):
 
 
 class Separator(Token):
-    COMMA = TokenType(",")
-    COLON = TokenType(":")
-    SEMICOLON = TokenType(";")
-    HASHTAG = TokenType("#")
-    ASSIGN = TokenType("=")
+    COMMA = TokenType(",", "Separator.COMMA")
+    COLON = TokenType(":", "Separator.COLON")
+    SEMICOLON = TokenType(";", "Separator.SEMICOLON")
+    HASHTAG = TokenType("#", "Separator.HASHTAG")
+    ASSIGN = TokenType("=", "Separator.ASSIGN")
 
 
 class Keyword(Token):
-    IF = TokenType("if")
-    ELSE = TokenType("else")
-    ELIF = TokenType("elif")
-    WHILE = TokenType("while")
-    FOR = TokenType("for")
-    IN = TokenType("in")
-    RETURN = TokenType("return")
-    BREAK = TokenType("break")
-    CONTINUE = TokenType("continue")
+    IF = TokenType("if", "Keyword.IF")
+    ELSE = TokenType("else", "Keyword.ELSE")
+    ELIF = TokenType("elif", "Keyword.ELIF")
+    WHILE = TokenType("while", "Keyword.WHILE")
+    FOR = TokenType("for", "Keyword.FOR")
+    IN = TokenType("in", "Keyword.IN")
+    RETURN = TokenType("return", "Keyword.RETURN")
+    BREAK = TokenType("break", "Keyword.BREAK")
+    CONTINUE = TokenType("continue", "Keyword.CONTINUE")
 
 
 class Datatype(Token):
-    INT = TokenType("int")
-    FLOAT = TokenType("float")
-    STRING = TokenType("str")
-    BOOL = TokenType("bool")
-    VOID = TokenType("void")
-
+    INT = TokenType("int", "Datatype.INT")
+    FLOAT = TokenType("float", "Datatype.FLOAT")
+    STRING = TokenType("str", "Datatype.STRING")
+    BOOL = TokenType("bool", "Datatype.BOOL")
+    VOID = TokenType("void", "Datatype.VOID")
 
 
 NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
@@ -205,4 +217,14 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print(Token.tokenize("int x = 0 + 2d", Position(0,0)))
+    print(Token.tokenize("int x = 0", Position(0, 0)))
+
+int x = 0
+[Datatype.INT, Word.IDENTIFIER, Separator.ASSIGN, Word.VALUE]
+
+if func(12, 1) == 21:
+[Keyword.IF, Word.IDENTIFIER, Brackets.ROUND < Word.VALUE, Separator.COMMA, Word.VALUE >, Compare_Operator.EQUAL, Word.VALUE, Separator.COLON]
+
+float[][] y = [[1, 2], [3, 4]]
+[Datatype.FLOAT, Brackets.SQUARE <> Brackets.SQUARE <>, Word.IDENTIFIER, Separator.ASSIGN, Brackets.SQUARE < Brackets.SQUARE < Word.VALUE,
+ Separator.COMMA, Word.VALUE >, Brackets.SQUARE < Word.VALUE, Separator.COMMA, Word.VALUE > >, Separator.COLON]
