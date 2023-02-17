@@ -219,7 +219,7 @@ TOKENS = {
 if __name__ == '__main__':
     print(Token.tokenize("int x = 0", Position(0, 0)))
 
-int x = 0
+int x    = 0
 [Datatype.INT, Word.IDENTIFIER, Separator.ASSIGN, Word.VALUE]
 
 if func(12, 1) == 21:
