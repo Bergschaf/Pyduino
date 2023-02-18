@@ -36,7 +36,7 @@ class Scope:
         for i in self.variables:
             if i.in_range(position):
                 for j in self.variables[i]:
-                    if j.code == name:
+                    if j.name == name:
                         return j
         return False
 

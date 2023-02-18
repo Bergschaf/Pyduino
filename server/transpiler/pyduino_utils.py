@@ -628,7 +628,7 @@ class StringUtils:
     @staticmethod
     def next_sysvar():
         Data.sys_var_index += 1
-        return f"__sysvar_{Data.sys_var_index}"
+        return f"__sysvar__{Data.sys_var_index}"
 
 
 import server.transpiler.tokenizer as t

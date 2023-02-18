@@ -89,7 +89,7 @@ class Transpiler:
 
 if __name__ == '__main__':
     Transpiler = Transpiler(
-        code=["int x():","    int adf = 2", "    return 2","    return 2", "int y():", "    return 2","int z():", "    return x() + y()"],
+        code=["int x():", "    int adf = 2", "    return adf", "    return 2", "int y():", "    return 2", "int z():", "    return x() + y()"],
         mode='main', line_offset=0)
     print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)
