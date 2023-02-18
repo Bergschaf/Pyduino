@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from server.transpiler.transpiler import Transpiler
     from server.transpiler.function import Function
+    from server.transpiler.tokenizer import *
 
 
 class Position:
@@ -598,7 +599,7 @@ class StringUtils:
             end_line = len(transpiler.location.indentations) - 1
         return end_line
 
-    def get_arguments(self, line: str) -> tuple[list[str], list[tuple[str, str]]]:
+    def get_arguments(self, line: list['Token']):
         """
         Returns the arguments of a function call or definition
         line with brackets
@@ -622,7 +623,7 @@ class StringUtils:
                 kwargs.append((x[0].strip(), x[2].strip()))
             else:
                 self.data.newError("Invalid Argument (Contains '=')", self.location.getRangeFromString(arg))
-        return args, kwargs
+        return args
 
     @staticmethod
     def next_sysvar():

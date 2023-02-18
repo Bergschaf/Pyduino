@@ -28,7 +28,7 @@ class Transpiler:
         self.scope: Scope = Scope(self.data, self.location)
 
         self.checks = [Variable.check_definition, Control.check_condition, Function.check_definition,
-                       Function.checK_return]  # the functions to check for different instruction types
+                       Function.check_return, Function.check_call]  # the functions to check for different instruction types
 
     def next_line(self):
         index, line = next(self.data.enumerator)
@@ -89,9 +89,8 @@ class Transpiler:
 
 if __name__ == '__main__':
     Transpiler = Transpiler(
-        code=["if 32498>3098324:","    int x = 321987 + ( 2 % 27)", "elif 2>3:", "    int y = 2", "else:", "    int z = 3"],
+        code=["int x():","    int adf = 2", "    return 2","    return 2", "int y():", "    return 2","int z():", "    return x() + y()"],
         mode='main', line_offset=0)
-    print(Transpiler.transpileTo(2))
+    print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)
     print([str(e) for e in Transpiler.data.errors])
-

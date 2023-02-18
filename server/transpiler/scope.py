@@ -44,9 +44,8 @@ class Scope:
         for i in self.functions:
             if i.in_range(position):
                 for j in self.functions[i]:
-                    if j.code == name:
+                    if j.name == name:
                         return j
-        fallback.fallback(self.data, self.location.getFullWordRange(position, word=name),name,custom_message= f"Function '{name}' is not defined in this scope")
         return False
 
     def add_Variable(self, variable: 'Variable', position: 'Position'):

@@ -26,16 +26,13 @@ class Control:
         possible, instruction = instruction.type.to_bool()
 
         if not possible:
-            transpiler.data.newError(f"Invalid condition for the {condition_type}-statement: " + instruction,
-                                     Range.fromPositions(transpiler.location.position,
-                                                         Position.last_char(transpiler.data,
-                                                                            transpiler.location.position.line)))
-        return instruction.code
+            transpiler.data.newError(f"Condition of {condition_type} statement must be a boolean", Range.fromPositions(condition[0].location.start, condition[-1].location.end))
+        return instruction.name
 
     @staticmethod
     def do_if(instruction: list[Token], transpiler: 'Transpiler'):
 
-        location, data, utils = transpiler.location, transpiler.data, transpiler.utils
+        location, data = transpiler.location, transpiler.data
 
         instruction = StringUtils.check_colon(instruction, transpiler)
 
@@ -62,7 +59,7 @@ class Control:
 
                 instruction = StringUtils.check_colon(instruction, transpiler)
 
-                condition = Control.do_condition(instruction, transpiler, "elif")
+                condition = Control.do_condition(instruction[1:], transpiler, "elif")
 
                 data.code_done.append(f"else if ({condition}) {{")
 

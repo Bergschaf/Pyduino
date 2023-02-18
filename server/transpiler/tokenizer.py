@@ -218,13 +218,3 @@ TOKENS = {
 
 if __name__ == '__main__':
     print(Token.tokenize("int x = 0", Position(0, 0)))
-
-int x    = 0
-[Datatype.INT, Word.IDENTIFIER, Separator.ASSIGN, Word.VALUE]
-
-if func(12, 1) == 21:
-[Keyword.IF, Word.IDENTIFIER, Brackets.ROUND < Word.VALUE, Separator.COMMA, Word.VALUE >, Compare_Operator.EQUAL, Word.VALUE, Separator.COLON]
-
-float[][] y = [[1, 2], [3, 4]]
-[Datatype.FLOAT, Brackets.SQUARE <> Brackets.SQUARE <>, Word.IDENTIFIER, Separator.ASSIGN, Brackets.SQUARE < Brackets.SQUARE < Word.VALUE,
- Separator.COMMA, Word.VALUE >, Brackets.SQUARE < Word.VALUE, Separator.COMMA, Word.VALUE > >, Separator.COLON]

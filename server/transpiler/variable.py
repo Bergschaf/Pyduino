@@ -83,7 +83,7 @@ class PyduinoType():
     def to_float(self):
         return False, f"Cannot convert {self.name} to float"
 
-    def to_string(self) -> 'tuple[bool,PyduinoType]':
+    def to_string(self):
         return False, f"Cannot convert {self.name} to string"
 
     def to_bool(self):
@@ -626,6 +626,12 @@ class Value:
 
         else:
             # check function call
+            from server.transpiler.function import Function
+            var = Function.check_call(value, transpiler)
+            if var:
+                if var is True:
+                    raise InvalidLineError(transpiler.location.range)
+                return var
 
             # check if it is a getitem
             if value[0].type == Word.IDENTIFIER:
@@ -707,4 +713,7 @@ class Variable(Value):
 
         transpiler.scope.add_Variable(variable, variable.location.start)
         transpiler.data.code_done.append(c_code)
+        return True
+
+    def __bool__(self):
         return True

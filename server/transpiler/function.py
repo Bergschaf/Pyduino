@@ -3,138 +3,157 @@ from server.transpiler.variable import *
 
 class Function:
     @staticmethod
-    def standard_call(args: list[Variable], kwargs: list[Variable], transpiler: 'Transpiler', name: str):
-        return f"{name}({', '.join([i.name for i in args])}, {', '.join([f'{i.name}' for i in kwargs])})"
+    def standard_call(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        return f"{name}({', '.join([i.name for i in args])})"
 
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Word], on_call=standard_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call):
         self.name = name
         self.return_type = return_type
         self.args = args
-        self.kwargs = kwargs
+        self.kwargs = None
         self.on_call = on_call
 
-
     @staticmethod
-    def check_definition(instruction: str, transpiler: 'Transpiler'):
-        definition = instruction.split(' ', 1)
+    def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
 
-        if len(definition) < 2:
+        if instruction[0].type not in [Datatype.INT, Datatype.FLOAT, Datatype.BOOL, Datatype.VOID, Datatype.STRING]:
             return False
 
-        return_type, name = definition[0], definition[1]
+        instruction_types = [i.type for i in instruction]
+        if Separator.ASSIGN in instruction_types:
+            return False
 
-        return_type = PyduinoType.get_type_from_string(return_type)
+        if instruction[1].type != Word.IDENTIFIER:
+            transpiler.data.newError(f"Invalid function name: '{instruction[1].value}'", instruction[1].location)
+
+        return_type, name, args = instruction[0], instruction[1], instruction[2:]
+
+        return_type = PyduinoType.get_type_from_token([return_type])
 
         if not return_type:
             return False
 
-        name = StringUtils.check_colon(name, transpiler)
+        args = StringUtils.check_colon(args, transpiler)
 
-        name, args = name.split('(', 1)
-        name = name.strip()
+        if args[0].type != Brackets.ROUND:
+            transpiler.data.newError(f"Invalid function argument definition: '{args[0].value}'", args[0].location)
+            return True
 
-        if not StringUtils.is_identifier(name):
-            transpiler.data.newError(f"Invalid function name: '{name}'", transpiler.location.getRangeFromString(name))
+        args = args[0]
+        last_comma = 0
+        arguments = []
+        for i, arg in enumerate(args.inside):
+            if arg.type == Separator.COMMA:
+                if i != last_comma + 3:
+                    transpiler.data.newError(f"Invalid function argument definition: '{''.join()}'", arg.location)
+                    return True
+                datatype = args.inside[last_comma + 1]
+                datatype = PyduinoType.get_type_from_token([datatype])
+                if not datatype:
+                    transpiler.data.newError(f"Invalid datatype in function argument definition: '{datatype}'", datatype.location)
 
-        args_str, kwargs_str = transpiler.utils.get_arguments("(" + args)
-        args, kwargs = [], []
+                name = args.inside[last_comma + 2]
+                if name.type != Word.IDENTIFIER:
+                    transpiler.data.newError(f"Invalid name in function argument definition: '{name.value}'", name.location)
+                last_comma = i
+                var = Variable(datatype, name.value, name.location)
+                transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
+                arguments.append(var)
 
-        for arg in args_str:
-            type_str, name_str = arg.split(' ', 1)
-            type = PyduinoType.get_type_from_string(type_str)
-            if not type:
-                transpiler.data.newError(f"Invalid type for argument {name_str}: '{type_str}'", transpiler.location.getRangeFromString(type_str))
-                type = PyduinoUndefined()
-
-            if not StringUtils.is_identifier(name_str):
-                transpiler.data.newError(f"Invalid function argument: '{name_str}'", transpiler.location.getRangeFromString(name_str))
-
-            var = Variable(name_str, type)
-            args.append(var)
-            transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
-
-        for name_str, value_str in kwargs_str:
-            type_str, name_str = name_str.split(' ', 1)
-            type = PyduinoType.get_type_from_string(type_str)
-            if not type:
-                transpiler.data.newError(f"Invalid type for argument {name_str}: '{type_str}'", transpiler.location.getRangeFromString(type_str))
-                type = PyduinoUndefined()
-
-            if not StringUtils.is_identifier(name_str):
-                transpiler.data.newError(f"Invalid function argument: '{name_str}'", transpiler.location.getRangeFromString(name_str))
-
-            value = Word.do_value(value_str, transpiler)
-            if not value:
-                transpiler.data.newError(f"Invalid default value for argument {name_str}: '{value_str}'",
-                                         transpiler.location.getRangeFromString(value_str))
-                value = Word("None", PyduinoUndefined())
-
-            if not type.is_type(value.type):
-                transpiler.data.newError(f"Invalid default value for argument {name_str}: '{value_str}' is not of type {type}",
-                                         transpiler.location.getRangeFromString(value_str))
-            var = Variable(name_str, type)
-            kwargs.append((var, value))
-            transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
-
-        func = Function(name, return_type, args, kwargs)
+        func = Function(name.value, return_type, arguments)
         transpiler.scope.add_Function(func, transpiler.location.position)
 
         transpiler.data.code_done.append(
-            f"{return_type} {name}({', '.join([f'{arg.type} {arg.name}' for arg in args] + [f'{kwarg[0].type} {kwarg[0].name} = {kwarg[1].name}' for kwarg in kwargs])}) {{")
+            f"{return_type} {name.value}({', '.join([f'{arg.type} {arg.name}' for arg in arguments])}) {{")
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
         transpiler.data.in_function = func
         transpiler.transpileTo(end_line)
         transpiler.data.in_function = prev
-
         transpiler.data.code_done.append("}")
 
         return True
 
     @staticmethod
-    def checK_return(instruction: str, transpiler: 'Transpiler'):
-        if not instruction.startswith("return"):
+    def check_return(instruction: list[Token], transpiler: 'Transpiler'):
+        if instruction[0].type != Keyword.RETURN:
             return False
 
         if not transpiler.data.in_function:
-            transpiler.data.newError("Cannot 'return' outside of function", transpiler.location.getRangeFromString(instruction))
+            transpiler.data.newError("Cannot 'return' outside of function", instruction[0].location)
             return True
 
-        type = instruction[6:].strip()
-
-        if type == "":
+        if len(instruction) == 1:
             type = PyduinoVoid()
+
         else:
-            var = Word.do_value(type, transpiler)
+            var = Value.do_value(instruction[1:], transpiler)
             type = var.type
 
         if not transpiler.data.in_function.return_type.is_type(type):
             transpiler.data.newError(f"Cannot return '{type}' in function returning '{transpiler.data.in_function.return_type}'",
-                                     transpiler.location.getRangeFromString(instruction[6:].strip()))
+                                     Range.fromPositions(instruction[0].location.start, instruction[-1].location.end))
             return True
 
         if type.is_type(PyduinoVoid()):
             transpiler.data.code_done.append("return;")
         else:
-            transpiler.data.code_done.append(f"return {var.code};")
+            transpiler.data.code_done.append(f"return {var.name};")
         return True
 
     @staticmethod
-    def checK_call(instruction: str, transpiler: 'Transpiler'):
-        name, args = instruction.split('(', 1)
-        name = name.strip()
-        if not StringUtils.is_identifier(name):
+    def check_call(instruction: list[Token], transpiler: 'Transpiler') -> bool:
+        if len(instruction) != 2:
             return False
 
+        if instruction[1].type != Brackets.ROUND:
+            return False
 
+        if instruction[0].type != Word.IDENTIFIER:
+            return False
 
+        func = transpiler.scope.get_Function(instruction[0].value, transpiler.location.position)
+        if not func:
+            transpiler.data.newError(f"Function '{instruction[0].value}' is not defined", instruction[0].location)
+            return True
 
+        args = instruction[1].inside
+        args_c = []
+        arg_count = 0
+        last_comma = 0
+        for i in range(0, len(args)):
+            if args[i].type == Separator.COMMA:
+                arg = args[last_comma:i]
+                last_comma = i + 1
 
+                if arg_count >= len(func.args):
+                    transpiler.data.newError(f"Too many arguments passed to function '{func.name}'",
+                                             Range.fromPositions(arg[0].location.start, arg[-1].location.end))
+                    return True
 
+                expected_datatype = func.args[arg_count].type
 
+                arg = Value.do_value(arg, transpiler)
 
+                if not arg.type.is_type(expected_datatype):
+                    transpiler.data.newError(f"Cannot pass '{arg.type}' to function '{func.name}' expecting '{expected_datatype}'", arg.location)
 
+                arg_count += 1
+                args_c.append(arg)
+
+        if arg_count < len(func.args):
+            transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
+                                     Range.fromPositions(args[-1].location.start, args[-1].location.end))
+            return True
+
+        if func.return_type.is_type(PyduinoVoid()):
+            transpiler.data.code_done.append(func.on_call(args_c, func.name, transpiler) + ";")
+            return True
+        else:
+            var = transpiler.utils.next_sysvar()
+            transpiler.data.code_done.append(f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
+            return Variable(var, func.return_type, instruction[0].location)
 
 
 class Builtin(Function):
