@@ -671,6 +671,7 @@ class Data:
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
         self.in_function: Function = None
+        self.current_decorator: str = None
 
         self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
                           t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,

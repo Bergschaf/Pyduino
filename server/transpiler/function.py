@@ -163,6 +163,25 @@ class Function:
             transpiler.data.code_done.append(f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
             return Variable(var, func.return_type, instruction[0].location)
 
+    @staticmethod
+    def check_decorator(instruction: list[Token], transpiler: 'Transpiler') -> bool:
+        # TODO hast to be checked after functions
+        if transpiler.data.current_decorator is not None:
+            transpiler.data.newError("Missplaced decorator",
+                                     Range(instruction[0].location.start.line - 1, 0, complete_line=True, data=transpiler.data))
+
+        if instruction[0].type not in Decorator.DECORATORS:
+            return False
+
+        if len(instruction) != 1:
+            transpiler.data.newError("Decorator has to be alone on line", Range.fromPositions(instruction[1].location.start, instruction[-1].location.end))
+
+        if instruction[0].type == Decorator.UNKNOWN:
+            transpiler.data.newError("Unknown decorator", instruction[0].location)
+
+        transpiler.data.current_decorator = instruction[0].type
+        return True
+
 
 class Builtin(Function):
     def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Word], on_call):
