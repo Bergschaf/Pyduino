@@ -1,11 +1,6 @@
-#include <iostream>
+# include "Serial_PC.cpp"
 
 int main(){
-
-    int x(int sdf){
-    return sdf + 2;
-    }
-    std::cout << x(2);
-
+    Arduino arduino = Arduino();
     arduino.analogWrite(11, 255);
 }

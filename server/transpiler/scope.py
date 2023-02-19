@@ -13,10 +13,10 @@ class Scope:
         self.location = location
 
         self.variables: dict[Range, list[Variable]]
-        self.functions: list[Function]
+        self.functions: dict[Range, list[Function]]
 
         self.variables = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
-        self.functions = []
+        self.functions = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
 
         for i in range(1, len(self.data.indentations)):
             if self.data.indentations[i] == self.data.indentations[i - 1]:
@@ -30,11 +30,20 @@ class Scope:
                 else:
                     end = len(self.data.indentations) - 1
                 self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
+                self.functions[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
 
     def get_Variable(self, name: str, position: Position) -> 'Variable':
         for i in self.variables:
             if i.in_range(position):
                 for j in self.variables[i]:
+                    if j.name == name:
+                        return j
+        return False
+
+    def get_Function(self, name: str, position: Position, fallback: type[StringNotFound_Fallback]=StringNotFound_ErrorCompleteRange):
+        for i in self.functions:
+            if i.in_range(position):
+                for j in self.functions[i]:
                     if j.name == name:
                         return j
         return False
@@ -45,13 +54,6 @@ class Scope:
                 self.variables[i].append(variable)
 
     def add_Function(self, function: 'Function', position: 'Position'):
-        function.position = position
-        self.functions.append(function)
-
-    def get_Function(self, name: str, position: Position) -> Function | bool:
         for i in self.functions:
-            if i.name == name:
-                if position.is_bigger(i.position):
-                    return i
-        return False
-
+            if i.in_range(position):
+                self.functions[i].append(function)

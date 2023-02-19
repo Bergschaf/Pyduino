@@ -30,7 +30,7 @@
                 "--tcp"
             ],
             "justMyCode": false,
-            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "python": "${workspaceFolder}/env/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "env": {
                 "python.PYTHONPATH": "${workspaceFolder}"
@@ -46,7 +46,7 @@
                 "--ws"
             ],
             "justMyCode": false,
-            "python": "$${workspaceFolder}/venv/Scripts/python.exe",
+            "python": "$${workspaceFolder}/env/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "env": {
                 "python.PYTHONPATH": "${workspaceFolder}"

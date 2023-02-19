@@ -6,11 +6,11 @@ class Function:
     def standard_call(args: list[Variable], name: str, transpiler: 'Transpiler'):
         return f"{name}({', '.join([i.name for i in args])})"
 
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], position: Position, on_call=standard_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call):
         self.name = name
         self.return_type = return_type
         self.args = args
-        self.position = position
+        self.kwargs = None
         self.on_call = on_call
 
     @staticmethod
@@ -149,7 +149,7 @@ class Function:
         if arg_count < len(func.args):
             if arg_count == 0:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
-                                         instruction[1].location)
+                                       instruction[1].location)
             else:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
                                          Range.fromPositions(args[0].location.start, args[-1].location.end))
@@ -207,10 +207,8 @@ class Builtin(Function):
             transpiler.data.code_done.append(f"print({var});")
         return ""
 
-
 if __name__ == '__main__':
-    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py",
-                 "../server.py"]
+    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py", "../server.py"]
     # count lines of code
     total = 0
     for filename in filenames:
