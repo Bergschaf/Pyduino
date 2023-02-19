@@ -105,16 +105,19 @@ class PyduinoType():
         return []
 
     @staticmethod
-    def check_type(str: str) -> 'PyduinoType':
+    def check_type(value: Token, transpiler: 'Transpiler') -> 'PyduinoType':
         """
         Checks if the value in the string belongs to the type, returns an object if it does
         :param str:
         :return:
         """
-        for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoArray, PyduinoVoid]:
-            t = type.check_type(str)
-            if t:
-                return t
+        if value.type == Word.IDENTIFIER or value.type == Word.VALUE:
+            for type in [PyduinoBool, PyduinoInt, PyduinoFloat, PyduinoString, PyduinoVoid]:
+                t = type.check_type(value.value)
+                if t:
+                    return t
+        elif value.type == Brackets.SQUARE:
+            return PyduinoArray.check_type(value, transpiler)
         return False
 
     @staticmethod
@@ -461,32 +464,39 @@ class PyduinoArray(PyduinoType):
         return True, PyduinoInt(f"(sizeof({self.name}) / sizeof({self.name}[0]))")
 
     def get_item(self, index: 'PyduinoType'):
-        if str(index) != "int":
+        if not index.is_type(PyduinoInt()):
             return False, f"Cannot index array with {index}"
         item = self.item.copy()
         item.name = f"{self.name}[{index.name}]"
         return True, item
 
     @staticmethod
-    def check_type(string: str):
+    def check_type(value: Token, transpiler: 'Transpiler'):
         # TODO add error messages
-        if not string.startswith("[") or not string.endswith("]"):
+        if value.type != Brackets.SQUARE:
             return False
-        items = StringUtils.splitOutsideBrackets(string[1:-1], [","])
-        if len(items) == 0:
+
+        if not value.inside:
             return PyduinoArray(PyduinoAny())
-        items = [PyduinoType.check_type(item.strip()) for item in items]
+
+        items = []
+        last_comma = 0
+        for i in range(len(value.inside)):
+            if value.inside[i].type == Separator.COMMA:
+                items.append(value.inside[last_comma:i])
+                last_comma = i + 1
+        items.append(value.inside[last_comma:])
+
+        items = [Value.do_value(item, transpiler) for item in items]
+
         if False in items:
             return False
-        if not all(str(items[0]) == str(item) for item in items):
-            return False
-        if type(items[0]) is PyduinoArray:
-            if not all(items[0].size == item.size for item in items):
-                return False
-        while "  " in string:
-            string = string.replace("  ", " ")
 
-        return PyduinoArray(items[0], size=len(items), name=string.replace("[", "{").replace("]", "}"))
+        for i in range(len(items)):
+            if not items[i].type.is_type(items[0].type):
+                transpiler.data.newError(f"Cannot mix types in array", items[i].location)
+
+        return PyduinoArray(items[0].type, size=len(items), name=f"{{{','.join([item.name for item in items])}}}")
 
     def is_iterable(self):
         return True
@@ -518,9 +528,9 @@ class PyduinoArray(PyduinoType):
 
     @staticmethod
     def is_typename(tokens: list[Token]) -> 'PyduinoType':
-        if type(tokens[0].type) is Datatype:
-            if all(t.type == Brackets.SQUARE for t in tokens):
-                if all(not t.inside for t in tokens):
+        if PyduinoType.get_type_from_token([tokens[0]]):
+            if all(t.type == Brackets.SQUARE for t in tokens[1:]):
+                if all(not t.inside for t in tokens[1:]):
                     return PyduinoArray(PyduinoType.get_type_from_token(tokens[:-1]))
         return False
 
@@ -615,10 +625,9 @@ class Value:
                 if var:
                     return var
 
-            if v.type == Word.VALUE or v.type == Word.IDENTIFIER:
-                t = PyduinoType.check_type(v.value)
-                if t:
-                    return Constant(t.name, t, v.location)
+            t = PyduinoType.check_type(v, transpiler)
+            if t:
+                return Constant(t.name, t, v.location)
 
             elif v.type == Brackets.ROUND:
                 return Value.do_value(v.inside, transpiler)
@@ -630,6 +639,8 @@ class Value:
             var = Function.check_call(value, transpiler)
             if var:
                 if var is True:
+                    transpiler.data.newError(f"Function returning void cannot be used as value",
+                                             Range.fromPositions(value[0].location.start, value[-1].location.end))
                     raise InvalidLineError(transpiler.location.range)
                 return var
 
@@ -640,14 +651,16 @@ class Value:
                     var = transpiler.scope.get_Variable(value[0].value, value[0].location.start)
                     indices = [Value.do_value(b.inside, transpiler) for b in value[1:]]
                     if var:
-                        for i in range(len(value) - 1, 1, -1):
-                            var = var.type.get_item(indices[i - 2].type)
-                            if not var:
-                                error = var
-                                value[0].location = value[i].location
+                        for i in range(len(indices) - 1, -1, -1):
+                            possible, var = var.type.get_item(indices[i].type)
+                            if not possible:
+                                transpiler.data.newError(var, value[i].location)
                                 break
-                        return Constant(var.code, var,
-                                        Range.fromPositions(value[0].location.start, value[-1].location.end))
+                            var = Constant(var.name, var, Range.fromPositions(value[0].location.start, value[-1].location.end))
+                        return var
+                    else:
+                        transpiler.data.newError(f"Variable {value[0].value} not defined", value[0].location)
+                        transpiler.data.invalid_line_fallback.fallback(transpiler)
 
         transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
@@ -660,10 +673,6 @@ class Constant(Value):
 class Variable(Value):
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler') -> bool:
-        # line = transpiler.location.position.line
-        # instruction_range = Range(line, 0, complete_line=True, data=transpiler.data)
-        # operator_location = transpiler.utils.searchOutsideBrackets("=", range=instruction_range,
-        #                                                           fallback=StringNotFound_DoNothing)
         instruction_types = [i.type for i in instruction]
         if Separator.ASSIGN not in instruction_types:
             return False
@@ -675,8 +684,8 @@ class Variable(Value):
                                      Range.fromPositions(instruction[0].location.start, instruction[-1].location.end))
             return True
 
-        if left[1].type != Word.IDENTIFIER:
-            transpiler.data.newError(f"{left[1].value} is not a valid variable name", left[1].location)
+        if left[-1].type != Word.IDENTIFIER:
+            transpiler.data.newError(f"{left[-1].value} is not a valid variable name", left[-1].location)
             return True
 
         datatype_tkns = left[:-1]
@@ -684,7 +693,8 @@ class Variable(Value):
         datatype = PyduinoType.get_type_from_token(datatype_tkns)
 
         if not datatype:
-            transpiler.data.newError(f"Invalid datatype {''.join([str(d.value) for d in datatype_tkns])}", Range.fromPositions(datatype_tkns[0].location.start, datatype_tkns[-1].location.end))
+            transpiler.data.newError(f"Invalid datatype {''.join([str(d.value) for d in datatype_tkns])}",
+                                     Range.fromPositions(datatype_tkns[0].location.start, datatype_tkns[-1].location.end))
             return True
 
         value = Value.do_value(value, transpiler)
@@ -713,6 +723,79 @@ class Variable(Value):
 
         transpiler.scope.add_Variable(variable, variable.location.start)
         transpiler.data.code_done.append(c_code)
+        return True
+
+    @staticmethod
+    def check_assignment(instruction: list[Token], transpiler: 'Transpiler') -> bool:
+        instruction_types = [i.type for i in instruction]
+        if not Separator.ASSIGN in instruction_types:
+            return False
+
+        left = instruction[:instruction_types.index(Separator.ASSIGN)]
+        value = instruction[instruction_types.index(Separator.ASSIGN) + 1:]
+        if len(left) != 1:
+            if any([x.type != Brackets.SQUARE for x in left[1:]]):
+                return False
+
+            if left[0].type != Word.IDENTIFIER:
+                transpiler.data.newError(f"{left[0].value} is not a valid variable name", left[0].location)
+
+            # it is a getitem
+            indices = [Value.do_value(b.inside, transpiler) for b in left[1:]]
+            for i in indices:
+                if not i:
+                    transpiler.data.newError(f"Invalid index", i.location)
+
+            var = transpiler.scope.get_Variable(left[0].value, left[0].location.start)
+            if not var:
+                transpiler.data.newError(f"Variable '{left[0].value}' is not defined", left[0].location)
+                transpiler.data.invalid_line_fallback.fallback(transpiler)
+                return True
+
+            for i in indices:
+                possible, new_var = var.type.get_item(i.type)
+                if not possible:
+                    transpiler.data.newError(new_var, i.location)
+                    transpiler.data.invalid_line_fallback.fallback(transpiler)
+                    return True
+                var = Variable(var.name, new_var, var.location)
+
+            value = Value.do_value(value, transpiler)
+
+            if not var.type.is_type(value.type):
+                transpiler.data.newError(f"Cannot convert {value.type} to {var.type}", value.location)
+                transpiler.data.invalid_line_fallback.fallback(transpiler)
+                return True
+
+            if value.type.is_iterable():
+                transpiler.data.newError(f"Cannot assign to iterable", var.location)
+                return True
+
+            transpiler.data.code_done.append(f"{var.name}{''.join(f'[{i.type.name}]' for i in indices)} = {value.type.name};")
+            return True
+
+        if left[0].type != Word.IDENTIFIER:
+            transpiler.data.newError(f"{left[0].value} is not a valid variable name", left[0].location)
+
+        variable = transpiler.scope.get_Variable(left[0].value, left[0].location.start)
+        if not variable:
+            transpiler.data.newError(f"Variable '{left[0].value}' is not defined", left[0].location)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return True
+
+        value = Value.do_value(value, transpiler)
+        c_value = value.type.name
+
+        if not variable.type.is_type(value.type):
+            transpiler.data.newError(f"Cannot convert {value.type} to {variable.type}", value.location)
+            transpiler.data.invalid_line_fallback.fallback(transpiler)
+            return True
+
+        if value.type.is_iterable():
+            transpiler.data.newError(f"Cannot assign to iterable", variable.location)
+            return True
+
+        transpiler.data.code_done.append(f"{variable.name} = {c_value};")
         return True
 
     def __bool__(self):

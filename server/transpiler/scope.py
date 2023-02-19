@@ -32,7 +32,7 @@ class Scope:
                 self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
                 self.functions[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
 
-    def get_Variable(self, name: str, position: Position):
+    def get_Variable(self, name: str, position: Position) -> 'Variable':
         for i in self.variables:
             if i.in_range(position):
                 for j in self.variables[i]:

@@ -27,7 +27,7 @@ class Transpiler:
 
         self.scope: Scope = Scope(self.data, self.location)
 
-        self.checks = [Variable.check_definition, Control.check_condition, Function.check_definition,
+        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition, Function.check_definition,
                        Function.check_return, Function.check_call]  # the functions to check for different instruction types
 
     def next_line(self):
@@ -89,7 +89,7 @@ class Transpiler:
 
 if __name__ == '__main__':
     Transpiler = Transpiler(
-        code=["int x():", "    int adf = 2", "    return adf", "    return 2", "int y():", "    return 2", "int z():", "    return x() + y()"],
+        code=["int[][] x = [[1, 2, 3], [4, 5, 6]]", "int y = x[0][0]", "int z = x[1][2]", "int a = x[1][0]"],
         mode='main', line_offset=0)
     print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)

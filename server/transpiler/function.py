@@ -40,23 +40,25 @@ class Function:
             return True
 
         args = args[0]
-        last_comma = 0
+        last_comma = -1
         arguments = []
         for i, arg in enumerate(args.inside):
-            if arg.type == Separator.COMMA:
+            if arg.type == Separator.COMMA or i == len(args.inside) - 1:
+                if i == len(args.inside) - 1:
+                    i += 1
                 if i != last_comma + 3:
-                    transpiler.data.newError(f"Invalid function argument definition: '{''.join()}'", arg.location)
-                    return True
+                    transpiler.data.newError(f"Invalid function argument definition: '{''.join([str(a) for a in args.inside[i:]])}'", arg.location)
+                    break
                 datatype = args.inside[last_comma + 1]
                 datatype = PyduinoType.get_type_from_token([datatype])
                 if not datatype:
                     transpiler.data.newError(f"Invalid datatype in function argument definition: '{datatype}'", datatype.location)
 
-                name = args.inside[last_comma + 2]
-                if name.type != Word.IDENTIFIER:
-                    transpiler.data.newError(f"Invalid name in function argument definition: '{name.value}'", name.location)
+                arg_name = args.inside[last_comma + 2]
+                if arg_name.type != Word.IDENTIFIER:
+                    transpiler.data.newError(f"Invalid name in function argument definition: '{arg_name.value}'", arg_name.location)
                 last_comma = i
-                var = Variable(datatype, name.value, name.location)
+                var = Variable(arg_name.value, datatype, arg_name.location)
                 transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
                 arguments.append(var)
 
@@ -123,7 +125,9 @@ class Function:
         arg_count = 0
         last_comma = 0
         for i in range(0, len(args)):
-            if args[i].type == Separator.COMMA:
+            if args[i].type == Separator.COMMA or i == len(args) - 1:
+                if i == len(args) - 1:
+                    i += 1
                 arg = args[last_comma:i]
                 last_comma = i + 1
 
@@ -143,8 +147,12 @@ class Function:
                 args_c.append(arg)
 
         if arg_count < len(func.args):
-            transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
-                                     Range.fromPositions(args[-1].location.start, args[-1].location.end))
+            if arg_count == 0:
+                transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
+                                       instruction[1].location)
+            else:
+                transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
+                                         Range.fromPositions(args[0].location.start, args[-1].location.end))
             return True
 
         if func.return_type.is_type(PyduinoVoid()):
@@ -162,7 +170,7 @@ class Builtin(Function):
         self.on_call = on_call
 
     @staticmethod
-    def print(args: list[Variable], kwargs: list[Variable], transpiler: 'Transpiler', name):
+    def print(args: list[Variable], transpiler: 'Transpiler', name):
         var = transpiler.utils.next_sysvar()
 
         transpiler.data.code_done.append(f"String {var} = \"\";")
@@ -170,7 +178,7 @@ class Builtin(Function):
         for arg in args:
             possible, s = arg.type.to_string()
             if not possible:
-                transpiler.data.newError(f"Cannot print {arg.type}, {s}", transpiler.location.getRangeFromString(arg.name))
+                transpiler.data.newError(f"Cannot print {arg.type}, {s}", arg.location)
                 return False
             transpiler.data.code_done.append(f"{var} += {s.name};")
 
@@ -179,3 +187,12 @@ class Builtin(Function):
         else:
             transpiler.data.code_done.append(f"print({var});")
         return ""
+
+if __name__ == '__main__':
+    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py", "../server.py"]
+    # count lines of code
+    total = 0
+    for filename in filenames:
+        with open(filename, "r") as f:
+            total += len(f.readlines())
+    print(f"Total lines of code: {total}")

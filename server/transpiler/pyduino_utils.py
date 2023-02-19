@@ -77,7 +77,12 @@ class Range:
                             end_col if end_col is not None else start_col)
 
     def in_range(self, position: Position):
-        return self.start.line <= position.line <= self.end.line and self.start.col <= position.col <= self.end.col
+        if self.start.line < position.line < self.end.line:
+            return True
+        if self.start.line == position.line and self.start.col <= position.col:
+            return True
+        if self.end.line == position.line and self.end.col >= position.col:
+            return True
 
     def __str__(self):
         return f"{self.start} - {self.end}"
