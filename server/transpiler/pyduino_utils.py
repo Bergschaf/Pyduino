@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
+import lsprotocol.types as lsp
 
 if TYPE_CHECKING:
     from server.transpiler.transpiler import Transpiler
@@ -38,6 +39,15 @@ class Position:
         if self.col < other.col:
             return self
         return other
+
+    def is_bigger(self, other):
+        if self.line > other.line:
+            return True
+        if self.line < other.line:
+            return False
+        if self.col > other.col:
+            return True
+        return False
 
     def shift_to_end(self, data: 'Data'):
         # shifts the position to the end of the line
@@ -101,8 +111,15 @@ class Error:
         self.message = message
         self.range = range
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.message} at line {self.range}"
+
+    def get_Diagnostic(self, transpiler: 'Transpiler'):
+        return lsp.Diagnostic(range=lsp.Range(
+            start=lsp.Position(line=self.range.start.line + transpiler.data.line_offset, character=self.range.start.col),
+            end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col)),
+            message=self.message,
+            source="Pyduino Language server")
 
 
 class InvalidLineError(Exception):
@@ -644,6 +661,7 @@ class Data:
 
     def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
         self.code: list[str] = code
+        self.connection_needed: bool = False
         self.code_tokens: 'list[list[Token]]' = []
         self.line_offset: int = line_offset
         self.indentations: list[int] = []
@@ -678,7 +696,7 @@ class Data:
             if location.start.line != location.end.line:
                 return self.code[location.start.line][location.start.col:] + "".join(
                     self.code[location.start.line + 1:location.end.line]) + \
-                    self.code[location.end.line][:location.end.col + 1]
+                       self.code[location.end.line][:location.end.col + 1]
             else:
                 return self.code[location.start.line][location.start.col:location.end.col + 1]
         else:

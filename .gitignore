@@ -1,1 +1,7 @@
 node_modules
+pygls.log
+mingw/MinGW
+
+
+*.vsix
+*.pyc

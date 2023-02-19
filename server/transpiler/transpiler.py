@@ -85,6 +85,87 @@ class Transpiler:
         :return:
         """
         # TODO DEFINE A VARIABLE '__tempstr__' TO STORE THE STRING CONVERSIONS
+        code = []
+
+        if self.mode == "main":
+            if self.data.connection_needed:
+                code.append("#include <Arduino.h>")
+
+            code.append("int main() {")
+
+            if self.data.connection_needed:
+                code.append("Arduino arduino = Arduino();")
+
+
+
+
+
+
+
+
+
+        elif self.mode == "board":
+            pass
+
+    @staticmethod
+    def get_transpiler(code: list[str]) -> tuple['Transpiler', 'Transpiler']:
+
+        error = False
+        line_offset_main = 0
+        line_offset_board = 0
+        if code[0] == "#main" or code[0] == "# main":
+
+            for i in range(len(code)):
+                if code[i] == "#board" or code[i] == "# board":
+                    board_code = code[i:]
+                    line_offset_board = i
+
+                    main_code = code[1:i]
+                    line_offset_main = 1
+                    break
+            else:
+                main_code = code[1:]
+                line_offset_main = 1
+                board_code = []
+
+        elif code[0] == "#board" or code[0] == "# board":
+
+            for i in range(len(code)):
+                if code[i] == "#main" or code[i] == "# main":
+                    board_code = code[1:i]
+                    line_offset_board = 1
+                    main_code = code[i:]
+                    line_offset_main = i
+                    break
+            else:
+                board_code = code[1:]
+                line_offset_board = 1
+                main_code = []
+        else:
+            error = True
+            main_code = code
+            board_code = []
+
+        if main_code:
+            main_transpiler = Transpiler(main_code, mode="main", line_offset=line_offset_main)
+        else:
+            main_transpiler = None
+
+        if board_code:
+            board_transpiler = Transpiler(board_code, mode="board", line_offset=line_offset_board)
+        else:
+            board_transpiler = None
+
+        if error:
+            main_transpiler.data.newError("Missing #main or #board at the beginning of the code",
+                                          Range(0, 0, complete_line=True, data=main_transpiler.data))
+
+        return main_transpiler, board_transpiler
+
+    def transpile(self) -> tuple[list[str], list[Error]]:
+        self.transpileTo(len(self.data.code))
+        self.finish()
+        return self.data.code_done, self.data.errors
 
 
 if __name__ == '__main__':

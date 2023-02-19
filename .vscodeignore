@@ -1,0 +1,17 @@
+.vscode
+.gitignore
+.idea
+client/out/*.map
+doc
+client/src/
+tsconfig.json
+tslint.json
+package.json
+package-lock.json
+temp
+test
+benchmark.py
+mingw/MinGW
+.pytest_cache
+*.vsix
+*.pyc
