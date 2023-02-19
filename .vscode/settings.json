@@ -1,0 +1,28 @@
+{    "python.pythonPath": "./env/Python310/",
+    "actionButtons": {
+        "defaultColor": "#ff0034", // Can also use string color names.
+        "loadNpmCommands":false, // Disables automatic generation of actions for npm commands.
+        "reloadButton":"♻️", // Custom reload button text or icon (default ↻). null value enables automatic reload on configuration change
+        "commands": [
+            {
+                "cwd": "/home/custom_folder", 	// Terminal initial folder ${workspaceFolder} and os user home as defaults
+                "name": "Run Cargo",
+                "color": "green",
+                "singleInstance": true,
+                "command": "cargo run ${file}", // This is executed in the terminal.
+            },
+            {
+                "name": "Build Cargo",
+                "color": "green",
+                "command": "cargo build ${file}",
+            },
+            {
+               "name": "🪟 Split editor",
+               "color": "orange",
+               "useVsCodeApi": true,
+               "command": "workbench.action.splitEditor"
+            }
+        ]
+    },
+    "python.analysis.typeCheckingMode": "off"
+}
