@@ -196,12 +196,12 @@ class Transpiler:
         return self.data.code_done
 
     @staticmethod
-    def get_errors(code: list[str]) -> list[Error]:
+    def get_diagnostics(code: list[str]) -> list[Error]:
         main, board, definition = Transpiler.get_transpiler(code)
         main.transpileTo(len(main.data.code))
         board.transpileTo(len(board.data.code))
         definition.transpileTo(len(definition.data.code))
-        return main.data.errors + board.data.errors + definition.data.errors
+        return [e for e in  main.data.errors] + board.data.errors + definition.data.errors
 
 
 if __name__ == '__main__':

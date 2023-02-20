@@ -5,6 +5,7 @@ from lsprotocol.types import (TEXT_DOCUMENT_DID_CHANGE,
 from lsprotocol.types import (Diagnostic, DidChangeTextDocumentParams,
                               DidOpenTextDocumentParams, Position, Range)
 from pygls.server import LanguageServer
+from server.transpiler.transpiler import Transpiler
 
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
@@ -19,39 +20,24 @@ class PyduinoLanguageServer(LanguageServer):
 pyduino_server = PyduinoLanguageServer('Pyduino', 'v0.1')
 
 
-def _validate(ls, params):
-    ls.show_message_log('Validating json...')
-
-    text_doc = ls.workspace.get_document(params.text_document.uri)
-
+def get_errors(ls):
+    text_doc = ls.workspace.get_document(list(ls.workspace.documents.keys())[0])
     source = text_doc.source
-    diagnostics = _validate_json(source) if source else []
+    errors = Transpiler.get_errors(source.splitlines())
+
+    errors =  [e.get_Diagnostic(main) for e in errors] + [e.get_Diagnostic(board) for e in errors_board]
+    print("errors", errors)
+    return errors
+
+
+def _validate(ls, params):
+    text_doc = ls.workspace.get_document(params.text_document.uri)
+    print("enter valiudate")
+    diagnostics = get_errors(ls)
+    print("diagnostics", diagnostics)
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
-
-def _validate_json(source):
-    """Validates json file."""
-    diagnostics = []
-
-    try:
-        json.loads(source)
-    except JSONDecodeError as err:
-        msg = err.msg
-        col = err.colno
-        line = err.lineno
-        d = Diagnostic(
-            range=Range(
-                start=Position(line=line - 1, character=col - 1),
-                end=Position(line=line - 1, character=col)
-            ),
-            message=msg,
-            source=type(pyduino_server).__name__
-        )
-
-        diagnostics.append(d)
-
-    return diagnostics
 
 
 """
