@@ -55,6 +55,7 @@ class Control:
             location.next_line()
             index, line = next(data.enumerator)
 
+
             if line[0].type == Keyword.ELIF and data.indentations[index] == data.indentations[if_position]:
 
                 instruction = StringUtils.check_colon(instruction, transpiler)

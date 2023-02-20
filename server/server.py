@@ -20,20 +20,17 @@ class PyduinoLanguageServer(LanguageServer):
 pyduino_server = PyduinoLanguageServer('Pyduino', 'v0.1')
 
 
-def get_errors(ls):
+def get_diagnostics(ls):
     text_doc = ls.workspace.get_document(list(ls.workspace.documents.keys())[0])
     source = text_doc.source
-    errors = Transpiler.get_errors(source.splitlines())
-
-    errors =  [e.get_Diagnostic(main) for e in errors] + [e.get_Diagnostic(board) for e in errors_board]
-    print("errors", errors)
+    errors = Transpiler.get_diagnostics(source.splitlines())
     return errors
 
 
 def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
     print("enter valiudate")
-    diagnostics = get_errors(ls)
+    diagnostics = get_diagnostics(ls)
     print("diagnostics", diagnostics)
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
+import lsprotocol.types as lsp
 
 if TYPE_CHECKING:
     from server.transpiler.transpiler import Transpiler
@@ -112,6 +113,18 @@ class Error:
 
     def __str__(self):
         return f"{self.message} at line {self.range}"
+
+    def get_Diagnostic(self, transpiler: 'Transpiler'):
+        return lsp.Diagnostic(
+            range=lsp.Range(
+                start=lsp.Position(line=self.range.start.line + transpiler.data.line_offset,
+                                   character=self.range.start.col),
+                end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col),
+            ),
+            message=self.message,
+            severity=lsp.DiagnosticSeverity.Error, # TODO THANK YOU GITHUB COPILOT
+            source="pyduino",
+        )
 
 
 class InvalidLineError(Exception):
@@ -593,6 +606,9 @@ class StringUtils:
     @staticmethod
     def check_colon(line: "list[Token]", transpiler: 'Transpiler') -> 'list[Token]':
         # returns line without colon
+        if len(line) == 0:
+            return line
+
         from server.transpiler.tokenizer import Separator
         if line[-1].type != Separator.COLON:
             transpiler.data.newError("Expected ':'", line[-1].location)
@@ -604,6 +620,8 @@ class StringUtils:
         """
         Returns the last line with the same indentation as the given line
         """
+        if start_line >= len(transpiler.location.indentations):
+            return start_line
         indent = transpiler.location.indentations[start_line]
         for i in range(transpiler.location.position.line + 1, len(transpiler.location.indentations)):
             if transpiler.location.indentations[i] < indent:
@@ -677,7 +695,9 @@ class Data:
                                 [t.Bool_Operator.AND], [t.Bool_Operator.OR]]
         self.VALID_NAME_END_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
-    def newError(self, message: str, range: Range):
+    def newError(self, message: str, range: Range | Position):
+        if type(range) is Position:
+            range = Range.fromPosition(range)
         self.errors.append(Error(message, range))
         if self.strict_mode:
             raise SyntaxError(message)

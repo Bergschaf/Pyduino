@@ -1,12 +1,12 @@
-from server.transpiler.scope import Scope
-from server.transpiler.variable import *
 from server.transpiler.control import Control
 from server.transpiler.function import Function
+from server.transpiler.scope import Scope
 from server.transpiler.tokenizer import *
+from server.transpiler.variable import *
 
 
 class Transpiler:
-    def __init__(self, code: list[str], mode="main", definition: bool = True, line_offset=0):
+    def __init__(self, code: list[str], mode="main", definition: bool = False, line_offset=0):
         """
         :param code: The Code to transpile (including the #main or #board)
         :param mode: main or board
@@ -24,13 +24,15 @@ class Transpiler:
         self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
 
-        self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
+        self.data.code_tokens = [t for t in [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)] if t]
         self.data.enumerator = enumerate(self.data.code_tokens)
 
         self.scope: Scope = Scope(self.data, self.location)
 
-        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition, Function.check_definition,
-                       Function.check_return, Function.check_call, Function.check_decorator]  # the functions to check for different instruction types
+        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,
+                       Function.check_definition,
+                       Function.check_return, Function.check_call,
+                       Function.check_decorator]  # the functions to check for different instruction types
 
     def next_line(self):
         index, line = next(self.data.enumerator)
@@ -76,16 +78,16 @@ class Transpiler:
             line = line[:-1]
             self.data.newError("We don't do that here", line[-1].location)
 
-        if self.definition and self.data.in_function is not None:
+        if self.definition and self.data.in_function is None:
             if not Function.check_definition(line, self):
-                self.data.newError("Code is not allowed in definition part", Range.fromPositions(line[0].location, line[-1].location))
+                self.data.newError("Code is not allowed in definition part",
+                                   Range.fromPositions(line[0].location.start, line[-1].location.end))
             return
 
         for check in self.checks:
             if check(line, self):
                 return
-        self.data.newError("Unknow instruction", Range.fromPositions(line[0].location, line[-1].location))
-
+        self.data.newError("Unknow instruction", Range.fromPositions(line[0].location.start, line[-1].location.end))
 
     def finish(self):
         """
@@ -124,11 +126,11 @@ class Transpiler:
         for i in range(len(code)):
             if code[i] == "#main" or code[i] == "# main":
                 definition_code = code[:i]
-                line_offset_main = i
+                line_offset_main = i + 1
                 for i in range(len(code)):
                     if code[i] == "#board" or code[i] == "# board":
-                        board_code = code[i:]
-                        line_offset_board = i
+                        board_code = code[i + 1:]
+                        line_offset_board = i + 1
                         main_code = code[line_offset_main:i]
                         break
                 else:
@@ -136,18 +138,19 @@ class Transpiler:
                 break
 
             elif code[0] == "#board" or code[0] == "# board":
-                definition_code = code[:1]
-                line_offset_board = i
+                definition_code = code[:i]
+                line_offset_board = i + 1
                 for i in range(len(code)):
                     if code[i] == "#main" or code[i] == "# main":
                         board_code = code[line_offset_board:i]
-                        main_code = code[i:]
-                        line_offset_main = i
+                        main_code = code[i + 1:]
+                        line_offset_main = i + 1
                         break
                 else:
                     board_code = code[line_offset_board:]
                 break
         else:
+            definition_code = code
             error = True
 
         if main_code:
@@ -165,14 +168,15 @@ class Transpiler:
         else:
             definition_transpiler = None
 
-        if error:
-            main_transpiler.data.newError("Missing #main or #board part in the code",
-                                          Range(0, 0, complete_line=True, data=main_transpiler.data))
+        if definition_transpiler and error:
+            definition_transpiler.data.newError("Missing #main or #board part in the code",
+                                                Range(0, 0, complete_line=True, data=definition_transpiler.data))
 
         return main_transpiler, board_transpiler, definition_transpiler
 
     @staticmethod
     def transpile(code: list[str]) -> tuple[list[str], list[Error]]:
+        # TODO der scheiß funktioniert nicht
         main, board, definition_main = Transpiler.get_transpiler(code)
 
         definition_board = definition_main.copy()
@@ -187,21 +191,23 @@ class Transpiler:
         main.transpileTo(len(main.data.code))
         board.transpileTo(len(board.data.code))
 
-
-    @staticmethod
-    def get_code(self) -> list[str]:
-        self.transpileTo(len(self.data.code))
-        self.finish()
-
-        return self.data.code_done
-
     @staticmethod
     def get_diagnostics(code: list[str]) -> list[Error]:
         main, board, definition = Transpiler.get_transpiler(code)
-        main.transpileTo(len(main.data.code))
-        board.transpileTo(len(board.data.code))
-        definition.transpileTo(len(definition.data.code))
-        return [e for e in  main.data.errors] + board.data.errors + definition.data.errors
+        errors = []
+        if main is not None:
+            main.transpileTo(len(main.data.code))
+            errors += [e.get_Diagnostic(main) for e in main.data.errors]
+
+        if board is not None:
+            board.transpileTo(len(board.data.code))
+            errors += [e.get_Diagnostic(board) for e in board.data.errors]
+
+        if definition is not None:
+            definition.transpileTo(len(definition.data.code))
+            errors += [e.get_Diagnostic(definition) for e in definition.data.errors]
+
+        return errors
 
 
 if __name__ == '__main__':
@@ -211,6 +217,3 @@ if __name__ == '__main__':
     print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)
     print([str(e) for e in Transpiler.data.errors])
-
-
-

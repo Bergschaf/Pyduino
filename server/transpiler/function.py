@@ -21,6 +21,9 @@ class Function:
         if instruction[0].type not in [Datatype.INT, Datatype.FLOAT, Datatype.BOOL, Datatype.VOID, Datatype.STRING]:
             return False
 
+        if len(instruction) < 3:
+            return True
+
         instruction_types = [i.type for i in instruction]
         if Separator.ASSIGN in instruction_types:
             return False
