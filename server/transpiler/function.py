@@ -6,12 +6,14 @@ class Function:
     def standard_call(args: list[Variable], name: str, transpiler: 'Transpiler'):
         return f"{name}({', '.join([i.name for i in args])})"
 
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], position: Position, on_call=standard_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call):
         self.name = name
+        self.position = None
         self.return_type = return_type
         self.args = args
-        self.position = position
+        self.kwargs = None
         self.on_call = on_call
+        self.code = []
 
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
@@ -149,7 +151,7 @@ class Function:
         if arg_count < len(func.args):
             if arg_count == 0:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
-                                         instruction[1].location)
+                                       instruction[1].location)
             else:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
                                          Range.fromPositions(args[0].location.start, args[-1].location.end))
@@ -162,6 +164,25 @@ class Function:
             var = transpiler.utils.next_sysvar()
             transpiler.data.code_done.append(f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
             return Variable(var, func.return_type, instruction[0].location)
+
+    @staticmethod
+    def check_decorator(instruction: list[Token], transpiler: 'Transpiler') -> bool:
+        # TODO hast to be checked after functions
+        if transpiler.data.current_decorator is not None:
+            transpiler.data.newError("Missplaced decorator",
+                                     Range(instruction[0].location.start.line - 1, 0, complete_line=True, data=transpiler.data))
+
+        if instruction[0].type not in Decorator.DECORATORS:
+            return False
+
+        if len(instruction) != 1:
+            transpiler.data.newError("Decorator has to be alone on line", Range.fromPositions(instruction[1].location.start, instruction[-1].location.end))
+
+        if instruction[0].type == Decorator.UNKNOWN:
+            transpiler.data.newError("Unknown decorator", instruction[0].location)
+
+        transpiler.data.current_decorator = instruction[0].type
+        return True
 
 
 class Builtin(Function):
@@ -188,13 +209,28 @@ class Builtin(Function):
             transpiler.data.code_done.append(f"print({var});")
         return ""
 
-
 if __name__ == '__main__':
-    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py",
-                 "../server.py"]
+    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py", "../server.py"]
     # count lines of code
     total = 0
     for filename in filenames:
         with open(filename, "r") as f:
             total += len(f.readlines())
     print(f"Total lines of code: {total}")
+
+    # count words
+    total = 0
+    for filename in filenames:
+        with open(filename, "r") as f:
+            total += len(f.read().split())
+    print(f"Total words of code: {total}")
+
+    # count characters
+    total = 0
+    for filename in filenames:
+        with open(filename, "r") as f:
+            total += len(f.read())
+    print(f"Total characters of code: {total}")
+
+
+

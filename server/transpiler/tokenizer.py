@@ -1,4 +1,4 @@
-from server.transpiler.pyduino_utils import *
+from pyduino_utils import *
 
 
 class TokenType:
@@ -178,6 +178,13 @@ class Datatype(Token):
     VOID = TokenType("void", "Datatype.VOID")
 
 
+class Decorator(Token):
+    MAIN = TokenType("@main", "Decorator.MAIN")
+    BOARD = TokenType("@board", "Decorator.BOARD")
+    UNKNOWN = TokenType("@unknown", "Decorator.UNKNOWN")
+    DECORATORS = [MAIN, BOARD, UNKNOWN]
+
+
 NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
@@ -214,6 +221,8 @@ TOKENS = {
     "str": Datatype.STRING,
     "bool": Datatype.BOOL,
     "void": Datatype.VOID,
+    "@main": Decorator.MAIN,
+    "@board": Decorator.BOARD,
 }
 
 if __name__ == '__main__':

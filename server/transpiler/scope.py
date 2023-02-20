@@ -39,6 +39,13 @@ class Scope:
                         return j
         return False
 
+    def get_Function(self, name: str, position: Position) -> 'Function':
+        for i in self.functions:
+            if i.name == name:
+                if position.is_bigger(i.position):
+                    return i
+        return False
+
     def add_Variable(self, variable: 'Variable', position: 'Position'):
         for i in self.variables:
             if i.in_range(position) and self.data.indentations[i.start.line] == self.data.indentations[position.line]:
@@ -48,10 +55,7 @@ class Scope:
         function.position = position
         self.functions.append(function)
 
-    def get_Function(self, name: str, position: Position) -> Function | bool:
-        for i in self.functions:
-            if i.name == name:
-                if position.is_bigger(i.position):
-                    return i
-        return False
-
+    def add_functions(self, functions: list['Function']):
+        for f in functions:
+            f.position = Position(0, 0)
+        self.functions.extend(functions)

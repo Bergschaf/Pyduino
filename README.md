@@ -90,3 +90,14 @@ digitalWrite(12, 0)
 These functions can also be called on the PC if the Arduino is connected to the PC. The PC will then write to the Arduino's
 serial port and the Arduino will read the value and write it to the pin, but this process is a lot slower than calling the functions directly on the Arduino.
 
+Functions are defined before the #main or #board part and can be called on both Platforms after that.
+If you want a function to run on a specific platform, no matter from where it is called, you can use the `@main` or `@board` decorator.
+```python
+def add(x, y):
+    return x + y
+
+@main
+def add_pc():
+    print(add(1, 2))
+```
+

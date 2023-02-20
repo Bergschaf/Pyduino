@@ -23,15 +23,9 @@ pyduino_server = PyduinoLanguageServer('Pyduino', 'v0.1')
 def get_errors(ls):
     text_doc = ls.workspace.get_document(list(ls.workspace.documents.keys())[0])
     source = text_doc.source
-    main, board = Transpiler.get_transpiler(source.splitlines())
+    errors = Transpiler.get_errors(source.splitlines())
 
-    errors_main, errors_board = main.transpile()[1] if main else [], board.transpile()[1] if board else []
-
-    print(errors_main)
-    print(errors_board)
-    print("main", main)
-
-    errors =  [e.get_Diagnostic(main) for e in errors_main] + [e.get_Diagnostic(board) for e in errors_board]
+    errors =  [e.get_Diagnostic(main) for e in errors] + [e.get_Diagnostic(board) for e in errors_board]
     print("errors", errors)
     return errors
 

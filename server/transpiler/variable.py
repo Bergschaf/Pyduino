@@ -210,7 +210,7 @@ class PyduinoBool(PyduinoType):
         return True, PyduinoFloat(f"({self.name} ? 1.0 : 0.0)")
 
     def to_bool(self):
-        return True, self
+        return True, self.copy()
 
     @staticmethod
     def check_type(string: str) -> 'PyduinoType':

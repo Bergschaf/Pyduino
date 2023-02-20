@@ -24,5 +24,8 @@
             }
         ]
     },
-    "python.analysis.typeCheckingMode": "off"
+    "python.analysis.typeCheckingMode": "off",
+    "cmake.configureOnOpen": false,
+    "window.title": "${dirty}${activeEditorShort}${separator}${folderPath}${separator}${appName}"
+
 }

@@ -6,13 +6,15 @@ from server.transpiler.tokenizer import *
 
 
 class Transpiler:
-    def __init__(self, code: list[str], mode="main", line_offset=0):
+    def __init__(self, code: list[str], mode="main", definition: bool = True, line_offset=0):
         """
         :param code: The Code to transpile (including the #main or #board)
         :param mode: main or board
         :param line_offset: The line offset of the code segment
+        :param definition: If the code is in the definition part at the top of the file
         """
         self.mode = mode
+        self.definition = definition
 
         self.data: Data = Data(code, line_offset)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
@@ -28,12 +30,15 @@ class Transpiler:
         self.scope: Scope = Scope(self.data, self.location)
 
         self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition, Function.check_definition,
-                       Function.check_return, Function.check_call]  # the functions to check for different instruction types
+                       Function.check_return, Function.check_call, Function.check_decorator]  # the functions to check for different instruction types
 
     def next_line(self):
         index, line = next(self.data.enumerator)
         self.location.next_line()
         self.do_line(line)
+
+    def copy(self):
+        return Transpiler(self.data.code, self.mode, self.definition, self.data.line_offset)
 
     def transpileTo(self, line: int):
         """
@@ -71,9 +76,16 @@ class Transpiler:
             line = line[:-1]
             self.data.newError("We don't do that here", line[-1].location)
 
+        if self.definition and self.data.in_function is not None:
+            if not Function.check_definition(line, self):
+                self.data.newError("Code is not allowed in definition part", Range.fromPositions(line[0].location, line[-1].location))
+            return
+
         for check in self.checks:
             if check(line, self):
                 return
+        self.data.newError("Unknow instruction", Range.fromPositions(line[0].location, line[-1].location))
+
 
     def finish(self):
         """
@@ -96,55 +108,47 @@ class Transpiler:
             if self.data.connection_needed:
                 code.append("Arduino arduino = Arduino();")
 
-
-
-
-
-
-
-
-
         elif self.mode == "board":
             pass
 
     @staticmethod
-    def get_transpiler(code: list[str]) -> tuple['Transpiler', 'Transpiler']:
+    def get_transpiler(code: list[str]) -> tuple['Transpiler', 'Transpiler', 'Transpiler']:
 
         error = False
         line_offset_main = 0
         line_offset_board = 0
-        if code[0] == "#main" or code[0] == "# main":
+        main_code = []
+        board_code = []
+        definition_code = []
 
-            for i in range(len(code)):
-                if code[i] == "#board" or code[i] == "# board":
-                    board_code = code[i:]
-                    line_offset_board = i
+        for i in range(len(code)):
+            if code[i] == "#main" or code[i] == "# main":
+                definition_code = code[:i]
+                line_offset_main = i
+                for i in range(len(code)):
+                    if code[i] == "#board" or code[i] == "# board":
+                        board_code = code[i:]
+                        line_offset_board = i
+                        main_code = code[line_offset_main:i]
+                        break
+                else:
+                    main_code = code[line_offset_main:]
+                break
 
-                    main_code = code[1:i]
-                    line_offset_main = 1
-                    break
-            else:
-                main_code = code[1:]
-                line_offset_main = 1
-                board_code = []
-
-        elif code[0] == "#board" or code[0] == "# board":
-
-            for i in range(len(code)):
-                if code[i] == "#main" or code[i] == "# main":
-                    board_code = code[1:i]
-                    line_offset_board = 1
-                    main_code = code[i:]
-                    line_offset_main = i
-                    break
-            else:
-                board_code = code[1:]
-                line_offset_board = 1
-                main_code = []
+            elif code[0] == "#board" or code[0] == "# board":
+                definition_code = code[:1]
+                line_offset_board = i
+                for i in range(len(code)):
+                    if code[i] == "#main" or code[i] == "# main":
+                        board_code = code[line_offset_board:i]
+                        main_code = code[i:]
+                        line_offset_main = i
+                        break
+                else:
+                    board_code = code[line_offset_board:]
+                break
         else:
             error = True
-            main_code = code
-            board_code = []
 
         if main_code:
             main_transpiler = Transpiler(main_code, mode="main", line_offset=line_offset_main)
@@ -156,16 +160,48 @@ class Transpiler:
         else:
             board_transpiler = None
 
+        if definition_code:
+            definition_transpiler = Transpiler(definition_code, definition=True, line_offset=0)
+        else:
+            definition_transpiler = None
+
         if error:
-            main_transpiler.data.newError("Missing #main or #board at the beginning of the code",
+            main_transpiler.data.newError("Missing #main or #board part in the code",
                                           Range(0, 0, complete_line=True, data=main_transpiler.data))
 
-        return main_transpiler, board_transpiler
+        return main_transpiler, board_transpiler, definition_transpiler
 
-    def transpile(self) -> tuple[list[str], list[Error]]:
+    @staticmethod
+    def transpile(code: list[str]) -> tuple[list[str], list[Error]]:
+        main, board, definition_main = Transpiler.get_transpiler(code)
+
+        definition_board = definition_main.copy()
+        definition_board.mode = "board"
+
+        definition_main.transpileTo(len(definition_main.data.code))
+        definition_board.transpileTo(len(definition_board.data.code))
+
+        main.scope.add_functions(definition_main.scope.functions)
+        board.scope.add_functions(definition_board.scope.functions)
+
+        main.transpileTo(len(main.data.code))
+        board.transpileTo(len(board.data.code))
+
+
+    @staticmethod
+    def get_code(self) -> list[str]:
         self.transpileTo(len(self.data.code))
         self.finish()
-        return self.data.code_done, self.data.errors
+
+        return self.data.code_done
+
+    @staticmethod
+    def get_diagnostics(code: list[str]) -> list[Error]:
+        main, board, definition = Transpiler.get_transpiler(code)
+        main.transpileTo(len(main.data.code))
+        board.transpileTo(len(board.data.code))
+        definition.transpileTo(len(definition.data.code))
+        return [e for e in  main.data.errors] + board.data.errors + definition.data.errors
 
 
 if __name__ == '__main__':
@@ -175,3 +211,6 @@ if __name__ == '__main__':
     print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)
     print([str(e) for e in Transpiler.data.errors])
+
+
+
