@@ -76,9 +76,16 @@ class Transpiler:
             line = line[:-1]
             self.data.newError("We don't do that here", line[-1].location)
 
+        if self.definition and self.data.in_function is not None:
+            if not Function.check_definition(line, self):
+                self.data.newError("Code is not allowed in definition part", Range.fromPositions(line[0].location, line[-1].location))
+            return
+
         for check in self.checks:
             if check(line, self):
                 return
+        self.data.newError("Unknow instruction", Range.fromPositions(line[0].location, line[-1].location))
+
 
     def finish(self):
         """
@@ -204,3 +211,6 @@ if __name__ == '__main__':
     print(Transpiler.transpileTo(10))
     print(Transpiler.data.code_done)
     print([str(e) for e in Transpiler.data.errors])
+
+
+
