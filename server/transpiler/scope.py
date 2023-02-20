@@ -13,10 +13,10 @@ class Scope:
         self.location = location
 
         self.variables: dict[Range, list[Variable]]
-        self.functions: dict[Range, list[Function]]
+        self.functions: list[Function]
 
         self.variables = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
-        self.functions = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
+        self.functions = []
 
         for i in range(1, len(self.data.indentations)):
             if self.data.indentations[i] == self.data.indentations[i - 1]:
@@ -30,7 +30,6 @@ class Scope:
                 else:
                     end = len(self.data.indentations) - 1
                 self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
-                self.functions[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
 
     def get_Variable(self, name: str, position: Position) -> 'Variable':
         for i in self.variables:
@@ -40,12 +39,11 @@ class Scope:
                         return j
         return False
 
-    def get_Function(self, name: str, position: Position, fallback: type[StringNotFound_Fallback]=StringNotFound_ErrorCompleteRange):
+    def get_Function(self, name: str, position: Position) -> 'Function':
         for i in self.functions:
-            if i.in_range(position):
-                for j in self.functions[i]:
-                    if j.name == name:
-                        return j
+            if i.name == name:
+                if position.is_bigger(i.position):
+                    return i
         return False
 
     def add_Variable(self, variable: 'Variable', position: 'Position'):
@@ -54,6 +52,10 @@ class Scope:
                 self.variables[i].append(variable)
 
     def add_Function(self, function: 'Function', position: 'Position'):
-        for i in self.functions:
-            if i.in_range(position):
-                self.functions[i].append(function)
+        function.position = position
+        self.functions.append(function)
+
+    def add_functions(self, functions: list['Function']):
+        for f in functions:
+            f.position = Position(0, 0)
+        self.functions.extend(functions)

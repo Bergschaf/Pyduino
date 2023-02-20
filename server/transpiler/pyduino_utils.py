@@ -39,6 +39,15 @@ class Position:
             return self
         return other
 
+    def is_bigger(self, other):
+        if self.line > other.line:
+            return True
+        if self.line < other.line:
+            return False
+        if self.col > other.col:
+            return True
+        return False
+
     def shift_to_end(self, data: 'Data'):
         # shifts the position to the end of the line
         return Position(self.line, len(data.code[self.line]))

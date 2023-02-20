@@ -8,10 +8,12 @@ class Function:
 
     def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call):
         self.name = name
+        self.position = None
         self.return_type = return_type
         self.args = args
         self.kwargs = None
         self.on_call = on_call
+        self.code = []
 
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
@@ -215,3 +217,20 @@ if __name__ == '__main__':
         with open(filename, "r") as f:
             total += len(f.readlines())
     print(f"Total lines of code: {total}")
+
+    # count words
+    total = 0
+    for filename in filenames:
+        with open(filename, "r") as f:
+            total += len(f.read().split())
+    print(f"Total words of code: {total}")
+
+    # count characters
+    total = 0
+    for filename in filenames:
+        with open(filename, "r") as f:
+            total += len(f.read())
+    print(f"Total characters of code: {total}")
+
+
+

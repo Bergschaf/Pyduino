@@ -166,7 +166,19 @@ class Transpiler:
 
     @staticmethod
     def transpile(code: list[str]) -> tuple[list[str], list[Error]]:
-        main, board, definition = Transpiler.get_transpiler(code)
+        main, board, definition_main = Transpiler.get_transpiler(code)
+
+        definition_board = definition_main.copy()
+        definition_board.mode = "board"
+
+        definition_main.transpileTo(len(definition_main.data.code))
+        definition_board.transpileTo(len(definition_board.data.code))
+
+        main.scope.add_functions(definition_main.scope.functions)
+        board.scope.add_functions(definition_board.scope.functions)
+
+        main.transpileTo(len(main.data.code))
+        board.transpileTo(len(board.data.code))
 
 
     @staticmethod
