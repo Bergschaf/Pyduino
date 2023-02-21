@@ -1,5 +1,5 @@
 from server.transpiler.control import Control
-from server.transpiler.function import Function
+from server.transpiler.function import Function, Builtin
 from server.transpiler.scope import Scope
 from server.transpiler.tokenizer import *
 from server.transpiler.variable import *
@@ -15,7 +15,7 @@ class Transpiler:
         """
         self.mode = mode
         self.definition = definition
-
+        self.connection_needed = False
         self.data: Data = Data(code, line_offset)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
 
@@ -24,10 +24,13 @@ class Transpiler:
         self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
 
-        self.data.code_tokens = [t for t in [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)] if t]
+        self.data.code_tokens = [t for t in
+                                 [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)] if t]
         self.data.enumerator = enumerate(self.data.code_tokens)
 
         self.scope: Scope = Scope(self.data, self.location)
+
+        Builtin.add_builtins(self)
 
         self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,
                        Function.check_definition,
@@ -89,7 +92,7 @@ class Transpiler:
                 return
         self.data.newError("Unknow instruction", Range.fromPositions(line[0].location.start, line[-1].location.end))
 
-    def finish(self):
+    def finish(self) -> str:
         """
         TODO add String function here in the c++ version:
         std::string String(int value) { return std::to_string(value); }
@@ -102,16 +105,34 @@ class Transpiler:
         code = []
 
         if self.mode == "main":
-            if self.data.connection_needed:
-                code.append("#include <Arduino.h>")
+            if self.connection_needed:
+                code.append('#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"')
+            code.append("#include <iostream>")
+            code.append("#include <string>")
+            code.append("using namespace std;")
+
+            for f in self.scope.functions:
+                if f.called:
+                    code.extend(f.code)
 
             code.append("int main() {")
 
-            if self.data.connection_needed:
+            if self.connection_needed:
                 code.append("Arduino arduino = Arduino();")
 
+            code.extend(self.data.code_done)
+            code.append("return 0;")
+            code.append("}")
+
         elif self.mode == "board":
-            pass
+            with open("server/transpiler/SerialCommunication/Serial_Arduino/Serial_Arduino.ino") as f:
+                code.extend(f.readlines())
+
+            code.append("void setup() {\n  Serial.begin(256000); \nHandshake();\n")
+            code.extend(self.data.code_done)
+            code.append("} \n void loop() { \n }")
+
+        return "\n".join(code)
 
     @staticmethod
     def get_transpiler(code: list[str]) -> tuple['Transpiler', 'Transpiler', 'Transpiler']:
@@ -175,39 +196,73 @@ class Transpiler:
         return main_transpiler, board_transpiler, definition_transpiler
 
     @staticmethod
-    def transpile(code: list[str]) -> tuple[list[str], list[Error]]:
-        # TODO der scheiß funktioniert nicht
+    def get_code(code: list[str]) -> tuple[str, str]:
         main, board, definition_main = Transpiler.get_transpiler(code)
+        code_main = ""
+        code_board = ""
+        if definition_main:
+            definition_board = definition_main.copy()
+            definition_board.mode = "board"
 
-        definition_board = definition_main.copy()
-        definition_board.mode = "board"
+            definition_main.transpileTo(len(definition_main.data.code))
+            definition_board.transpileTo(len(definition_board.data.code))
+            if main:
+                main.scope.add_functions(definition_main.scope.functions)
+            if board:
+                board.scope.add_functions(definition_board.scope.functions)
 
-        definition_main.transpileTo(len(definition_main.data.code))
-        definition_board.transpileTo(len(definition_board.data.code))
+        if board:
+            board.transpileTo(len(board.data.code))
+        if main:
+            main.transpileTo(len(main.data.code))
 
-        main.scope.add_functions(definition_main.scope.functions)
-        board.scope.add_functions(definition_board.scope.functions)
+            if main.data.errors:
+                print("Errors in main:")
+                print(main.data.errors)
+                raise Exception("Errors in main")
 
-        main.transpileTo(len(main.data.code))
-        board.transpileTo(len(board.data.code))
+            if board:
+                main.connection_needed = True if board.connection_needed else main.connection_needed
+            code_main = main.finish()
+
+        if board:
+            board.transpileTo(len(board.data.code))
+
+            if board.data.errors:
+                print("Errors in board:")
+                print(board.data.errors)
+                raise Exception("Errors in board")
+
+            if main:
+                board.connection_needed = True if main.connection_needed else board.connection_needed
+            code_board = board.finish()
+
+        return code_main, code_board
 
     @staticmethod
     def get_diagnostics(code: list[str]) -> list[Error]:
-        main, board, definition = Transpiler.get_transpiler(code)
-        errors = []
-        if main is not None:
+        main, board, definition_main = Transpiler.get_transpiler(code)
+        diagnostics = []
+        if definition_main:
+            definition_board = definition_main.copy()
+            definition_board.mode = "board"
+
+            definition_main.transpileTo(len(definition_main.data.code))
+            definition_board.transpileTo(len(definition_board.data.code))
+            diagnostics.extend([e.get_Diagnostic(definition_main) for e in definition_main.data.errors])
+            if main:
+                main.scope.add_functions(definition_main.scope.functions)
+
+            if board:
+                board.scope.add_functions(definition_board.scope.functions)
+
+        if main:
             main.transpileTo(len(main.data.code))
-            errors += [e.get_Diagnostic(main) for e in main.data.errors]
-
-        if board is not None:
+            diagnostics.extend([e.get_Diagnostic(main) for e in main.data.errors])
+        if board:
             board.transpileTo(len(board.data.code))
-            errors += [e.get_Diagnostic(board) for e in board.data.errors]
-
-        if definition is not None:
-            definition.transpileTo(len(definition.data.code))
-            errors += [e.get_Diagnostic(definition) for e in definition.data.errors]
-
-        return errors
+            diagnostics.extend([e.get_Diagnostic(board) for e in board.data.errors])
+        return diagnostics
 
 
 if __name__ == '__main__':

@@ -1,16 +1,4 @@
-"D:\Programme\Jetbrains\CLion 2021.3.3\bin\cmake\win\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=D:/Programme/Jetbrains/CLion 2021.3.3/bin/ninja/win/ninja.exe" -G Ninja -S D:\Projects\Pyduino -B D:\Projects\Pyduino\cmake-build-debug
--- The C compiler identification is GNU 11.2.0
--- The CXX compiler identification is GNU 11.2.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: D:/Programme/Jetbrains/CLion 2021.3.3/bin/mingw/bin/gcc.exe - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: D:/Programme/Jetbrains/CLion 2021.3.3/bin/mingw/bin/g++.exe - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
+C:\Users\Christian\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\223.8617.54\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/Christian/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/223.8617.54/bin/ninja/win/x64/ninja.exe -G Ninja -S D:\Projects\Pyduino -B D:\Projects\Pyduino\cmake-build-debug
 -- Configuring done
 -- Generating done
 -- Build files have been written to: D:/Projects/Pyduino/cmake-build-debug

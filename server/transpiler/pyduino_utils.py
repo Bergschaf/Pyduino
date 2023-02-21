@@ -13,6 +13,7 @@ class Position:
         self.line = line
         self.col = col
 
+
     def distance(self, other: 'Position', data: 'Data'):
         return len(data.getCode(Range.fromPositions(self.smaller(other), self.bigger(other))))
 
@@ -45,7 +46,7 @@ class Position:
             return True
         if self.line < other.line:
             return False
-        if self.col > other.col:
+        if self.col >= other.col:
             return True
         return False
 
@@ -660,7 +661,7 @@ class StringUtils:
     @staticmethod
     def next_sysvar():
         Data.sys_var_index += 1
-        return f"__sysvar__{Data.sys_var_index}"
+        return f"_sysvar_{Data.sys_var_index}"
 
 
 import server.transpiler.tokenizer as t

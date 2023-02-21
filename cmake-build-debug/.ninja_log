@@ -1,3 +1,6 @@
 # ninja log v5
-1048	1134	6972951995033703	Pyduino.exe	cbf22dddba186522
-2	1047	6972951994187649	CMakeFiles/Pyduino.dir/temp/main.cpp.obj	42dc17852ed94aa6
+1302	1470	6986801440371476	Pyduino.exe	ec713419d151582b
+1	1290	6986801438579493	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+3	1247	6986806278998025	CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp.obj	e40ca4c044320243
+7	1275	6986806279293439	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+2	1181	6986808625026558	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5

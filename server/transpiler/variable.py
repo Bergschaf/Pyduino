@@ -141,7 +141,7 @@ class PyduinoType():
 
     def copy(self) -> 'PyduinoType':
         # TODO returns type without name
-        return type(self)()
+        return type(self)(self.name)
 
 
 class PyduinoAny(PyduinoType):
@@ -201,7 +201,7 @@ class PyduinoBool(PyduinoType):
         return True, PyduinoBool(f"!{self.name}")
 
     def to_string(self):
-        return True, PyduinoString(f"String({self.name})")
+        return True, PyduinoString(f"std::to_string({self.name})")
 
     def to_int(self):
         return True, PyduinoInt(f"({self.name} ? 1 : 0)")
@@ -301,7 +301,7 @@ class PyduinoInt(PyduinoType):
         return False, f"Cannot compare {other} to int"
 
     def to_string(self):
-        return True, PyduinoString(f"String({self.name})")
+        return True, PyduinoString(f"std::to_string({self.name})")
 
     def to_int(self):
         return True, self
@@ -396,7 +396,7 @@ class PyduinoFloat(PyduinoType):
         return False, f"Cannot compare {other} to float"
 
     def to_string(self):
-        return True, PyduinoString(f"String({self.name})")
+        return True, PyduinoString(f"std::to_string({self.name})")
 
     def to_int(self):
         return True, PyduinoInt(f"(int){self.name}")

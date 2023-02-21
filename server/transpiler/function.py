@@ -6,14 +6,17 @@ class Function:
     def standard_call(args: list[Variable], name: str, transpiler: 'Transpiler'):
         return f"{name}({', '.join([i.name for i in args])})"
 
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call):
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call,
+                 pythonic_overload=False, position: Position = None):
         self.name = name
-        self.position = None
+        self.position = position
         self.return_type = return_type
         self.args = args
         self.kwargs = None
         self.on_call = on_call
         self.code = []
+        self.called = False
+        self.pythonic_overload = pythonic_overload  # if true, the function can be called with a variable number of arguments
 
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
@@ -52,16 +55,20 @@ class Function:
                 if i == len(args.inside) - 1:
                     i += 1
                 if i != last_comma + 3:
-                    transpiler.data.newError(f"Invalid function argument definition: '{''.join([str(a) for a in args.inside[i:]])}'", arg.location)
+                    transpiler.data.newError(
+                        f"Invalid function argument definition: '{''.join([str(a) for a in args.inside[i:]])}'",
+                        arg.location)
                     break
                 datatype = args.inside[last_comma + 1]
                 datatype = PyduinoType.get_type_from_token([datatype])
                 if not datatype:
-                    transpiler.data.newError(f"Invalid datatype in function argument definition: '{datatype}'", datatype.location)
+                    transpiler.data.newError(f"Invalid datatype in function argument definition: '{datatype}'",
+                                             datatype.location)
 
                 arg_name = args.inside[last_comma + 2]
                 if arg_name.type != Word.IDENTIFIER:
-                    transpiler.data.newError(f"Invalid name in function argument definition: '{arg_name.value}'", arg_name.location)
+                    transpiler.data.newError(f"Invalid name in function argument definition: '{arg_name.value}'",
+                                             arg_name.location)
                 last_comma = i
                 var = Variable(arg_name.value, datatype, arg_name.location)
                 transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
@@ -69,6 +76,8 @@ class Function:
 
         func = Function(name.value, return_type, arguments)
         transpiler.scope.add_Function(func, transpiler.location.position)
+
+        code_done_start_index = len(transpiler.data.code_done)
 
         transpiler.data.code_done.append(
             f"{return_type} {name.value}({', '.join([f'{arg.type} {arg.name}' for arg in arguments])}) {{")
@@ -80,6 +89,7 @@ class Function:
         transpiler.data.in_function = prev
         transpiler.data.code_done.append("}")
 
+        func.code = transpiler.data.code_done[code_done_start_index:]
         return True
 
     @staticmethod
@@ -99,8 +109,9 @@ class Function:
             type = var.type
 
         if not transpiler.data.in_function.return_type.is_type(type):
-            transpiler.data.newError(f"Cannot return '{type}' in function returning '{transpiler.data.in_function.return_type}'",
-                                     Range.fromPositions(instruction[0].location.start, instruction[-1].location.end))
+            transpiler.data.newError(
+                f"Cannot return '{type}' in function returning '{transpiler.data.in_function.return_type}'",
+                Range.fromPositions(instruction[0].location.start, instruction[-1].location.end))
             return True
 
         if type.is_type(PyduinoVoid()):
@@ -120,7 +131,7 @@ class Function:
         if instruction[0].type != Word.IDENTIFIER:
             return False
 
-        func = transpiler.scope.get_Function(instruction[0].value, transpiler.location.position)
+        func = transpiler.scope.get_Function(instruction[0].value, instruction[0].location.start)
         if not func:
             transpiler.data.newError(f"Function '{instruction[0].value}' is not defined", instruction[0].location)
             return True
@@ -131,41 +142,45 @@ class Function:
         last_comma = 0
         for i in range(0, len(args)):
             if args[i].type == Separator.COMMA or i == len(args) - 1:
+
                 if i == len(args) - 1:
                     i += 1
                 arg = args[last_comma:i]
-                last_comma = i + 1
-
-                if arg_count >= len(func.args):
-                    transpiler.data.newError(f"Too many arguments passed to function '{func.name}'",
-                                             Range.fromPositions(arg[0].location.start, arg[-1].location.end))
-                    return True
-
-                expected_datatype = func.args[arg_count].type
-
                 arg = Value.do_value(arg, transpiler)
+                last_comma = i + 1
+                if not func.pythonic_overload:
+                    if arg_count >= len(func.args) and not func.pythonic_overload:
+                        transpiler.data.newError(f"Too many arguments passed to function '{func.name}'",
+                                                 Range.fromPositions(arg[0].location.start, arg[-1].location.end))
+                        return True
 
-                if not arg.type.is_type(expected_datatype):
-                    transpiler.data.newError(f"Cannot pass '{arg.type}' to function '{func.name}' expecting '{expected_datatype}'", arg.location)
+                    expected_datatype = func.args[arg_count].type
+
+                    if not arg.type.is_type(expected_datatype):
+                        transpiler.data.newError(
+                            f"Cannot pass '{arg.type}' to function '{func.name}' expecting '{expected_datatype}'",
+                            arg.location)
 
                 arg_count += 1
                 args_c.append(arg)
 
-        if arg_count < len(func.args):
+        if arg_count < len(func.args) and not func.pythonic_overload:
             if arg_count == 0:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
-                                       instruction[1].location)
+                                         instruction[1].location)
             else:
                 transpiler.data.newError(f"Not enough arguments passed to function '{func.name}'",
                                          Range.fromPositions(args[0].location.start, args[-1].location.end))
             return True
 
+        func.called = True
         if func.return_type.is_type(PyduinoVoid()):
             transpiler.data.code_done.append(func.on_call(args_c, func.name, transpiler) + ";")
             return True
         else:
             var = transpiler.utils.next_sysvar()
-            transpiler.data.code_done.append(f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
+            transpiler.data.code_done.append(
+                f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
             return Variable(var, func.return_type, instruction[0].location)
 
     @staticmethod
@@ -173,13 +188,15 @@ class Function:
         # TODO hast to be checked after functions
         if transpiler.data.current_decorator is not None:
             transpiler.data.newError("Missplaced decorator",
-                                     Range(instruction[0].location.start.line - 1, 0, complete_line=True, data=transpiler.data))
+                                     Range(instruction[0].location.start.line - 1, 0, complete_line=True,
+                                           data=transpiler.data))
 
         if instruction[0].type not in Decorator.DECORATORS:
             return False
 
         if len(instruction) != 1:
-            transpiler.data.newError("Decorator has to be alone on line", Range.fromPositions(instruction[1].location.start, instruction[-1].location.end))
+            transpiler.data.newError("Decorator has to be alone on line",
+                                     Range.fromPositions(instruction[1].location.start, instruction[-1].location.end))
 
         if instruction[0].type == Decorator.UNKNOWN:
             transpiler.data.newError("Unknown decorator", instruction[0].location)
@@ -189,31 +206,54 @@ class Function:
 
 
 class Builtin(Function):
-    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], kwargs: list[Variable, Word], on_call):
-        super().__init__(name, return_type, args, kwargs)
+    def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call,
+                 pythonic_overload: bool = False):
+        super().__init__(name, return_type, args, pythonic_overload=pythonic_overload, position=Position(0,0))
         self.on_call = on_call
 
     @staticmethod
-    def print(args: list[Variable], transpiler: 'Transpiler', name):
-        var = transpiler.utils.next_sysvar()
+    def add_builtins(transpiler: 'Transpiler'):
+        transpiler.scope.functions.extend([
+            Builtin("print", PyduinoVoid(), [], Builtin.print, pythonic_overload=True),
+            Builtin("len", PyduinoInt(), [Variable("args", PyduinoArray(PyduinoAny()), Range(0, 0))], Builtin.len),
+        ])
 
-        transpiler.data.code_done.append(f"String {var} = \"\";")
+    @staticmethod
+    def print(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        var = transpiler.utils.next_sysvar()
+        if transpiler.mode == "main":
+            transpiler.data.code_done.append(f"string {var} = \"\";")
+        else:
+            transpiler.data.code_done.append(f"String {var} = \"\";")
 
         for arg in args:
+
             possible, s = arg.type.to_string()
             if not possible:
                 transpiler.data.newError(f"Cannot print {arg.type}, {s}", arg.location)
                 return False
-            transpiler.data.code_done.append(f"{var} += {s.name};")
+            transpiler.data.code_done.append(f'{var} += {s.name}; {var} += " ";')
+
 
         if transpiler.mode == "main":
             transpiler.data.code_done.append(f"cout << {var} << endl;")
         else:
-            transpiler.data.code_done.append(f"print({var});")
+            var_2 = transpiler.utils.next_sysvar()
+            transpiler.data.code_done.append(f"const String* {var_2} = &{var};")
+            transpiler.data.code_done.append(f"print({var_2},{len(args)}, true);")
+
+        transpiler.connection_needed = True
+
         return ""
 
+    @staticmethod
+    def len(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        return f"sizeof({args[0].name}) / sizeof({args[0].type})"
+
+
 if __name__ == '__main__':
-    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py", "tokenizer.py", "variable.py", "../server.py"]
+    filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py",
+                 "tokenizer.py", "variable.py", "../server.py"]
     # count lines of code
     total = 0
     for filename in filenames:
@@ -234,6 +274,3 @@ if __name__ == '__main__':
         with open(filename, "r") as f:
             total += len(f.read())
     print(f"Total characters of code: {total}")
-
-
-
