@@ -56,13 +56,6 @@ build CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj: CXX_COMPILER__Pyduino_Debug D
   OBJECT_DIR = CMakeFiles\Pyduino.dir
   OBJECT_FILE_DIR = CMakeFiles\Pyduino.dir\temp
 
-build CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp.obj: CXX_COMPILER__Pyduino_Debug D$:/Projects/Pyduino/server/transpiler/SerialCommunication/Serial_PC.cpp || cmake_object_order_depends_target_Pyduino
-  DEP_FILE = CMakeFiles\Pyduino.dir\server\transpiler\SerialCommunication\Serial_PC.cpp.obj.d
-  FLAGS = -g -fdiagnostics-color=always -std=gnu++14
-  INCLUDES = -ID:/Projects/Pyduino/server/transpiler/SerialCommunication
-  OBJECT_DIR = CMakeFiles\Pyduino.dir
-  OBJECT_FILE_DIR = CMakeFiles\Pyduino.dir\server\transpiler\SerialCommunication
-
 
 # =============================================================================
 # Link build statements for EXECUTABLE target Pyduino
@@ -71,7 +64,7 @@ build CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp
 #############################################
 # Link the executable Pyduino.exe
 
-build Pyduino.exe: CXX_EXECUTABLE_LINKER__Pyduino_Debug CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp.obj
+build Pyduino.exe: CXX_EXECUTABLE_LINKER__Pyduino_Debug CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\Pyduino.dir

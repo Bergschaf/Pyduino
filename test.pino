@@ -1,5 +1,15 @@
+
+
+@main
+int x(int a):
+    return 1
+
 #main
 print("Hello World")
+x(1)
 
 #board
 print("Hello World")
+int x = x(2)
+
+print(x+2)

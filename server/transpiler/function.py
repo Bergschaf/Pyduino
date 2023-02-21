@@ -7,7 +7,7 @@ class Function:
         return f"{name}({', '.join([i.name for i in args])})"
 
     def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call=standard_call,
-                 pythonic_overload=False, position: Position = None):
+                 pythonic_overload=False, position: Position = None, decorator: Decorator = None):
         self.name = name
         self.position = position
         self.return_type = return_type
@@ -17,6 +17,96 @@ class Function:
         self.code = []
         self.called = False
         self.pythonic_overload = pythonic_overload  # if true, the function can be called with a variable number of arguments
+        self.decorator = decorator
+        self.remote_id = None
+
+    def resolve_decorator(self, transpiler: 'Transpiler'):
+
+        self.remote_id = transpiler.data.remote_function_count
+        transpiler.data.remote_function_count += 1
+
+        possible, s = self.return_type.type_to_bytes()
+        if not possible:
+            transpiler.data.newError(s, self.position)
+            return
+
+        for arg in self.args:
+            possible, s = arg.type.type_to_bytes()
+            if not possible:
+                transpiler.data.newError(s, arg.location)
+                return
+
+        if self.decorator == Decorator.MAIN and transpiler.mode == "main":
+            data = transpiler.utils.next_sysvar()
+            outgoing = transpiler.utils.next_sysvar()
+            code = [f"void remote_{self.name}(char* {data}, char* {outgoing}) {{"]
+            temp_var = transpiler.utils.next_sysvar()
+            maxsize = max([i.type.SIZE_BYTES for i in self.args])
+            code.append(f"char {temp_var}[{maxsize}];")
+            current_size = 0
+            for arg in self.args:
+                for i in range(arg.type.SIZE_BYTES):
+                    code.append(f"{temp_var}[{i}] = {data}[{current_size}];")
+                    current_size += 1
+
+                code.append(f"{arg.type} {arg.name} = {arg.type.bytes_to_type(temp_var)[1].name};")
+
+            result = transpiler.utils.next_sysvar()
+            code.append(f"{self.return_type.C_TYPENAME} {result} = {self.on_call(self.args, self.name, transpiler)};")
+            self.return_type.name = result
+            temp_var = transpiler.utils.next_sysvar()
+            code.append(f"char *{temp_var};")
+            code.append(f"{temp_var} = {self.return_type.type_to_bytes()[1]};")
+
+            for i in range(self.return_type.SIZE_BYTES):
+                code.append(f"{outgoing}[{i}] = {temp_var}[{i}];")
+
+            code.append("}")
+            self.code.extend(code)
+            self.called = True
+            transpiler.data.remote_functions.append(self)
+
+        elif self.decorator == Decorator.BOARD and transpiler.mode == "board":
+            pass
+
+        elif (self.decorator == Decorator.MAIN and transpiler.mode == "board") or (self.decorator == Decorator.BOARD and transpiler.mode == "main"):
+            if transpiler.mode == "main":
+                code = [f"{self.return_type} {self.name}(Arduino arduino, {', '.join([f'{arg.type} {arg.name}' for arg in self.args])}) {{"]
+            else:
+                code = [f"{self.return_type} {self.name}({', '.join([f'{arg.type} {arg.name}' for arg in self.args])}) {{"]
+
+            sum_size = sum([i.type.SIZE_BYTES for i in self.args])
+            var = transpiler.utils.next_sysvar()
+            temp_var = transpiler.utils.next_sysvar()
+            code.append(f"char {var}[{sum_size+1}];")
+            code.append(f"{var}[0] = {self.remote_id};")
+            code.append(f"char *{temp_var};")
+            current_size = 0
+            for arg in self.args:
+                code.append(f"{temp_var} = {arg.type.type_to_bytes()[1]};")
+                for i in range(arg.type.SIZE_BYTES):
+                    code.append(f"{var}[{current_size + i}+1] = {temp_var}[{i}];")
+                current_size += arg.type.SIZE_BYTES
+            request_id = transpiler.utils.next_sysvar()
+            if transpiler.mode == "main":
+                code.append(f"char {request_id} = arduino.next_request_id();")
+                code.append(f"arduino.send_request('m', {var}, {sum_size+1},{request_id});")
+                result = transpiler.utils.next_sysvar()
+                code.append(f"{self.return_type.C_TYPENAME} {result};")
+                code.append(
+                    f"delete new Promise<{self.return_type.C_TYPENAME}>(&{result}, Arduino::{self.return_type.ARDUINO_BYTE_CONVERSION}, {request_id}, arduino.Responses);")
+                code.append(f"return {result};}}")
+            else:
+                code.append(f"char {request_id} = getNextRequestId();")
+                code.append(f"sendRequest('m', {var}, {sum_size+1}, {request_id});")
+
+                code.append(f"while ((Responses[{request_id}][0]) == 0) {{\ncheckSerial();\n}}")
+                for i in range(self.return_type.SIZE_BYTES):
+                    code.append(f"{temp_var}[{i}] = Responses[{request_id}][{i + 1}];")
+                code.append(f"Responses[{request_id}][0] = 0;")
+                code.append(f"return {self.return_type.bytes_to_type(temp_var)[1].name};}}")
+            self.code = code
+
 
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
@@ -25,11 +115,21 @@ class Function:
             return False
 
         if len(instruction) < 3:
-            return True
+            return False
 
         instruction_types = [i.type for i in instruction]
         if Separator.ASSIGN in instruction_types:
             return False
+
+        decorator = None
+        if transpiler.data.current_decorator:
+            decorator = transpiler.data.current_decorator
+            transpiler.data.current_decorator = None
+
+            if decorator == Decorator.UNKNOWN:
+                transpiler.data.newError(f"Unknown decorator: '{decorator}'",
+                                         Range(instruction[0].location.start.line - 1, 0, complete_line=True,
+                                               data=transpiler.data))
 
         if instruction[1].type != Word.IDENTIFIER:
             transpiler.data.newError(f"Invalid function name: '{instruction[1].value}'", instruction[1].location)
@@ -74,7 +174,7 @@ class Function:
                 transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
                 arguments.append(var)
 
-        func = Function(name.value, return_type, arguments)
+        func = Function(name.value, return_type, arguments, decorator=decorator)
         transpiler.scope.add_Function(func, transpiler.location.position)
 
         code_done_start_index = len(transpiler.data.code_done)
@@ -88,12 +188,13 @@ class Function:
         transpiler.transpileTo(end_line)
         transpiler.data.in_function = prev
         transpiler.data.code_done.append("}")
-
         func.code = transpiler.data.code_done[code_done_start_index:]
+        func.resolve_decorator(transpiler)
         return True
 
     @staticmethod
     def check_return(instruction: list[Token], transpiler: 'Transpiler'):
+
         if instruction[0].type != Keyword.RETURN:
             return False
 
@@ -208,7 +309,7 @@ class Function:
 class Builtin(Function):
     def __init__(self, name: str, return_type: PyduinoType, args: list[Variable], on_call,
                  pythonic_overload: bool = False):
-        super().__init__(name, return_type, args, pythonic_overload=pythonic_overload, position=Position(0,0))
+        super().__init__(name, return_type, args, pythonic_overload=pythonic_overload, position=Position(0, 0))
         self.on_call = on_call
 
     @staticmethod
@@ -234,13 +335,10 @@ class Builtin(Function):
                 return False
             transpiler.data.code_done.append(f'{var} += {s.name}; {var} += " ";')
 
-
         if transpiler.mode == "main":
             transpiler.data.code_done.append(f"cout << {var} << endl;")
         else:
-            var_2 = transpiler.utils.next_sysvar()
-            transpiler.data.code_done.append(f"const String* {var_2} = &{var};")
-            transpiler.data.code_done.append(f"print({var_2},{len(args)}, true);")
+            transpiler.data.code_done.append(f"print({var},{len(args)});")
 
         transpiler.connection_needed = True
 

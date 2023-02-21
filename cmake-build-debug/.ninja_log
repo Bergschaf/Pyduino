@@ -1,6 +1,17 @@
 # ninja log v5
-1302	1470	6986801440371476	Pyduino.exe	ec713419d151582b
-1	1290	6986801438579493	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
-3	1247	6986806278998025	CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp.obj	e40ca4c044320243
-7	1275	6986806279293439	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
-2	1181	6986808625026558	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+235	315	6987030143077634	Pyduino.exe	e0b0ffbe331b8401
+3	1636	6987156375347015	CMakeFiles/Pyduino.dir/server/transpiler/SerialCommunication/Serial_PC.cpp.obj	e40ca4c044320243
+8	1704	6987156376031008	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+2	86	6987157272091186	Pyduino.exe	ec713419d151582b
+3	1176	6987157352737296	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1176	1258	6987157353569030	Pyduino.exe	ec713419d151582b
+2	1137	6987159957109273	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1137	1240	6987159958131395	Pyduino.exe	ec713419d151582b
+2	1073	6987160320365537	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1074	1170	6987160321314744	Pyduino.exe	ec713419d151582b
+6	1282	6987253117711459	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1282	1436	6987253119236684	Pyduino.exe	ec713419d151582b
+3	1443	6987256418715934	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1444	1550	6987256419761258	Pyduino.exe	ec713419d151582b
+2	1513	6987258373883757	CMakeFiles/Pyduino.dir/temp/temp_pc.cpp.obj	ed33b8218b242db5
+1513	1607	6987258374832839	Pyduino.exe	ec713419d151582b

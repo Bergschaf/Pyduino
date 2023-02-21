@@ -83,8 +83,9 @@ class Transpiler:
 
         if self.definition and self.data.in_function is None:
             if not Function.check_definition(line, self):
-                self.data.newError("Code is not allowed in definition part",
-                                   Range.fromPositions(line[0].location.start, line[-1].location.end))
+                if not Function.check_decorator(line, self):
+                    self.data.newError("Code is not allowed in definition part",
+                                       Range.fromPositions(line[0].location.start, line[-1].location.end))
             return
 
         for check in self.checks:
@@ -110,17 +111,32 @@ class Transpiler:
             code.append("#include <iostream>")
             code.append("#include <string>")
             code.append("using namespace std;")
+            code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }")
 
             for f in self.scope.functions:
                 if f.called:
                     code.extend(f.code)
 
+            if self.connection_needed:
+                code.append("void do_functions(Arduino arduino, char* data, char id, char request_id) {")
+                temp_var = self.utils.next_sysvar()
+                code.append(f"char {temp_var}[{max([i.return_type.SIZE_BYTES for i in self.data.remote_functions])}];")
+                for f in self.data.remote_functions:
+                    code.append(f"if (id == {f.remote_id}) {{")
+                    code.append(f"remote_{f.name}(data,{temp_var});")
+                    code.append(f"arduino.send_response({temp_var}, {f.return_type.SIZE_BYTES}, request_id);}}")
+                code.append("}")
+
             code.append("int main() {")
 
             if self.connection_needed:
                 code.append("Arduino arduino = Arduino();")
+                code.append("arduino.do_function = do_functions;")
 
             code.extend(self.data.code_done)
+
+            if self.connection_needed:
+                code.append("arduino.listenerThread->join();")
             code.append("return 0;")
             code.append("}")
 
@@ -128,7 +144,11 @@ class Transpiler:
             with open("server/transpiler/SerialCommunication/Serial_Arduino/Serial_Arduino.ino") as f:
                 code.extend(f.readlines())
 
-            code.append("void setup() {\n  Serial.begin(256000); \nHandshake();\n")
+            for f in self.scope.functions:
+                if f.called:
+                    code.extend(f.code)
+
+            code.append("void setup() {\n  Serial.begin(256000); \nHandshake();\ndelay(10);")
             code.extend(self.data.code_done)
             code.append("} \n void loop() { \n }")
 
@@ -208,8 +228,10 @@ class Transpiler:
             definition_board.transpileTo(len(definition_board.data.code))
             if main:
                 main.scope.add_functions(definition_main.scope.functions)
+                main.data.remote_functions.extend(definition_main.data.remote_functions)
             if board:
                 board.scope.add_functions(definition_board.scope.functions)
+                board.data.remote_functions.extend(definition_board.data.remote_functions)
 
         if board:
             board.transpileTo(len(board.data.code))

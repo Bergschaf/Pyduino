@@ -6,6 +6,9 @@ if TYPE_CHECKING:
 
 
 class PyduinoType():
+    SIZE_BYTES = 0
+    ARDUINO_BYTE_CONVERSION = ""
+    C_TYPENAME = ""
     def __init__(self, name: str = None):
         self.name = name
 
@@ -98,6 +101,13 @@ class PyduinoType():
     def is_type(self, other: 'PyduinoType'):
         return str(self) == str(other)
 
+    @staticmethod
+    def bytes_to_type(buffer: str) -> 'tuple[bool, str | PyduinoType]':
+        return False, f"Cannot convert bytes to this Type"
+
+    def type_to_bytes(self) -> 'tuple[bool, str]':
+        return False, f"Cannot convert {self.name} to bytes"
+
     def is_iterable(self):
         return False
 
@@ -166,6 +176,7 @@ class PyduinoUndefined(PyduinoType):
 
 
 class PyduinoVoid(PyduinoType):
+    C_TYPENAME = "void"
     @staticmethod
     def check_type(str: str):
         if str == "void":
@@ -177,6 +188,7 @@ class PyduinoVoid(PyduinoType):
 
 
 class PyduinoBool(PyduinoType):
+    C_TYPENAME = "bool"
     def and_(self, other):
         if str(other) == "bool":
             return True, PyduinoBool(f"({self.name} && {other.name})")
@@ -223,6 +235,10 @@ class PyduinoBool(PyduinoType):
 
 
 class PyduinoInt(PyduinoType):
+    SIZE_BYTES = 4
+    ARDUINO_BYTE_CONVERSION = "bytesToInt"
+    C_TYPENAME = "int"
+
     def add(self, other):
         if str(other) == "int":
             return True, PyduinoInt(f"({self.name} + {other.name})")
@@ -301,7 +317,7 @@ class PyduinoInt(PyduinoType):
         return False, f"Cannot compare {other} to int"
 
     def to_string(self):
-        return True, PyduinoString(f"std::to_string({self.name})")
+        return True, PyduinoString(f"String({self.name})")
 
     def to_int(self):
         return True, self
@@ -311,6 +327,13 @@ class PyduinoInt(PyduinoType):
 
     def to_bool(self):
         return True, PyduinoBool(f"({self.name} != 0)")
+
+    @staticmethod
+    def bytes_to_type(buffer_name: str):
+        return True, PyduinoInt(f"(*static_cast<int*>(static_cast<void*>({buffer_name})))")
+
+    def type_to_bytes(self):
+        return True, f"static_cast<char*>(static_cast<void*>(&{self.name}))"
 
     @staticmethod
     def check_type(str: str):
@@ -323,6 +346,10 @@ class PyduinoInt(PyduinoType):
 
 
 class PyduinoFloat(PyduinoType):
+    SIZE_BYTES = 4
+    ARDUINO_BYTE_CONVERSION = "bytesToFloat"
+    C_TYPENAME = "float"
+
     def add(self, other):
         if str(other) == "int":
             return True, PyduinoFloat(f"({self.name} + (float){other.name})")
@@ -395,8 +422,16 @@ class PyduinoFloat(PyduinoType):
             return True, PyduinoBool(f"({self.name} != {other.name})")
         return False, f"Cannot compare {other} to float"
 
+    @staticmethod
+    def bytes_to_type(buffer: str) -> 'tuple[bool, str | PyduinoType]':
+        return True, PyduinoFloat(f"(*static_cast<float*>(static_cast<void*>({buffer})))")
+
+    def type_to_bytes(self) -> 'tuple[bool, str]':
+        return True, f"static_cast<char*>(static_cast<void*>(&{self.name}))"
+
+
     def to_string(self):
-        return True, PyduinoString(f"std::to_string({self.name})")
+        return True, PyduinoString(f"String({self.name})")
 
     def to_int(self):
         return True, PyduinoInt(f"(int){self.name}")
@@ -418,6 +453,8 @@ class PyduinoFloat(PyduinoType):
 
 
 class PyduinoString(PyduinoType):
+    ARDUINO_BYTE_CONVERSION = "bytesToString"
+    C_TYPENAME = "String"
     def len(self):
         return True, PyduinoInt(f"({self.name}.length())")
 
@@ -656,7 +693,8 @@ class Value:
                             if not possible:
                                 transpiler.data.newError(var, value[i].location)
                                 break
-                            var = Constant(var.name, var, Range.fromPositions(value[0].location.start, value[-1].location.end))
+                            var = Constant(var.name, var,
+                                           Range.fromPositions(value[0].location.start, value[-1].location.end))
                         return var
                     else:
                         transpiler.data.newError(f"Variable {value[0].value} not defined", value[0].location)
@@ -694,7 +732,8 @@ class Variable(Value):
 
         if not datatype:
             transpiler.data.newError(f"Invalid datatype {''.join([str(d.value) for d in datatype_tkns])}",
-                                     Range.fromPositions(datatype_tkns[0].location.start, datatype_tkns[-1].location.end))
+                                     Range.fromPositions(datatype_tkns[0].location.start,
+                                                         datatype_tkns[-1].location.end))
             return True
 
         value = Value.do_value(value, transpiler)
@@ -771,7 +810,8 @@ class Variable(Value):
                 transpiler.data.newError(f"Cannot assign to iterable", var.location)
                 return True
 
-            transpiler.data.code_done.append(f"{var.name}{''.join(f'[{i.type.name}]' for i in indices)} = {value.type.name};")
+            transpiler.data.code_done.append(
+                f"{var.name}{''.join(f'[{i.type.name}]' for i in indices)} = {value.type.name};")
             return True
 
         if left[0].type != Word.IDENTIFIER:

@@ -682,6 +682,8 @@ class Data:
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
         self.in_function: Function = None
         self.current_decorator: str = None
+        self.remote_function_count: int = 0 # the number of functions that can be called from the other platform
+        self.remote_functions: list[Function] = [] # the functions that can be called from the other platform
 
         self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
                           t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,

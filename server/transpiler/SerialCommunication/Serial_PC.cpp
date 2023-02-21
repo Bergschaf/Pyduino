@@ -1,10 +1,13 @@
-# include "Serial.cpp"
 # include <iostream>
+# include "Serial.cpp"
 # include <fstream>
+
+using namespace std;
+
+
 # include <chrono>
 # include <thread>
 
-using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
 
@@ -133,6 +136,8 @@ class Arduino {
             for (int i = 0; i < size; ++i) {
                 data[i] = incomingData[i + 3];
             }
+            this->do_request(instruction, data, size, requestID);
+
         } else {
             u_int requestID = incomingData[0];
             if (requestID >= MaxRequests) {
@@ -151,41 +156,22 @@ class Arduino {
     }
 
 
-    void do_request(char instruction, char data[], int size) {
+    void do_request(char instruction, char data[], int size, int requestID) {
         if (instruction == 'l') {
             // print
             cout << "[Arduino:] ";
             for (int i = 0; i < size; ++i) {
                 cout << data[i];
             }
-            cout << endl;
+        }
+        else if(instruction == 'm'){
+            char func_id = data[0];
+            do_function(*this,data+1, func_id, requestID);
         }
     }
 
-    void send_request(char instruction, char data[], u_char size, u_char requestID) {
-        char outgoingData[size + 5];
-        outgoingData[0] = StartCharacter;
-        outgoingData[1] = requestID;
-        outgoingData[2] = size;
-        outgoingData[3] = instruction;
-        for (int i = 0; i < size; ++i) {
-            outgoingData[i + 4] = data[i];
-        }
-        outgoingData[size + 4] = EndCharacter;
-        SP->WriteData(outgoingData, size + 5);
-    }
 
-    void send_response(char data[], int size, int requestID) {
-        char outgoingData[size + 4];
-        outgoingData[0] = ResponseStartCharacter;
-        outgoingData[1] = requestID;
-        outgoingData[2] = size;
-        for (int i = 0; i < size; ++i) {
-            outgoingData[i + 3] = data[i];
-        }
-        outgoingData[size + 3] = ResponseEndCharacter;
-        SP->WriteData(outgoingData, size + 4);
-    }
+
 
     [[noreturn]]
     static void listener(Arduino *arduino, Serial *SP) {
@@ -213,6 +199,7 @@ class Arduino {
                 incomingData[bytesRead] = dataBuffer[0];
                 bytesRead++;
             }
+
             arduino->decodeSerial(incomingData, bytesRead, request);
         }
     }
@@ -221,25 +208,55 @@ class Arduino {
         return (bytes[0] << 8) | bytes[1];
     }
 
-    static int bytesToInt(char *bytes) {
-        return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-    }
 
-    byte next_request_id() {
-        if (request_id == MaxRequests) {
-            request_id = 0;
-        }
-        request_id++;
-        return request_id;
-    }
+
+
 
 
 public:
     char Responses[MaxRequests][MaxRequestsLength]{};
-    byte request_id = 0;
+    char request_id = 0;
 
     Serial *SP;
     thread *listenerThread;
+    void (*do_function)(Arduino,char*, char, char);
+
+    char next_request_id() {
+        if (request_id == MaxRequests) {
+            request_id = 0;
+        }
+        request_id++;
+        return (char)request_id;
+    }
+
+    static int bytesToInt(char *bytes) {
+        return (*static_cast<int*>(static_cast<void*>(bytes)));
+    }
+    void send_response(char data[], int size, int requestID) {
+        char outgoingData[size + 4];
+        outgoingData[0] = ResponseStartCharacter;
+        outgoingData[1] = requestID;
+        outgoingData[2] = size;
+        for (int i = 0; i < size; ++i) {
+            outgoingData[i + 3] = data[i];
+        }
+        outgoingData[size + 3] = ResponseEndCharacter;
+        cout << "Sending response " << size << endl;
+        SP->WriteData(outgoingData, size + 4);
+    }
+
+    void send_request(char instruction, char data[], u_char size, u_char requestID) {
+        char outgoingData[size + 5];
+        outgoingData[0] = StartCharacter;
+        outgoingData[1] = requestID;
+        outgoingData[2] = size;
+        outgoingData[3] = instruction;
+        for (int i = 0; i < size; ++i) {
+            outgoingData[i + 4] = data[i];
+        }
+        outgoingData[size + 4] = EndCharacter;
+        SP->WriteData(outgoingData, size + 5);
+    }
 
     Arduino() {
         char portName[] = "COM5";
@@ -261,7 +278,7 @@ public:
 
     int analogRead(int pin) {
         char data[1] = {static_cast<char>(pin)};
-        byte id = next_request_id();
+        char id = next_request_id();
         send_request('a', data, 1, id);
         short result;
         delete new Promise<short>(&result, bytesToShort, 2, Responses);
@@ -270,7 +287,7 @@ public:
 
     int digitalRead(int pin) {
         char data[1] = {static_cast<char>(pin)};
-        byte id = next_request_id();
+        char id = next_request_id();
         send_request('c', data, 1, id);
         int result;
         delete new Promise<int>(&result, bytesToInt, 4, Responses);
@@ -279,7 +296,7 @@ public:
 
     void analogWrite(int pin, int value) {
         char data[5] = {static_cast<char>(pin), static_cast<char>(value)};
-        byte id = next_request_id();
+        char id = next_request_id();
         send_request('b', data, 2, id);
     }
 
