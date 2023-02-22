@@ -15,7 +15,7 @@ class Scope:
         self.variables: dict[Range, list[Variable]]
         self.functions: list[Function]
 
-        self.variables = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
+        self.variables = {Range(0, 0, end_line=len(data.code) - 1, complete_line=True, data=data): []}
         self.functions = []
 
         for i in range(1, len(self.data.indentations)):
@@ -29,7 +29,8 @@ class Scope:
                         break
                 else:
                     end = len(self.data.indentations) - 1
-                self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
+                self.variables[Range(data.code_tokens[start][0].location.start.line, 0, end_line=data.code_tokens[end][0].location.start.line, complete_line=True, data=data)] = []
+        x = 0
 
     def get_Variable(self, name: str, position: Position) -> 'Variable':
         for i in self.variables:

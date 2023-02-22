@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 class PyduinoType():
     SIZE_BYTES = 0
     ARDUINO_BYTE_CONVERSION = ""
-    C_TYPENAME = ""
+    C_TYPENAME = "Undefined"
     def __init__(self, name: str = None):
         self.name = name
 
@@ -237,7 +237,7 @@ class PyduinoBool(PyduinoType):
 class PyduinoInt(PyduinoType):
     SIZE_BYTES = 4
     ARDUINO_BYTE_CONVERSION = "bytesToInt"
-    C_TYPENAME = "int"
+    C_TYPENAME = "py_int"
 
     def add(self, other):
         if str(other) == "int":
@@ -330,7 +330,7 @@ class PyduinoInt(PyduinoType):
 
     @staticmethod
     def bytes_to_type(buffer_name: str):
-        return True, PyduinoInt(f"(*static_cast<int*>(static_cast<void*>({buffer_name})))")
+        return True, PyduinoInt(f"(*static_cast<py_int*>(static_cast<void*>({buffer_name})))")
 
     def type_to_bytes(self):
         return True, f"static_cast<char*>(static_cast<void*>(&{self.name}))"
@@ -454,7 +454,7 @@ class PyduinoFloat(PyduinoType):
 
 class PyduinoString(PyduinoType):
     ARDUINO_BYTE_CONVERSION = "bytesToString"
-    C_TYPENAME = "String"
+    C_TYPENAME = "string"
     def len(self):
         return True, PyduinoInt(f"({self.name}.length())")
 
@@ -758,7 +758,7 @@ class Variable(Value):
             variable.type.set_dimensions(value.type.dimensions())
 
         else:
-            c_code = f"{datatype} {name.value} = {c_value};"
+            c_code = f"{variable.type.C_TYPENAME} {name.value} = {c_value};"
 
         transpiler.scope.add_Variable(variable, variable.location.start)
         transpiler.data.code_done.append(c_code)

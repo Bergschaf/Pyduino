@@ -1,15 +1,13 @@
 
-
-@main
 int x(int a):
-    print(a, "bidder hier")
-    return 1
+    if a == 0:
+        return 1
+    else:
+        print(a, "hier")
+
+    return x(a-1)
 
 #main
 print("hello world")
 
-#board
-int x = x(12)
 
-print(x+2)
-print("done")

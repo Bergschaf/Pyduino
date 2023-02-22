@@ -56,6 +56,7 @@ class Control:
             index, line = next(data.enumerator)
 
 
+
             if line[0].type == Keyword.ELIF and data.indentations[index] == data.indentations[if_position]:
 
                 instruction = StringUtils.check_colon(instruction, transpiler)
@@ -69,7 +70,6 @@ class Control:
                 transpiler.transpileTo(end_line)
                 data.code_done.append("}")
             else:
-                transpiler.do_line(line)
                 break
 
         if line[0].type == Keyword.ELSE and data.indentations[index] == data.indentations[if_position]:
@@ -78,3 +78,6 @@ class Control:
             end_line = StringUtils.get_indentation_range(index + 1, transpiler)
             transpiler.transpileTo(end_line)
             data.code_done.append("}")
+        else:
+            transpiler.do_line(line)
+        return True

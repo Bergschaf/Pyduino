@@ -1,6 +1,12 @@
 #include <string.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 using namespace std;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+typedef int32_t py_int;
+typedef String string;
 
 const char StartCharacter = '<';
 const char EndCharacter = '>';
@@ -58,6 +64,7 @@ char getNextRequestId() {
   return requestID;
 }
 
+
 // TODO implement asynchronous waiting for data
 void sendRequest(char instruction, const char *value, int valueSize, char requestId = 0) {
   char outgoingData[5 + valueSize];
@@ -98,11 +105,11 @@ void sendResponse(char requestID, const char *response, int responseSize) {
   Serial.write(outgoingData, 4 + responseSize);
 }
 
-void decodeResponse(const byte *data, int size) {
+void decodeResponse(const char *data, int size) {
   char requestID = data[1];
-  int responseSize = int(uint8_t(data[2]));
-
+  int responseSize = uint8_t (data[2]);
   Responses[requestID][0] = 1;
+
   for (int i = 0; i < responseSize; i++) {
     Responses[requestID][i + 1] = data[3 + i];
   }
@@ -161,7 +168,7 @@ void print(const String data, bool newline) {
 
 void checkSerial() {
   if (Serial.available()) {
-    byte data = Serial.read();
+    char data = Serial.read();
     int incomingDataSize = 0;
     byte incomingData[MaxRequestsLength];
     if (data == StartCharacter || data == ResponseStartCharacter) {
@@ -172,7 +179,7 @@ void checkSerial() {
         if (Serial.available()) {
           data = Serial.read();
 
-          if (data == EndCharacter || ResponseEndCharacter) {
+          if (data == EndCharacter || data == ResponseEndCharacter) {
             incomingData[incomingDataSize] = data;
             decodeSerial(incomingData, incomingDataSize, request);
             incomingDataSize = 0;

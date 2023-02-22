@@ -21,11 +21,14 @@ class Transpiler:
 
         self.utils: StringUtils = StringUtils(self.location, self.data, self)
 
-        self.data.indentations = self.utils.getIndentations(self.data.code)
-        self.location.indentations = self.data.indentations
+
 
         self.data.code_tokens = [t for t in
                                  [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)] if t]
+        self.data.indentations = self.utils.getIndentations(self.data.code, self.data.code_tokens)
+        print(self.data.indentations, mode)
+        self.location.indentations = self.data.indentations
+
         self.data.enumerator = enumerate(self.data.code_tokens)
 
         self.scope: Scope = Scope(self.data, self.location)
@@ -111,6 +114,7 @@ class Transpiler:
             code.append("#include <iostream>")
             code.append("#include <string>")
             code.append("using namespace std;")
+            code.append("typedef int py_int;")
             code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }")
 
             for f in self.scope.functions:
@@ -148,7 +152,7 @@ class Transpiler:
                 if f.called:
                     code.extend(f.code)
 
-            code.append("void setup() {\n  Serial.begin(256000); \nHandshake();\ndelay(10);")
+            code.append("void setup() {\n  lcd.init(); lcd.backlight(); Serial.begin(256000); \nHandshake();\ndelay(10);")
             code.extend(self.data.code_done)
             code.append("} \n void loop() { \n }")
 
@@ -229,9 +233,11 @@ class Transpiler:
             if main:
                 main.scope.add_functions(definition_main.scope.functions)
                 main.data.remote_functions.extend(definition_main.data.remote_functions)
+                main.data.errors.extend(definition_main.data.errors)
             if board:
                 board.scope.add_functions(definition_board.scope.functions)
                 board.data.remote_functions.extend(definition_board.data.remote_functions)
+                board.data.errors.extend(definition_board.data.errors)
 
         if board:
             board.transpileTo(len(board.data.code))

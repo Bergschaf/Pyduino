@@ -112,7 +112,7 @@ class Error:
         self.message = message
         self.range = range
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.message} at line {self.range}"
 
     def get_Diagnostic(self, transpiler: 'Transpiler'):
@@ -426,12 +426,12 @@ class StringUtils:
             self.data.newError("Invalid indentation", self.location.getCurrentLineRange())
         return indentation // 4
 
-    def getIndentations(self, code: list[str]) -> list[int]:
+    def getIndentations(self, code: list[str], tokens: 'list[list[Token]]') -> list[int]:
         """Returns a list of indentation levels for each line in the given code.
         The indentation level is the number of four spaces at the start of the line."""
         indentations = []
-        for i, line in enumerate(code):
-            indentations.append(self.getIndentation(line, i))
+        for token in tokens:
+            indentations.append(self.getIndentation(code[token[0].location.start.line], token[0].location.start.line))
 
         return indentations
 

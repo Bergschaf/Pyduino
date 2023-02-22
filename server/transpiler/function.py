@@ -41,6 +41,7 @@ class Function:
             code = [f"void remote_{self.name}(char* data, char* outgoing) {{"]
             maxsize = max([i.type.SIZE_BYTES for i in self.args])
 
+
             code.append(f"char temp_buffer[{maxsize}];")
             current_size = 0
             for arg in self.args:
@@ -67,26 +68,29 @@ class Function:
         elif self.decorator == Decorator.BOARD and transpiler.mode == "board":
             pass
 
-        elif (self.decorator == Decorator.MAIN and transpiler.mode == "board") or (self.decorator == Decorator.BOARD and transpiler.mode == "main"):
+        elif (self.decorator == Decorator.MAIN and transpiler.mode == "board") or (
+                self.decorator == Decorator.BOARD and transpiler.mode == "main"):
             if transpiler.mode == "main":
-                code = [f"{self.return_type} {self.name}(Arduino arduino, {', '.join([f'{arg.type} {arg.name}' for arg in self.args])}) {{"]
+                code = [
+                    f"{self.return_type} {self.name}(Arduino arduino, {', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
             else:
-                code = [f"{self.return_type} {self.name}({', '.join([f'{arg.type} {arg.name}' for arg in self.args])}) {{"]
+                code = [
+                    f"{self.return_type} {self.name}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
 
             sum_size = sum([i.type.SIZE_BYTES for i in self.args])
 
-            code.append(f"char outgoing_buffer[{sum_size+1}];")
+            code.append(f"char outgoing_buffer[{sum_size + 1}];")
             code.append(f"outgoing_buffer[0] = {self.remote_id};")
             code.append(f"char *temp_buffer;")
             current_size = 0
             for arg in self.args:
                 code.append(f"temp_buffer = {arg.type.type_to_bytes()[1]};")
                 for i in range(arg.type.SIZE_BYTES):
-                    code.append(f"outgoing_buffer[{current_size + i}+1] = temp_buffer[{i}];")
+                    code.append(f"outgoing_buffer[{current_size + i + 1}] = temp_buffer[{i}];")
                 current_size += arg.type.SIZE_BYTES
             if transpiler.mode == "main":
                 code.append(f"char request_id = arduino.next_request_id();")
-                code.append(f"arduino.send_request('m', outgoing_buffer, {sum_size+1},request_id);")
+                code.append(f"arduino.send_request('m', outgoing_buffer, {sum_size + 1},request_id);")
 
                 code.append(f"{self.return_type.C_TYPENAME} result;")
                 code.append(
@@ -94,7 +98,9 @@ class Function:
                 code.append(f"return result;}}")
             else:
                 code.append(f"char request_id = getNextRequestId();")
-                code.append(f"sendRequest('m', outgoing_buffer, {sum_size+1}, request_id);")
+                code.append(f"Serial.print(211);")
+                code.append(f"Serial.write(outgoing_buffer, {sum_size + 1});")
+                code.append(f"sendRequest('m', outgoing_buffer, {sum_size + 1}, request_id);")
 
                 code.append(f"while ((Responses[request_id][0]) == 0) {{\ncheckSerial();\n}}")
                 code.append(f"char temp_buffer2[{self.return_type.SIZE_BYTES}];")
@@ -103,7 +109,6 @@ class Function:
                 code.append(f"Responses[request_id][0] = 0;")
                 code.append(f"return {self.return_type.bytes_to_type('temp_buffer2')[1].name};}}")
             self.code = code
-
 
     @staticmethod
     def check_definition(instruction: list[Token], transpiler: 'Transpiler'):
@@ -177,7 +182,7 @@ class Function:
         code_done_start_index = len(transpiler.data.code_done)
 
         transpiler.data.code_done.append(
-            f"{return_type} {name.value}({', '.join([f'{arg.type} {arg.name}' for arg in arguments])}) {{")
+            f"{return_type} {name.value}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in arguments])}) {{")
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
@@ -249,7 +254,7 @@ class Function:
                 if not func.pythonic_overload:
                     if arg_count >= len(func.args) and not func.pythonic_overload:
                         transpiler.data.newError(f"Too many arguments passed to function '{func.name}'",
-                                                 Range.fromPositions(arg[0].location.start, arg[-1].location.end))
+                                                 Range.fromPositions(args[0].location.start, args[-1].location.end))
                         return True
 
                     expected_datatype = func.args[arg_count].type
@@ -348,7 +353,7 @@ class Builtin(Function):
 
 if __name__ == '__main__':
     filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py",
-                 "tokenizer.py", "variable.py", "../server.py"]
+                 "tokenizer.py", "variable.py", "../server.py", "SerialCommunication/Serial_PC.cpp","SerialCommunication/Serial_Arduino/Serial_Arduino.ino"]
     # count lines of code
     total = 0
     for filename in filenames:

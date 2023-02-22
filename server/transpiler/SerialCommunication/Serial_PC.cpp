@@ -133,7 +133,7 @@ class Arduino {
 
             char instruction = incomingData[2];
             char data[size];
-            for (int i = 0; i < size; ++i) {
+            for (int i = 0; i < size; i++) {
                 data[i] = incomingData[i + 3];
             }
             this->do_request(instruction, data, size, requestID);
@@ -167,11 +167,6 @@ class Arduino {
         }
         else if(instruction == 'm'){
             char func_id = data[0];
-            cout << "start: ";
-            for (int i = 0; i < size + 1; ++i) {
-                cout << u_int(data[i]) << " ";
-            }
-            cout << endl;
 
             do_function(*this,data+1, func_id, requestID);
         }
@@ -191,7 +186,7 @@ class Arduino {
             if (readResult == 0) {
                 continue;
             }
-            cout << "read: " << u_int(dataBuffer[0]) << endl;
+            //cout << "read: " << u_int(dataBuffer[0]) << endl;
 
             if (dataBuffer[0] != StartCharacter && dataBuffer[0] != ResponseStartCharacter) {
                 continue;
@@ -200,7 +195,7 @@ class Arduino {
             bool request = dataBuffer[0] == StartCharacter;
             while (true) {
                 readResult = SP->ReadData(dataBuffer, 1);
-                cout << "read: " << u_int(dataBuffer[0]) << endl;
+                //cout << "read: " << u_int(dataBuffer[0]) << endl;
                 if (readResult == 0) {
                     continue;
                 }
@@ -252,7 +247,8 @@ public:
             outgoingData[i + 3] = data[i];
         }
         outgoingData[size + 3] = ResponseEndCharacter;
-        cout << "Sending response " << size << endl;
+
+
         SP->WriteData(outgoingData, size + 4);
     }
 
