@@ -2,14 +2,14 @@
 
 @main
 int x(int a):
+    print(a, "bidder hier")
     return 1
 
 #main
-print("Hello World")
-x(1)
+print("hello world")
 
 #board
-print("Hello World")
-int x = x(2)
+int x = x(12)
 
 print(x+2)
+print("done")

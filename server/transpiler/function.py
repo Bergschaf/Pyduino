@@ -37,29 +37,27 @@ class Function:
                 return
 
         if self.decorator == Decorator.MAIN and transpiler.mode == "main":
-            data = transpiler.utils.next_sysvar()
-            outgoing = transpiler.utils.next_sysvar()
-            code = [f"void remote_{self.name}(char* {data}, char* {outgoing}) {{"]
-            temp_var = transpiler.utils.next_sysvar()
+
+            code = [f"void remote_{self.name}(char* data, char* outgoing) {{"]
             maxsize = max([i.type.SIZE_BYTES for i in self.args])
-            code.append(f"char {temp_var}[{maxsize}];")
+
+            code.append(f"char temp_buffer[{maxsize}];")
             current_size = 0
             for arg in self.args:
                 for i in range(arg.type.SIZE_BYTES):
-                    code.append(f"{temp_var}[{i}] = {data}[{current_size}];")
+                    code.append(f"temp_buffer[{i}] = data[{current_size}];")
                     current_size += 1
 
-                code.append(f"{arg.type} {arg.name} = {arg.type.bytes_to_type(temp_var)[1].name};")
+                code.append(f"{arg.type} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
 
-            result = transpiler.utils.next_sysvar()
-            code.append(f"{self.return_type.C_TYPENAME} {result} = {self.on_call(self.args, self.name, transpiler)};")
-            self.return_type.name = result
-            temp_var = transpiler.utils.next_sysvar()
-            code.append(f"char *{temp_var};")
-            code.append(f"{temp_var} = {self.return_type.type_to_bytes()[1]};")
+            code.append(f"{self.return_type.C_TYPENAME} result = {self.on_call(self.args, self.name, transpiler)};")
+            self.return_type.name = "result"
+
+            code.append(f"char *temp_buffer_2;")
+            code.append(f"temp_buffer_2 = {self.return_type.type_to_bytes()[1]};")
 
             for i in range(self.return_type.SIZE_BYTES):
-                code.append(f"{outgoing}[{i}] = {temp_var}[{i}];")
+                code.append(f"outgoing[{i}] = temp_buffer_2[{i}];")
 
             code.append("}")
             self.code.extend(code)
@@ -76,35 +74,34 @@ class Function:
                 code = [f"{self.return_type} {self.name}({', '.join([f'{arg.type} {arg.name}' for arg in self.args])}) {{"]
 
             sum_size = sum([i.type.SIZE_BYTES for i in self.args])
-            var = transpiler.utils.next_sysvar()
-            temp_var = transpiler.utils.next_sysvar()
-            code.append(f"char {var}[{sum_size+1}];")
-            code.append(f"{var}[0] = {self.remote_id};")
-            code.append(f"char *{temp_var};")
+
+            code.append(f"char outgoing_buffer[{sum_size+1}];")
+            code.append(f"outgoing_buffer[0] = {self.remote_id};")
+            code.append(f"char *temp_buffer;")
             current_size = 0
             for arg in self.args:
-                code.append(f"{temp_var} = {arg.type.type_to_bytes()[1]};")
+                code.append(f"temp_buffer = {arg.type.type_to_bytes()[1]};")
                 for i in range(arg.type.SIZE_BYTES):
-                    code.append(f"{var}[{current_size + i}+1] = {temp_var}[{i}];")
+                    code.append(f"outgoing_buffer[{current_size + i}+1] = temp_buffer[{i}];")
                 current_size += arg.type.SIZE_BYTES
-            request_id = transpiler.utils.next_sysvar()
             if transpiler.mode == "main":
-                code.append(f"char {request_id} = arduino.next_request_id();")
-                code.append(f"arduino.send_request('m', {var}, {sum_size+1},{request_id});")
-                result = transpiler.utils.next_sysvar()
-                code.append(f"{self.return_type.C_TYPENAME} {result};")
-                code.append(
-                    f"delete new Promise<{self.return_type.C_TYPENAME}>(&{result}, Arduino::{self.return_type.ARDUINO_BYTE_CONVERSION}, {request_id}, arduino.Responses);")
-                code.append(f"return {result};}}")
-            else:
-                code.append(f"char {request_id} = getNextRequestId();")
-                code.append(f"sendRequest('m', {var}, {sum_size+1}, {request_id});")
+                code.append(f"char request_id = arduino.next_request_id();")
+                code.append(f"arduino.send_request('m', outgoing_buffer, {sum_size+1},request_id);")
 
-                code.append(f"while ((Responses[{request_id}][0]) == 0) {{\ncheckSerial();\n}}")
+                code.append(f"{self.return_type.C_TYPENAME} result;")
+                code.append(
+                    f"delete new Promise<{self.return_type.C_TYPENAME}>(&result, Arduino::{self.return_type.ARDUINO_BYTE_CONVERSION}, request_id, arduino.Responses);")
+                code.append(f"return result;}}")
+            else:
+                code.append(f"char request_id = getNextRequestId();")
+                code.append(f"sendRequest('m', outgoing_buffer, {sum_size+1}, request_id);")
+
+                code.append(f"while ((Responses[request_id][0]) == 0) {{\ncheckSerial();\n}}")
+                code.append(f"char temp_buffer2[{self.return_type.SIZE_BYTES}];")
                 for i in range(self.return_type.SIZE_BYTES):
-                    code.append(f"{temp_var}[{i}] = Responses[{request_id}][{i + 1}];")
-                code.append(f"Responses[{request_id}][0] = 0;")
-                code.append(f"return {self.return_type.bytes_to_type(temp_var)[1].name};}}")
+                    code.append(f"temp_buffer2[{i}] = Responses[request_id][{i + 1}];")
+                code.append(f"Responses[request_id][0] = 0;")
+                code.append(f"return {self.return_type.bytes_to_type('temp_buffer2')[1].name};}}")
             self.code = code
 
 
