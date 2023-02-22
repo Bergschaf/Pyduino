@@ -98,8 +98,6 @@ class Function:
                 code.append(f"return result;}}")
             else:
                 code.append(f"char request_id = getNextRequestId();")
-                code.append(f"Serial.print(211);")
-                code.append(f"Serial.write(outgoing_buffer, {sum_size + 1});")
                 code.append(f"sendRequest('m', outgoing_buffer, {sum_size + 1}, request_id);")
 
                 code.append(f"while ((Responses[request_id][0]) == 0) {{\ncheckSerial();\n}}")
@@ -319,6 +317,7 @@ class Builtin(Function):
         transpiler.scope.functions.extend([
             Builtin("print", PyduinoVoid(), [], Builtin.print, pythonic_overload=True),
             Builtin("len", PyduinoInt(), [Variable("args", PyduinoArray(PyduinoAny()), Range(0, 0))], Builtin.len),
+            Builtin("millis", PyduinoInt(), [], Builtin.millis),
         ])
 
     @staticmethod
@@ -349,6 +348,13 @@ class Builtin(Function):
     @staticmethod
     def len(args: list[Variable], name: str, transpiler: 'Transpiler'):
         return f"sizeof({args[0].name}) / sizeof({args[0].type})"
+
+    @staticmethod
+    def millis(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"millis()"
+        else:
+            return f"std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count()"
 
 
 if __name__ == '__main__':

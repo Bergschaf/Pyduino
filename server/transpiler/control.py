@@ -54,8 +54,8 @@ class Control:
                 return
             location.next_line()
             index, line = next(data.enumerator)
-
-
+            if line == []:
+                continue
 
             if line[0].type == Keyword.ELIF and data.indentations[index] == data.indentations[if_position]:
 

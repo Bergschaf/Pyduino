@@ -23,10 +23,8 @@ class Transpiler:
 
 
 
-        self.data.code_tokens = [t for t in
-                                 [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)] if t]
-        self.data.indentations = self.utils.getIndentations(self.data.code, self.data.code_tokens)
-        print(self.data.indentations, mode)
+        self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
+        self.data.indentations = self.utils.getIndentations(self.data.code)
         self.location.indentations = self.data.indentations
 
         self.data.enumerator = enumerate(self.data.code_tokens)
@@ -114,6 +112,7 @@ class Transpiler:
             code.append("#include <iostream>")
             code.append("#include <string>")
             code.append("using namespace std;")
+            code.append(f"#include <chrono>")
             code.append("typedef int py_int;")
             code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }")
 
@@ -121,7 +120,7 @@ class Transpiler:
                 if f.called:
                     code.extend(f.code)
 
-            if self.connection_needed:
+            if self.connection_needed and self.data.remote_functions:
                 code.append("void do_functions(Arduino arduino, char* data, char id, char request_id) {")
                 temp_var = self.utils.next_sysvar()
                 code.append(f"char {temp_var}[{max([i.return_type.SIZE_BYTES for i in self.data.remote_functions])}];")
@@ -134,8 +133,12 @@ class Transpiler:
             code.append("int main() {")
 
             if self.connection_needed:
+
                 code.append("Arduino arduino = Arduino();")
-                code.append("arduino.do_function = do_functions;")
+                if self.data.remote_functions:
+                    code.append("arduino.do_function = do_functions;")
+
+            code.append("auto start_time = std::chrono::steady_clock::now();")
 
             code.extend(self.data.code_done)
 

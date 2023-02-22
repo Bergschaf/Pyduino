@@ -248,7 +248,6 @@ public:
         }
         outgoingData[size + 3] = ResponseEndCharacter;
 
-
         SP->WriteData(outgoingData, size + 4);
     }
 

@@ -13,7 +13,6 @@ class Position:
         self.line = line
         self.col = col
 
-
     def distance(self, other: 'Position', data: 'Data'):
         return len(data.getCode(Range.fromPositions(self.smaller(other), self.bigger(other))))
 
@@ -123,7 +122,7 @@ class Error:
                 end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col),
             ),
             message=self.message,
-            severity=lsp.DiagnosticSeverity.Error, # TODO THANK YOU GITHUB COPILOT
+            severity=lsp.DiagnosticSeverity.Error,  # TODO THANK YOU GITHUB COPILOT
             source="pyduino",
         )
 
@@ -426,14 +425,17 @@ class StringUtils:
             self.data.newError("Invalid indentation", self.location.getCurrentLineRange())
         return indentation // 4
 
-    def getIndentations(self, code: list[str], tokens: 'list[list[Token]]') -> list[int]:
+    def getIndentations(self, code: list[str]) -> list[int]:
         """Returns a list of indentation levels for each line in the given code.
         The indentation level is the number of four spaces at the start of the line."""
-        indentations = []
-        for token in tokens:
-            indentations.append(self.getIndentation(code[token[0].location.start.line], token[0].location.start.line))
+        indentations = [0]
+        for i, line in enumerate(code):
+            if line.strip() == "":
+                indentations.append(indentations[i-1])
+            else:
+                indentations.append((len(line) - len(line.lstrip())) // 4)
 
-        return indentations
+        return indentations[1:]
 
     def findClosingBracketInCode(self, bracket: str, pos: Position,
                                  fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
@@ -682,8 +684,8 @@ class Data:
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
         self.in_function: Function = None
         self.current_decorator: str = None
-        self.remote_function_count: int = 0 # the number of functions that can be called from the other platform
-        self.remote_functions: list[Function] = [] # the functions that can be called from the other platform
+        self.remote_function_count: int = 0  # the number of functions that can be called from the other platform
+        self.remote_functions: list[Function] = []  # the functions that can be called from the other platform
 
         self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
                           t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,

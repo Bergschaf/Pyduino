@@ -585,7 +585,7 @@ class Value:
 
     def __init__(self, name: str, type: PyduinoType, location: 'Range'):
         self.name = name
-        self.type = type
+        self.type = type.copy()
         self.type.name = name
         self.location = location
         self.current_reference: Range = None
@@ -618,7 +618,7 @@ class Value:
                             values[i] = Constant(t.name, t, Range.fromPositions(values[i - 1].location.start,
                                                                                 values[i].location.end))
                             del values[i - 1]
-                            shift_left += 2
+                            shift_left += 1
                         else:
                             transpiler.data.newError(t, transpiler.location.range)
                             transpiler.data.invalid_line_fallback()
