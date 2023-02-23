@@ -41,7 +41,6 @@ class Function:
             code = [f"void remote_{self.name}(char* data, char* outgoing) {{"]
             maxsize = max([i.type.SIZE_BYTES for i in self.args])
 
-
             code.append(f"char temp_buffer[{maxsize}];")
             current_size = 0
             for arg in self.args:
@@ -49,7 +48,7 @@ class Function:
                     code.append(f"temp_buffer[{i}] = data[{current_size}];")
                     current_size += 1
 
-                code.append(f"{arg.type} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
+                code.append(f"{arg.type.C_TYPENAME} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
 
             code.append(f"{self.return_type.C_TYPENAME} result = {self.on_call(self.args, self.name, transpiler)};")
             self.return_type.name = "result"
@@ -63,6 +62,7 @@ class Function:
             code.append("}")
             self.code.extend(code)
             self.called = True
+            transpiler.connection_needed = True
             transpiler.data.remote_functions.append(self)
 
         elif self.decorator == Decorator.BOARD and transpiler.mode == "board":
@@ -72,10 +72,10 @@ class Function:
                 self.decorator == Decorator.BOARD and transpiler.mode == "main"):
             if transpiler.mode == "main":
                 code = [
-                    f"{self.return_type} {self.name}(Arduino arduino, {', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
+                    f"{self.return_type.C_TYPENAME} {self.name}(Arduino arduino, {', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
             else:
                 code = [
-                    f"{self.return_type} {self.name}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
+                    f"{self.return_type.C_TYPENAME} {self.name}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
 
             sum_size = sum([i.type.SIZE_BYTES for i in self.args])
 
@@ -180,7 +180,7 @@ class Function:
         code_done_start_index = len(transpiler.data.code_done)
 
         transpiler.data.code_done.append(
-            f"{return_type} {name.value}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in arguments])}) {{")
+            f"{return_type.C_TYPENAME} {name.value}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in arguments])}) {{")
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
@@ -279,10 +279,13 @@ class Function:
             transpiler.data.code_done.append(func.on_call(args_c, func.name, transpiler) + ";")
             return True
         else:
-            var = transpiler.utils.next_sysvar()
-            transpiler.data.code_done.append(
-                f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
-            return Variable(var, func.return_type, instruction[0].location)
+            # var = transpiler.utils.next_sysvar()
+            # transpiler.data.code_done.append(
+            # ä    f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
+            # return Variable(var, func.return_type, instruction[0].location)
+            call = func.on_call(args_c, func.name, transpiler)
+            type = func.return_type.copy()
+            return Constant(call, type, instruction[0].location)
 
     @staticmethod
     def check_decorator(instruction: list[Token], transpiler: 'Transpiler') -> bool:
@@ -340,8 +343,7 @@ class Builtin(Function):
             transpiler.data.code_done.append(f"cout << {var} << endl;")
         else:
             transpiler.data.code_done.append(f"print({var},{len(args)});")
-
-        transpiler.connection_needed = True
+            transpiler.connection_needed = True
 
         return ""
 
@@ -354,12 +356,15 @@ class Builtin(Function):
         if transpiler.mode == "board":
             return f"millis()"
         else:
-            return f"std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count()"
+            return f"(int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count()"
+
 
 
 if __name__ == '__main__':
+
     filenames = ["control.py", "function.py", "pyduino_utils.py", "runner.py", "transpiler.py", "scope.py",
-                 "tokenizer.py", "variable.py", "../server.py", "SerialCommunication/Serial_PC.cpp","SerialCommunication/Serial_Arduino/Serial_Arduino.ino"]
+                 "tokenizer.py", "variable.py", "../server.py", "SerialCommunication/Serial_PC.cpp",
+                 "SerialCommunication/Serial_Arduino/Serial_Arduino.ino"]
     # count lines of code
     total = 0
     for filename in filenames:

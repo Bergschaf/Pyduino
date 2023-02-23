@@ -34,7 +34,7 @@
 
 			{
 				"name": "support.function.builtin.pyduino.arduino",
-			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay)\\b"
+			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay|millis)\\b"
 			},
 			{
 				"name": "support.function.builtin.pyduino.general",

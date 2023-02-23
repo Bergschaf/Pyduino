@@ -683,6 +683,7 @@ class Data:
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
         self.in_function: Function = None
+        self.in_loop: int = 0
         self.current_decorator: str = None
         self.remote_function_count: int = 0  # the number of functions that can be called from the other platform
         self.remote_functions: list[Function] = []  # the functions that can be called from the other platform

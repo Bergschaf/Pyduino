@@ -19,6 +19,7 @@ class Runner:
     def run(self):
         if not self.compiled:
             self.compile()
+        subprocess.call("cls", shell=True)
         if self.board:
             self.run_board()
         if self.pc:

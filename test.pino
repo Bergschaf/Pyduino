@@ -1,28 +1,3 @@
-@main
-int fib(int n):
-    if (n < 2):
-        return n
-
-    return fib(n - 1) + fib(n - 2)
-
-int fib_arduino(int n):
-    if (n < 2):
-        return n
-    return fib_arduino(n - 1) + fib_arduino(n - 2)
-
-
-
 #main
-print("hello world")
-print("hello world")
-
-
-#board
-print("connected to board")
-int start = millis()
-print(fib(30))
-print("pc: ", millis() - start)
-start = millis()
-print(fib_arduino(30))
-print("arduino: ", millis() - start)
-
+for i in range(10):
+    print(i)

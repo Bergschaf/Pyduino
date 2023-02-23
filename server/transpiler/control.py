@@ -11,6 +11,10 @@ class Control:
         if instuction[0].type == Keyword.IF:
             Control.do_if(instuction, transpiler)
             return True
+        elif instuction[0].type == Keyword.FOR:
+            Control.do_for(instuction, transpiler)
+            return True
+        return False
 
     @staticmethod
     def do_condition(condition: list[Token], transpiler: 'Transpiler', condition_type: str):
@@ -81,3 +85,79 @@ class Control:
         else:
             transpiler.do_line(line)
         return True
+
+    @staticmethod
+    def do_for(line: list[Token], transpiler: 'Transpiler'):
+        instruction = StringUtils.check_colon(line, transpiler)
+        instruction_types = [token.type for token in instruction]
+
+        if Keyword.IN not in instruction_types:
+            transpiler.data.newError("For statement must contain 'in'", instruction[0].location)
+            return
+
+        left = instruction[1:instruction_types.index(Keyword.IN)]
+        if not left:
+            transpiler.data.newError("For statement must have a variable", instruction[0].location)
+            return
+
+        if len(left) > 1:
+            transpiler.data.newError("For statement can only have one variable", Range.fromPositions(left[0].location.start, left[-1].location.end))
+            return
+
+        if left[0].type != Word.IDENTIFIER:
+            transpiler.data.newError("Invalid Variable Name", left[0].location)
+            return
+
+        right = instruction[instruction_types.index(Keyword.IN) + 1:]
+        if not right:
+            transpiler.data.newError("For statement must have a iterable", instruction[0].location)
+            return
+
+
+        if right[0].type == Word.IDENTIFIER and right[0].value == "range":
+                if len(right) > 2:
+                    transpiler.data.newError("Can only have one range", Range.fromPositions(right[0].location.start, right[-1].location.end))
+                    return
+                if len(right) < 2:
+                    transpiler.data.newError("Range must have Arguments", Range.fromPositions(right[0].location.start, right[-1].location.end))
+                    return
+
+                if right[1].type != Brackets.ROUND:
+                    transpiler.data.newError("Range must have Arguments", Range.fromPositions(right[0].location.start, right[-1].location.end))
+                    return
+
+                args = []
+                last_comma = 0
+                for i, token in enumerate(right[1].inside):
+                    if token.type == Separator.COMMA:
+                        args.append(right[1].value[last_comma:i])
+                        last_comma = i + 1
+                args.append(right[1].value[last_comma:])
+
+                if len(args) > 3:
+                    transpiler.data.newError("Range can only have 3 Arguments", Range.fromPositions(right[0].location.start, right[-1].location.end))
+                    args = args[:3]
+
+                range_args = [Value.do_value(arg, transpiler) for arg in args]
+
+                counter_name = left[0].value
+                if len(range_args) == 1:
+                    transpiler.data.code_done.append(f"for (int {counter_name} = 0; {counter_name} < {range_args[0].name}; {counter_name}++) {{")
+                elif len(range_args) == 2:
+                    transpiler.data.code_done.append(f"for (int {counter_name} = {range_args[0].name}; {counter_name} < {range_args[1].name}; {counter_name}++) {{")
+                else:
+                    transpiler.data.code_done.append(f"for (int {counter_name} = {range_args[0].name}; {counter_name} < {range_args[1].name}; {counter_name} += {range_args[2].name}) {{")
+
+        else:
+            iterable = Value.do_value(right, transpiler)
+            if not iterable.type.is_iterable():
+                transpiler.data.newError("For statement must have a iterable", instruction[0].location)
+                return
+
+            transpiler.data.code_done.append(f"for (auto {left[0].value} : {iterable.name}) {{")
+
+        end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
+
+        transpiler.data.in_loop += 1
+        transpiler.transpileTo(end_line)
+        transpiler.data.in_loop -= 1
