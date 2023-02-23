@@ -113,6 +113,7 @@ class Control:
             transpiler.data.newError("For statement must have a iterable", instruction[0].location)
             return
 
+        counter_name = left[0].value
 
         if right[0].type == Word.IDENTIFIER and right[0].value == "range":
                 if len(right) > 2:
@@ -132,7 +133,7 @@ class Control:
                     if token.type == Separator.COMMA:
                         args.append(right[1].value[last_comma:i])
                         last_comma = i + 1
-                args.append(right[1].value[last_comma:])
+                args.append(right[1].inside[last_comma:])
 
                 if len(args) > 3:
                     transpiler.data.newError("Range can only have 3 Arguments", Range.fromPositions(right[0].location.start, right[-1].location.end))
@@ -140,13 +141,13 @@ class Control:
 
                 range_args = [Value.do_value(arg, transpiler) for arg in args]
 
-                counter_name = left[0].value
                 if len(range_args) == 1:
                     transpiler.data.code_done.append(f"for (int {counter_name} = 0; {counter_name} < {range_args[0].name}; {counter_name}++) {{")
                 elif len(range_args) == 2:
                     transpiler.data.code_done.append(f"for (int {counter_name} = {range_args[0].name}; {counter_name} < {range_args[1].name}; {counter_name}++) {{")
                 else:
                     transpiler.data.code_done.append(f"for (int {counter_name} = {range_args[0].name}; {counter_name} < {range_args[1].name}; {counter_name} += {range_args[2].name}) {{")
+                counter = Variable(counter_name, PyduinoInt(), left[0].location)
 
         else:
             iterable = Value.do_value(right, transpiler)
@@ -155,9 +156,12 @@ class Control:
                 return
 
             transpiler.data.code_done.append(f"for (auto {left[0].value} : {iterable.name}) {{")
+            counter = Variable(counter_name, iterable.type.item, left[0].location)
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
+        transpiler.scope.add_Variable(counter,left[0].location.start.add_line(1))
 
         transpiler.data.in_loop += 1
         transpiler.transpileTo(end_line)
         transpiler.data.in_loop -= 1
+        transpiler.data.code_done.append("}")

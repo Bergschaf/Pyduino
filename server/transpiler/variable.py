@@ -754,7 +754,7 @@ class Variable(Value):
 
         if value.type.is_iterable():
             base_type = str(datatype).split("[")[0]
-            c_code = f"{base_type} {name.value}{''.join(f'[{i}]' for i in value.type.dimensions())} = {c_value};"
+            c_code = f"{base_type} {name.value}{''.join(f'[]' for i in value.type.dimensions())} = {c_value};"
             variable.type.set_dimensions(value.type.dimensions())
 
         else:
