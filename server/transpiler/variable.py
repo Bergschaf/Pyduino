@@ -778,7 +778,7 @@ class Variable(Value):
         instruction_types = [i.type for i in instruction]
 
         if len(instruction_types) >= 3 and instruction_types[0] == Word.IDENTIFIER and instruction_types[1] == Math_Operator.PLUS and instruction_types[2] == Math_Operator.PLUS:
-            if len(instruction) < 3:
+            if len(instruction) > 3:
                 transpiler.data.newError(f"No Code should be after ++", Range.fromPositions(instruction[2].location.start, instruction[-1].location.end))
 
             variable = transpiler.scope.get_Variable(instruction[0].value, instruction[0].location.start)
