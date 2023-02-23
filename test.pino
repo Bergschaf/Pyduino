@@ -1,5 +1,6 @@
 #main
-int[][] a = [[3,32,32,324],[324,324,3242]]
-for i in a:
-    for j in i:
-        print(j)
+int x = 0
+while x < 100:
+    print(x)
+    x++
+print("Done!")

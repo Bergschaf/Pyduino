@@ -14,6 +14,9 @@ class Control:
         elif instuction[0].type == Keyword.FOR:
             Control.do_for(instuction, transpiler)
             return True
+        elif instuction[0].type == Keyword.WHILE:
+            Control.do_while(instuction, transpiler)
+            return True
         return False
 
     @staticmethod
@@ -85,6 +88,23 @@ class Control:
         else:
             transpiler.do_line(line)
         return True
+
+
+    @staticmethod
+    def do_while(instruction: list[Token], transpiler: 'Transpiler'):
+        instruction = StringUtils.check_colon(instruction, transpiler)
+
+        condition = Control.do_condition(instruction[1:], transpiler, "while")
+
+        transpiler.data.code_done.append(f"while ({condition}) {{")
+
+        while_position = transpiler.location.position.line
+        end_line = StringUtils.get_indentation_range(while_position + 1, transpiler)
+
+        transpiler.transpileTo(end_line)
+
+        transpiler.data.code_done.append("}")
+
 
     @staticmethod
     def do_for(line: list[Token], transpiler: 'Transpiler'):

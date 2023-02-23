@@ -46,6 +46,9 @@ class PyduinoType():
     def div(self, other: 'PyduinoType'):
         return False, f"Cannot divide {self.name} and {other.name}"
 
+    def plus_plus(self):
+        return False, f"Cannot increment {self.name}"
+
     def divmod(self, other: 'PyduinoType'):
         """
         the type is the left side of the divmod
@@ -274,6 +277,9 @@ class PyduinoInt(PyduinoType):
             return True, PyduinoInt(f"({self.name} % {other.name})")
         return False, f"Cannot get the remainder of int and {other}"
 
+    def plus_plus(self):
+        return True, PyduinoInt(f"{self.name}++")
+
     def greater(self, other):
         if str(other) == "int":
             return True, PyduinoBool(f"({self.name} > {other.name})")
@@ -379,6 +385,9 @@ class PyduinoFloat(PyduinoType):
         if str(other) == "float":
             return True, PyduinoFloat(f"({self.name} / {other.name})")
         return False, f"Cannot divide float by {other}",
+
+    def plus_plus(self):
+        return True, PyduinoFloat(f"{self.name}++")
 
     def greater(self, other):
         if str(other) == "int":
@@ -767,8 +776,26 @@ class Variable(Value):
     @staticmethod
     def check_assignment(instruction: list[Token], transpiler: 'Transpiler') -> bool:
         instruction_types = [i.type for i in instruction]
+
+        if len(instruction_types) >= 3 and instruction_types[0] == Word.IDENTIFIER and instruction_types[1] == Math_Operator.PLUS and instruction_types[2] == Math_Operator.PLUS:
+            if len(instruction) < 3:
+                transpiler.data.newError(f"No Code should be after ++", Range.fromPositions(instruction[2].location.start, instruction[-1].location.end))
+
+            variable = transpiler.scope.get_Variable(instruction[0].value, instruction[0].location.start)
+            if variable:
+                possible, var = variable.type.plus_plus()
+                if not possible:
+                    transpiler.data.newError(var, instruction[0].location)
+                    return True
+                transpiler.data.code_done.append(f"{var.name};")
+                return True
+            else:
+                transpiler.data.newError(f"Variable {instruction[0].value} not defined", instruction[0].location)
+                return True
+
         if not Separator.ASSIGN in instruction_types:
             return False
+
 
         left = instruction[:instruction_types.index(Separator.ASSIGN)]
         value = instruction[instruction_types.index(Separator.ASSIGN) + 1:]
