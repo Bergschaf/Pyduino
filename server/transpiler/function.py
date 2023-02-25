@@ -39,26 +39,29 @@ class Function:
         if self.decorator == Decorator.MAIN and transpiler.mode == "main":
 
             code = [f"void remote_{self.name}(char* data, char* outgoing) {{"]
-            maxsize = max([i.type.SIZE_BYTES for i in self.args])
+            if self.args:
+                maxsize = max([i.type.SIZE_BYTES for i in self.args])
 
-            code.append(f"char temp_buffer[{maxsize}];")
-            current_size = 0
-            for arg in self.args:
-                for i in range(arg.type.SIZE_BYTES):
-                    code.append(f"temp_buffer[{i}] = data[{current_size}];")
-                    current_size += 1
+                code.append(f"char temp_buffer[{maxsize}];")
+                current_size = 0
+                for arg in self.args:
+                    for i in range(arg.type.SIZE_BYTES):
+                        code.append(f"temp_buffer[{i}] = data[{current_size}];")
+                        current_size += 1
 
-                code.append(f"{arg.type.C_TYPENAME} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
+                    code.append(f"{arg.type.C_TYPENAME} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
 
-            code.append(f"{self.return_type.C_TYPENAME} result = {self.on_call(self.args, self.name, transpiler)};")
-            self.return_type.name = "result"
+            if not self.return_type.is_type(PyduinoVoid()):
+                code.append(f"{self.return_type.C_TYPENAME} result = {self.on_call(self.args, self.name, transpiler)};")
+                self.return_type.name = "result"
 
-            code.append(f"char *temp_buffer_2;")
-            code.append(f"temp_buffer_2 = {self.return_type.type_to_bytes()[1]};")
+                code.append(f"char *temp_buffer_2;")
+                code.append(f"temp_buffer_2 = {self.return_type.type_to_bytes()[1]};")
 
-            for i in range(self.return_type.SIZE_BYTES):
-                code.append(f"outgoing[{i}] = temp_buffer_2[{i}];")
-
+                for i in range(self.return_type.SIZE_BYTES):
+                    code.append(f"outgoing[{i}] = temp_buffer_2[{i}];")
+            else:
+                code.append(f"{self.on_call(self.args, self.name, transpiler)};")
             code.append("}")
             self.code.extend(code)
             self.called = True
@@ -88,6 +91,8 @@ class Function:
                 for i in range(arg.type.SIZE_BYTES):
                     code.append(f"outgoing_buffer[{current_size + i + 1}] = temp_buffer[{i}];")
                 current_size += arg.type.SIZE_BYTES
+
+
             if transpiler.mode == "main":
                 code.append(f"char request_id = arduino.next_request_id();")
                 code.append(f"arduino.send_request('m', outgoing_buffer, {sum_size + 1},request_id);")
@@ -321,6 +326,14 @@ class Builtin(Function):
             Builtin("print", PyduinoVoid(), [], Builtin.print, pythonic_overload=True),
             Builtin("len", PyduinoInt(), [Variable("args", PyduinoArray(PyduinoAny()), Range(0, 0))], Builtin.len),
             Builtin("millis", PyduinoInt(), [], Builtin.millis),
+            Builtin("delay", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.delay),
+            Builtin("analogRead", PyduinoInt(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.analogRead),
+            Builtin("analogWrite", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)),
+                                                   Variable("args", PyduinoInt(), Range(0, 0))], Builtin.analogWrite),
+            Builtin("digitalRead", PyduinoInt(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalRead),
+            Builtin("digitalWrite", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)),
+                                                    Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalWrite),
+
         ])
 
     @staticmethod
@@ -357,6 +370,45 @@ class Builtin(Function):
             return f"millis()"
         else:
             return f"(int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count()"
+
+    @staticmethod
+    def delay(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"better_delay({args[0].name})"
+        else:
+            return f"std::this_thread::sleep_for(std::chrono::milliseconds({args[0].name}))"
+
+    @staticmethod
+    def analogRead(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"analogRead(analogPorts[{args[0].name}])"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.analogRead({args[0].name})"
+
+    @staticmethod
+    def analogWrite(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"analogWrite({args[0].name}, {args[1].name})"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.analogWrite({args[0].name}, {args[1].name})"
+
+    @staticmethod
+    def digitalRead(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"digitalRead(digitalPorts[{args[0].name}])"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.digitalRead({args[0].name})"
+
+    @staticmethod
+    def digitalWrite(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if transpiler.mode == "board":
+            return f"digitalWrite({args[0].name}, {args[1].name})"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.digitalWrite({args[0].name}, {args[1].name})"
 
 
 

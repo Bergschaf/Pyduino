@@ -148,16 +148,29 @@ class Transpiler:
             code.append("}")
 
         elif self.mode == "board":
-            with open("server/transpiler/SerialCommunication/Serial_Arduino/Serial_Arduino.ino") as f:
-                code.extend(f.readlines())
+            if self.connection_needed:
+                with open("server/transpiler/SerialCommunication/Serial_Arduino/Serial_Arduino.ino") as f:
+                    code.extend(f.readlines())
+            else:
+                with open("server/transpiler/SerialCommunication/Serial_Arduino/No_Connection_Arduino.ino") as f:
+                    code.extend(f.readlines())
 
             for f in self.scope.functions:
                 if f.called:
                     code.extend(f.code)
 
-            code.append("void setup() {\n  lcd.init(); lcd.backlight(); Serial.begin(256000); \nHandshake();\ndelay(10);")
-            code.extend(self.data.code_done)
-            code.append("} \n void loop() { \n }")
+            if self.connection_needed:
+                code.append("void setup() {\n Serial.begin(256000); \nHandshake();\ndelay(10);")
+                for line in self.data.code_done:
+                    code.append(line)
+                    code.append("checkSerial();")
+                code.append("} \n void loop() { checkSerial(); }")
+
+            else:
+                code.append("void setup() {")
+                code.extend(self.data.code_done)
+                code.append("} \nvoid loop() { }")
+
 
         return "\n".join(code)
 
@@ -254,6 +267,12 @@ class Transpiler:
 
             if board:
                 main.connection_needed = True if board.connection_needed else main.connection_needed
+            else:
+                if main.connection_needed:
+                    with open("server/transpiler/SerialCommunication/Serial_Arduino/Serial_Arduino.ino") as f:
+                        code_board = f.read()
+                    code_board += "void setup() {\n Serial.begin(256000); \nHandshake();} \n void loop() { checkSerial(); }"
+
             code_main = main.finish()
 
         if board:

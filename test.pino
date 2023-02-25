@@ -1,6 +1,13 @@
+@main
+int x()
+    print("Hello World")
+
 #main
-int x = 0
-while x < 100:
-    print(x)
-    x++
-print("Done!")
+print("Hello World")
+
+#board
+while True:
+    print(analogRead(0))
+    x()
+
+
