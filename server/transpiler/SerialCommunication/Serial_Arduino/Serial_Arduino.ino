@@ -1,9 +1,6 @@
 #include <string.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 
 using namespace std;
-LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 typedef int32_t py_int;
 typedef String string;
@@ -19,7 +16,7 @@ const int HandshakeResendTimeout = 10;
 const int MessageCompleteTimeout = 10;
 
 const int MaxRequests = 5;
-const int MaxRequestsLength = 100;
+const int MaxRequestsLength = 50;
 
 const byte analogPorts[6] = { A0, A1, A2, A3, A4, A5 };
 
@@ -90,7 +87,7 @@ void sendRequest(char instruction, const char *value, int valueSize, char reques
 
 void sendResponse(char requestID, const char *response, int responseSize) {
   char outgoingData[4 + responseSize];
-  outgoingData[0] = StartCharacter;
+  outgoingData[0] = ResponseStartCharacter;
 
   outgoingData[1] = requestID;
 
@@ -100,7 +97,7 @@ void sendResponse(char requestID, const char *response, int responseSize) {
     outgoingData[3 + i] = response[i];
   }
 
-  outgoingData[3 + responseSize] = EndCharacter;
+  outgoingData[3 + responseSize] = ResponseEndCharacter;
 
   Serial.write(outgoingData, 4 + responseSize);
 }
@@ -134,8 +131,34 @@ void decodeRequest(const byte *data, int size) {
   for (int i = 0; i < valueSize; i++) {
     value[i] = data[4 + i];
   }
+  if (instruction == 'n'){
+    if (value[0] == 0){
+      short read_result = analogRead(analogPorts[value[0]]);
+      const char* response = static_cast<char*>(static_cast<void*>(&read_result));
+      sendResponse(requestID, response, 2);
+    }
+    if(value[0] == 2){
+      bool read_result = digitalRead(value[0]);
+      const char* response = static_cast<char*>(static_cast<void*>(&read_result));
+      sendResponse(requestID, response, 1);
+
+    }
+
+    if(value[0] == 1){
+      analogWrite(uint8_t(value[1]), uint8_t(value[2]));
+      sendResponse(requestID, new char[1] {' '}, 1);
+    }
+
+
+  }
+
   if (instruction == 'a') {
+
+
+
+
     if (valueSize == 1) {
+      
       short read = analogRead(analogPorts[value[0]]);
       const char response[2] = { (char)(read & 0xFF), (char)((read >> 8) & 0xFF) };
       sendResponse(requestID, response, 2);
@@ -193,4 +216,11 @@ void checkSerial() {
     }
   }
 }
-  
+
+void better_delay(int time){
+  int start = millis();
+  while (millis() - start < time){
+    checkSerial();
+  }
+}
+

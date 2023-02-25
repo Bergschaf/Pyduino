@@ -25,10 +25,11 @@ class Function:
         self.remote_id = transpiler.data.remote_function_count
         transpiler.data.remote_function_count += 1
 
-        possible, s = self.return_type.type_to_bytes()
-        if not possible:
-            transpiler.data.newError(s, self.position)
-            return
+        if not self.return_type.is_type(PyduinoVoid()):
+            possible, s = self.return_type.type_to_bytes()
+            if not possible:
+                transpiler.data.newError(s, self.position)
+                return
 
         for arg in self.args:
             possible, s = arg.type.type_to_bytes()
@@ -49,10 +50,10 @@ class Function:
                         code.append(f"temp_buffer[{i}] = data[{current_size}];")
                         current_size += 1
 
-                    code.append(f"{arg.type.C_TYPENAME} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
+                    code.append(f"{arg.type.c_typename()} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
 
             if not self.return_type.is_type(PyduinoVoid()):
-                code.append(f"{self.return_type.C_TYPENAME} result = {self.on_call(self.args, self.name, transpiler)};")
+                code.append(f"{self.return_type.c_typename()} result = {self.on_call(self.args, self.name, transpiler)};")
                 self.return_type.name = "result"
 
                 code.append(f"char *temp_buffer_2;")
@@ -69,48 +70,59 @@ class Function:
             transpiler.data.remote_functions.append(self)
 
         elif self.decorator == Decorator.BOARD and transpiler.mode == "board":
-            pass
+            raise NotImplementedError("Board functions are not implemented yet")
 
         elif (self.decorator == Decorator.MAIN and transpiler.mode == "board") or (
                 self.decorator == Decorator.BOARD and transpiler.mode == "main"):
             if transpiler.mode == "main":
                 code = [
-                    f"{self.return_type.C_TYPENAME} {self.name}(Arduino arduino, {', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
+                    f"{self.return_type.c_typename()} {self.name}(Arduino arduino, {', '.join([f'{arg.type.c_typename()} {arg.name}' for arg in self.args])}) {{"]
             else:
                 code = [
-                    f"{self.return_type.C_TYPENAME} {self.name}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in self.args])}) {{"]
+                    f"{self.return_type.c_typename()} {self.name}({', '.join([f'{arg.type.c_typename()} {arg.name}' for arg in self.args])}) {{"]
 
-            sum_size = sum([i.type.SIZE_BYTES for i in self.args])
+            if self.args:
+                sum_size = sum([i.type.SIZE_BYTES for i in self.args])
 
-            code.append(f"char outgoing_buffer[{sum_size + 1}];")
-            code.append(f"outgoing_buffer[0] = {self.remote_id};")
-            code.append(f"char *temp_buffer;")
-            current_size = 0
-            for arg in self.args:
-                code.append(f"temp_buffer = {arg.type.type_to_bytes()[1]};")
-                for i in range(arg.type.SIZE_BYTES):
-                    code.append(f"outgoing_buffer[{current_size + i + 1}] = temp_buffer[{i}];")
-                current_size += arg.type.SIZE_BYTES
-
+                code.append(f"char outgoing_buffer[{sum_size + 1}];")
+                code.append(f"outgoing_buffer[0] = {self.remote_id};")
+                code.append(f"char *temp_buffer;")
+                current_size = 0
+                for arg in self.args:
+                    code.append(f"temp_buffer = {arg.type.type_to_bytes()[1]};")
+                    for i in range(arg.type.SIZE_BYTES):
+                        code.append(f"outgoing_buffer[{current_size + i + 1}] = temp_buffer[{i}];")
+                    current_size += arg.type.SIZE_BYTES
+            else:
+                sum_size = 0
+                code.append(f"char outgoing_buffer[{sum_size + 1}];")
+                code.append(f"outgoing_buffer[0] = {self.remote_id};")
 
             if transpiler.mode == "main":
                 code.append(f"char request_id = arduino.next_request_id();")
                 code.append(f"arduino.send_request('m', outgoing_buffer, {sum_size + 1},request_id);")
 
-                code.append(f"{self.return_type.C_TYPENAME} result;")
-                code.append(
-                    f"delete new Promise<{self.return_type.C_TYPENAME}>(&result, Arduino::{self.return_type.ARDUINO_BYTE_CONVERSION}, request_id, arduino.Responses);")
-                code.append(f"return result;}}")
+                if not self.return_type.is_type(PyduinoVoid()):
+                    code.append(f"{self.return_type.c_typename()} result;")
+                    code.append(
+                        f"delete new Promise<{self.return_type.c_typename()}>(&result, Arduino::{self.return_type.ARDUINO_BYTE_CONVERSION}, request_id, arduino.Responses);")
+                    code.append(f"return result;}}")
+                else:
+                    code.append(f"delete new Promise<void>(nullptr, nullptr, request_id, arduino.Responses);}}")
+
             else:
                 code.append(f"char request_id = getNextRequestId();")
                 code.append(f"sendRequest('m', outgoing_buffer, {sum_size + 1}, request_id);")
-
                 code.append(f"while ((Responses[request_id][0]) == 0) {{\ncheckSerial();\n}}")
-                code.append(f"char temp_buffer2[{self.return_type.SIZE_BYTES}];")
-                for i in range(self.return_type.SIZE_BYTES):
-                    code.append(f"temp_buffer2[{i}] = Responses[request_id][{i + 1}];")
                 code.append(f"Responses[request_id][0] = 0;")
-                code.append(f"return {self.return_type.bytes_to_type('temp_buffer2')[1].name};}}")
+
+                if not self.return_type.is_type(PyduinoVoid()):
+                    code.append(f"char temp_buffer2[{self.return_type.SIZE_BYTES}];")
+                    for i in range(self.return_type.SIZE_BYTES):
+                        code.append(f"temp_buffer2[{i}] = Responses[request_id][{i + 1}];")
+                    code.append(f"return {self.return_type.bytes_to_type('temp_buffer2')[1].name};}}")
+                else:
+                    code.append(f"}}")
             self.code = code
 
     @staticmethod
@@ -185,7 +197,7 @@ class Function:
         code_done_start_index = len(transpiler.data.code_done)
 
         transpiler.data.code_done.append(
-            f"{return_type.C_TYPENAME} {name.value}({', '.join([f'{arg.type.C_TYPENAME} {arg.name}' for arg in arguments])}) {{")
+            f"{return_type.c_typename()} {name.value}({', '.join([f'{arg.type.c_typename()} {arg.name}' for arg in arguments])}) {{")
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
@@ -262,7 +274,7 @@ class Function:
 
                     expected_datatype = func.args[arg_count].type
 
-                    if not arg.type.is_type(expected_datatype):
+                    if not expected_datatype.is_type(arg.type):
                         transpiler.data.newError(
                             f"Cannot pass '{arg.type}' to function '{func.name}' expecting '{expected_datatype}'",
                             arg.location)
@@ -362,7 +374,7 @@ class Builtin(Function):
 
     @staticmethod
     def len(args: list[Variable], name: str, transpiler: 'Transpiler'):
-        return f"sizeof({args[0].name}) / sizeof({args[0].type})"
+        return f"(int)(sizeof({args[0].name}) / sizeof({args[0].name})[0])"
 
     @staticmethod
     def millis(args: list[Variable], name: str, transpiler: 'Transpiler'):
@@ -409,7 +421,6 @@ class Builtin(Function):
         else:
             transpiler.connection_needed = True
             return f"arduino.digitalWrite({args[0].name}, {args[1].name})"
-
 
 
 if __name__ == '__main__':

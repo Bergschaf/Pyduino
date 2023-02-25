@@ -1,13 +1,7 @@
-@main
-int x()
-    print("Hello World")
-
 #main
-print("Hello World")
-
-#board
-while True:
-    print(analogRead(0))
-    x()
-
-
+int[][] a = [[1,2,3],[4,5,6]]
+str[] s = ["hellod", "d"]
+print(a)
+print(s)
+for i in a:
+    print(len(a),i)

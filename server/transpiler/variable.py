@@ -9,6 +9,7 @@ class PyduinoType():
     SIZE_BYTES = 0
     ARDUINO_BYTE_CONVERSION = ""
     C_TYPENAME = "Undefined"
+
     def __init__(self, name: str = None):
         self.name = name
 
@@ -29,6 +30,9 @@ class PyduinoType():
             "!=": self.not_equal}
 
         return MAP[operator](other)
+
+    def get_base_type(self):
+        return self
 
     def len(self):
         """(True if possible, False if not possible), return Value with C code"""
@@ -100,6 +104,9 @@ class PyduinoType():
 
     def get_item(self, index: 'PyduinoType'):
         return False, f"Cannot get item {index} from {self.name}"
+
+    def c_typename(self):
+        return self.C_TYPENAME
 
     def is_type(self, other: 'PyduinoType'):
         return str(self) == str(other)
@@ -180,6 +187,7 @@ class PyduinoUndefined(PyduinoType):
 
 class PyduinoVoid(PyduinoType):
     C_TYPENAME = "void"
+
     @staticmethod
     def check_type(str: str):
         if str == "void":
@@ -192,6 +200,8 @@ class PyduinoVoid(PyduinoType):
 
 class PyduinoBool(PyduinoType):
     C_TYPENAME = "bool"
+    ARDUINO_BYTE_CONVERSION = "bytesToBool"
+
     def and_(self, other):
         if str(other) == "bool":
             return True, PyduinoBool(f"({self.name} && {other.name})")
@@ -438,7 +448,6 @@ class PyduinoFloat(PyduinoType):
     def type_to_bytes(self) -> 'tuple[bool, str]':
         return True, f"static_cast<char*>(static_cast<void*>(&{self.name}))"
 
-
     def to_string(self):
         return True, PyduinoString(f"String({self.name})")
 
@@ -464,6 +473,7 @@ class PyduinoFloat(PyduinoType):
 class PyduinoString(PyduinoType):
     ARDUINO_BYTE_CONVERSION = "bytesToString"
     C_TYPENAME = "string"
+
     def len(self):
         return True, PyduinoInt(f"({self.name}.length())")
 
@@ -480,7 +490,7 @@ class PyduinoString(PyduinoType):
         return False, f"Cannot add {other} to string"
 
     def to_string(self):
-        return True, self.copy()
+        return True, PyduinoString(f"String({self.name})")
 
     def to_bool(self):
         return True, PyduinoBool(f"({self.name} != \"\")")
@@ -509,12 +519,23 @@ class PyduinoArray(PyduinoType):
     def len(self):
         return True, PyduinoInt(f"(sizeof({self.name}) / sizeof({self.name}[0]))")
 
+    def c_typename(self):
+        return f"{self.item.c_typename()}[]"
+
+    def get_base_type(self):
+        return self.item.get_base_type()
+
     def get_item(self, index: 'PyduinoType'):
         if not index.is_type(PyduinoInt()):
             return False, f"Cannot index array with {index}"
         item = self.item.copy()
         item.name = f"{self.name}[{index.name}]"
         return True, item
+
+    def is_type(self, other: 'PyduinoType'):
+        if not other.is_iterable():
+            return False
+        return self.item.is_type(other.item)
 
     @staticmethod
     def check_type(value: Token, transpiler: 'Transpiler'):
@@ -548,18 +569,17 @@ class PyduinoArray(PyduinoType):
         return True
 
     def to_string(self):
-        if not self.item.is_iterable():
-            return True, PyduinoString(f"arrayToString({self.name}, {self.len()[1].name})")
-        else:
-            # TODO return: "int[2][2]" (Datatype and Dimensions)
-            depth = len(self.dimensions())
-            quote = '"'
-            first = "[0]"
-            dimensions = f"{''.join([f' + {quote}[{quote} + String(sizeof({self.name}{first * i}) / sizeof({self.name}{first * (i + 1)})) + {quote}]{quote}' for i in range(depth)])}"
-            return True, PyduinoString(f'"{self.name}"{dimensions}')
+        item = self.item.copy()
+        item.name = f"arr[i]"
+        to_string = item.to_string()[1].name
+
+        return True, PyduinoString(
+            f"[](auto arr,int len) -> string {{string str = \"[\"; for (int i = 0; i < len; i++) {{str += {to_string}; if (i != len - 1) str += \", \";}} str += \"]\"; return str;}}( {self.name}, {self.len()[1].name} )")
+
 
     def to_bool(self):
         return True, PyduinoBool(f"({self.len()[1].name} != 0)")
+
 
     def dimensions(self):
         dimensions = [self.size]
@@ -567,10 +587,12 @@ class PyduinoArray(PyduinoType):
             dimensions += self.item.dimensions()
         return dimensions
 
+
     def set_dimensions(self, dimensions: list[int]):
         self.size = dimensions[0]
         if self.item.is_iterable():
             self.item.set_dimensions(dimensions[1:])
+
 
     @staticmethod
     def is_typename(tokens: list[Token]) -> 'PyduinoType':
@@ -580,14 +602,16 @@ class PyduinoArray(PyduinoType):
                     return PyduinoArray(PyduinoType.get_type_from_token(tokens[:-1]))
         return False
 
+
     def __str__(self):
         return f"{self.item}[]"
+
 
     def copy(self) -> 'PyduinoArray':
         return PyduinoArray(self.item.copy())
 
 
-Types = {"int": PyduinoInt, "float": PyduinoFloat, "str": PyduinoString}
+    Types = {"int": PyduinoInt, "float": PyduinoFloat, "str": PyduinoString}
 
 
 class Value:
@@ -601,16 +625,29 @@ class Value:
 
     @staticmethod
     def do_value(values: list['Token'], transpiler: 'Transpiler') -> 'Constant | Variable':
-        # concentrate the values and algorithms
+        # do negated values
+        if values[0].type == Math_Operator.MINUS and values[1].type == Word.VALUE:
+            var = Value.do_value_single([values[1]], transpiler)
+            if var.type.is_type(PyduinoInt()) or var.type.is_type(PyduinoFloat()):
+                var.type.name = f"(-{var.type.name})"
+                var.name = f"(-{var.name})"
+                del values[0]
+                values[0] = var
+
         last_operator = 0
         new_values = []
         for i in range(len(values)):
             if values[i].type in transpiler.data.OPERATORS:
-                new_values.append(Value.do_value_single(values[last_operator:i], transpiler))
+                if type(values[last_operator]) is Variable or type(values[last_operator]) is Constant:
+                    new_values.append(values[i])
+                else:
+                    new_values.append(Value.do_value_single(values[last_operator:i], transpiler))
                 new_values.append(values[i])
                 last_operator = i + 1
 
         if last_operator == 0:
+            if type(values[0]) is Variable or type(values[0]) is Constant:
+                return values[0]
             return Value.do_value_single(values, transpiler)
 
         new_values.append(Value.do_value_single(values[last_operator:], transpiler))
@@ -659,11 +696,13 @@ class Value:
         :param transpiler:
         :return:
         """
+
         if len(value) == 0:
             transpiler.data.newError(f"Invalid value None", transpiler.location.position)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
 
         elif len(value) == 1:
+
             v = value[0]
             if v.type == Word.IDENTIFIER:
                 # check if it is a variable
@@ -709,7 +748,7 @@ class Value:
                         transpiler.data.newError(f"Variable {value[0].value} not defined", value[0].location)
                         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
-        transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
+        transpiler.data.newError(f"Invalid value {value[0]}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
@@ -749,7 +788,6 @@ class Variable(Value):
         c_value = value.type.name
 
         variable = Variable(name.value, value.type, value.location)
-        value.type.name = name.value
 
         if transpiler.scope.get_Variable(name.value, variable.location.start):
             transpiler.data.newError(f"Variable '{name}' is already defined", variable.location)
@@ -762,12 +800,11 @@ class Variable(Value):
             return True
 
         if value.type.is_iterable():
-            base_type = str(datatype).split("[")[0]
-            c_code = f"{base_type} {name.value}{''.join(f'[]' for i in value.type.dimensions())} = {c_value};"
-            variable.type.set_dimensions(value.type.dimensions())
+            base_type = value.type.get_base_type()
+            c_code = f"{base_type.c_typename()} {name.value}{''.join(f'[]' for i in value.type.dimensions())} = {c_value};"
 
         else:
-            c_code = f"{variable.type.C_TYPENAME} {name.value} = {c_value};"
+            c_code = f"{variable.type.c_typename()} {name.value} = {c_value};"
 
         transpiler.scope.add_Variable(variable, variable.location.start)
         transpiler.data.code_done.append(c_code)
@@ -777,9 +814,12 @@ class Variable(Value):
     def check_assignment(instruction: list[Token], transpiler: 'Transpiler') -> bool:
         instruction_types = [i.type for i in instruction]
 
-        if len(instruction_types) >= 3 and instruction_types[0] == Word.IDENTIFIER and instruction_types[1] == Math_Operator.PLUS and instruction_types[2] == Math_Operator.PLUS:
+        if len(instruction_types) >= 3 and instruction_types[0] == Word.IDENTIFIER and instruction_types[
+            1] == Math_Operator.PLUS and instruction_types[2] == Math_Operator.PLUS:
             if len(instruction) > 3:
-                transpiler.data.newError(f"No Code should be after ++", Range.fromPositions(instruction[2].location.start, instruction[-1].location.end))
+                transpiler.data.newError(f"No Code should be after ++",
+                                         Range.fromPositions(instruction[2].location.start,
+                                                             instruction[-1].location.end))
 
             variable = transpiler.scope.get_Variable(instruction[0].value, instruction[0].location.start)
             if variable:
@@ -795,7 +835,6 @@ class Variable(Value):
 
         if not Separator.ASSIGN in instruction_types:
             return False
-
 
         left = instruction[:instruction_types.index(Separator.ASSIGN)]
         value = instruction[instruction_types.index(Separator.ASSIGN) + 1:]

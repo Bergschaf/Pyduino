@@ -33,7 +33,8 @@ class Token:
                                                       Range.fromPositions(last_space, last_bracket)))
 
                     tokens.append(Token.get_token(string[last_bracket.col - start.col:i + 1],
-                                                  Range.fromPositions(last_bracket, Position(start.line, start.col + i + 1))))
+                                                  Range.fromPositions(last_bracket,
+                                                                      Position(start.line, start.col + i + 1))))
                     last_space = Position(start.line, start.col + i + 1)
                     continue
 
@@ -85,12 +86,17 @@ class Token:
         string = string.strip()
         if string == "":
             return None
+
         if string in TOKENS.keys():
-            return Token(TOKENS[string], range)
+            t, cls = TOKENS[string]
+            return cls(t, range, string)
 
         if string[0] in "([":
             type = Brackets.ROUND if string[0] == "(" else Brackets.SQUARE
             return Brackets(type, range, Token.tokenize(string[1:-1], range.start.add_col(1)), string[-1] == string[0])
+
+        if string[0] == "@":
+            return Decorator(Decorator.UNKNOWN, range, string[1:])
 
         if StringUtils.is_identifier(string):
             return Word(Word.IDENTIFIER, range, string)
@@ -188,42 +194,42 @@ class Decorator(Token):
 NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
-    "+": Math_Operator.PLUS,
-    "-": Math_Operator.MINUS,
-    "*": Math_Operator.MULTIPLY,
-    "/": Math_Operator.DIVIDE,
-    "%": Math_Operator.MODULO,
-    "//": Math_Operator.FLOOR_DIVIDE,
-    "==": Compare_Operator.EQUAL,
-    "!=": Compare_Operator.NOT_EQUAL,
-    ">": Compare_Operator.GREATER,
-    ">=": Compare_Operator.GREATER_EQUAL,
-    "<": Compare_Operator.LESS,
-    "<=": Compare_Operator.LESS_EQUAL,
-    "and": Bool_Operator.AND,
-    "or": Bool_Operator.OR,
-    "not": Bool_Operator.NOT,
-    ",": Separator.COMMA,
-    ":": Separator.COLON,
-    "#": Separator.HASHTAG,
-    "=": Separator.ASSIGN,
-    "if": Keyword.IF,
-    "else": Keyword.ELSE,
-    "elif": Keyword.ELIF,
-    "while": Keyword.WHILE,
-    "for": Keyword.FOR,
-    "in": Keyword.IN,
-    "return": Keyword.RETURN,
-    "break": Keyword.BREAK,
-    "continue": Keyword.CONTINUE,
-    "int": Datatype.INT,
-    "float": Datatype.FLOAT,
-    "str": Datatype.STRING,
-    "bool": Datatype.BOOL,
-    "void": Datatype.VOID,
-    "@main": Decorator.MAIN,
-    "@board": Decorator.BOARD,
+    "+": (Math_Operator.PLUS, Math_Operator),
+    "-": (Math_Operator.MINUS, Math_Operator),
+    "*": (Math_Operator.MULTIPLY, Math_Operator),
+    "/": (Math_Operator.DIVIDE, Math_Operator),
+    "%": (Math_Operator.MODULO, Math_Operator),
+    "//": (Math_Operator.FLOOR_DIVIDE, Math_Operator),
+    "==": (Compare_Operator.EQUAL, Compare_Operator),
+    "!=": (Compare_Operator.NOT_EQUAL, Compare_Operator),
+    ">": (Compare_Operator.GREATER, Compare_Operator),
+    ">=": (Compare_Operator.GREATER_EQUAL, Compare_Operator),
+    "<": (Compare_Operator.LESS, Compare_Operator),
+    "<=": (Compare_Operator.LESS_EQUAL, Compare_Operator),
+    "and": (Bool_Operator.AND, Bool_Operator),
+    "or": (Bool_Operator.OR, Bool_Operator),
+    "not": (Bool_Operator.NOT, Bool_Operator),
+    ",": (Separator.COMMA, Separator),
+    ":": (Separator.COLON, Separator),
+    "#": (Separator.HASHTAG, Separator),
+    "=": (Separator.ASSIGN, Separator),
+    "if": (Keyword.IF, Keyword),
+    "else": (Keyword.ELSE, Keyword),
+    "elif": (Keyword.ELIF, Keyword),
+    "while": (Keyword.WHILE, Keyword),
+    "for": (Keyword.FOR, Keyword),
+    "in": (Keyword.IN, Keyword),
+    "return": (Keyword.RETURN, Keyword),
+    "break": (Keyword.BREAK, Keyword),
+    "continue": (Keyword.CONTINUE, Keyword),
+    "int": (Datatype.INT, Datatype),
+    "float": (Datatype.FLOAT, Datatype),
+    "str": (Datatype.STRING, Datatype),
+    "bool": (Datatype.BOOL, Datatype),
+    "void": (Datatype.VOID, Datatype),
+    "@main": (Decorator.MAIN, Decorator),
+    "@board": (Decorator.BOARD, Decorator)
 }
 
 if __name__ == '__main__':
-    print(Token.tokenize("int x = 0", Position(0, 0)))
+    print([str(t) for t in Token.tokenize("int x = (42 + 2) * 3", Position(0, 0))])

@@ -19,7 +19,7 @@ class Runner:
     def run(self):
         if not self.compiled:
             self.compile()
-        subprocess.call("cls", shell=True)
+        #subprocess.call("cls", shell=True)
         if self.board:
             self.run_board()
         if self.pc:
@@ -83,5 +83,6 @@ class Runner:
             print("Extracting MinGW...")
             patoolib.extract_archive("mingw/MinGW.7z", outdir="mingw")
             print("MinGW installed")
+
 
 
