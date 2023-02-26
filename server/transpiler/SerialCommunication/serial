@@ -22,19 +22,27 @@ PC
     (1)
 
 Instruction + Value:
-      (0): disconnect
+      (0): disconnectf
 
-    a (97): analogRead (Value Analog Port from '0' to '5' (0 to 5)
-    b (98) : analogWrite (Value Digital Port from '0' to '13' (0 to 13), value from 0 to 255
-    c (99) : digitalRead (Value Digital Port from '0' to '13' (0 to 13)
-    d (100) : digitalWrite (Value Digital Port from '0' to '13' (0 to 13), value 0 or 1
-    f (102) : getInt (Value Variable ID (4 bytes))
-    g (103) : getFloat (Value Variable ID (4 bytes))
-    h (104) : getChar (Value Variable ID (4 bytes))
-    i (105) : getIntArray (Value Variable ID (4 bytes))
-    j (106) : getFloatArray (Value Variable ID (4 bytes))
-    k (107) : getCharArray (Value Variable ID (4 bytes))
-    l (109) : print (Value Chars)
+    #a (97): analogRead (Value Analog Port from '0' to '5' (0 to 5)
+    #b (98) : analogWrite (Value Digital Port from '0' to '13' (0 to 13), value from 0 to 255
+    #c (99) : digitalRead (Value Digital Port from '0' to '13' (0 to 13)
+    #d (100) : digitalWrite (Value Digital Port from '0' to '13' (0 to 13), value 0 or 1
+    #f (102) : getInt (Value Variable ID (4 bytes))
+    #g (103) : getFloat (Value Variable ID (4 bytes))
+    #h (104) : getChar (Value Variable ID (4 bytes))
+    #i (105) : getIntArray (Value Variable ID (4 bytes))
+    #j (106) : getFloatArray (Value Variable ID (4 bytes))
+    #k (107) : getCharArray (Value Variable ID (4 bytes))
+    l (108) : print (Value Chars)
+    m (109) : function (Function ID (1 Byte), args)
+    n (110) : builtinFunction (zum arduino) (Function ID (1 Byte), args)
+
+Builtin IDs:
+    0: analogRead
+    1: analogWrite
+    2: digitalRead
+    3: digitalWrite
 
 
 Request ID: 1 bytes, 0 - 50 von PC aus, 51 - 100 von Arduino aus

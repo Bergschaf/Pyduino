@@ -1,7 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
-
+        
         {
             "name": "Launch Client",
             "type": "extensionHost",
@@ -30,12 +30,11 @@
                 "--tcp"
             ],
             "justMyCode": false,
-            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "python": "${workspaceFolder}/env/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "env": {
                 "python.PYTHONPATH": "${workspaceFolder}"
             }
-
         },
         {
             "name": "Launch Server [WebSockets]",
@@ -46,14 +45,12 @@
                 "--ws"
             ],
             "justMyCode": false,
-            "python": "$${workspaceFolder}/venv/Scripts/python.exe",
+            "python": "$${workspaceFolder}/env/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "env": {
                 "python.PYTHONPATH": "${workspaceFolder}"
             }
-        },
-
-
+        }
     ],
     "compounds": [
         {

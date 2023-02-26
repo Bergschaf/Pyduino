@@ -1,7 +1,4 @@
 node_modules
-pygls.log
+temp
 mingw/MinGW
-
-
-*.vsix
-*.pyc
+cmake-build-debug

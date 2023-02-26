@@ -45,7 +45,7 @@ class Position:
             return True
         if self.line < other.line:
             return False
-        if self.col > other.col:
+        if self.col >= other.col:
             return True
         return False
 
@@ -115,11 +115,16 @@ class Error:
         return f"{self.message} at line {self.range}"
 
     def get_Diagnostic(self, transpiler: 'Transpiler'):
-        return lsp.Diagnostic(range=lsp.Range(
-            start=lsp.Position(line=self.range.start.line + transpiler.data.line_offset, character=self.range.start.col),
-            end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col)),
+        return lsp.Diagnostic(
+            range=lsp.Range(
+                start=lsp.Position(line=self.range.start.line + transpiler.data.line_offset,
+                                   character=self.range.start.col),
+                end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col),
+            ),
             message=self.message,
-            source="Pyduino Language server")
+            severity=lsp.DiagnosticSeverity.Error,  # TODO THANK YOU GITHUB COPILOT
+            source="pyduino",
+        )
 
 
 class InvalidLineError(Exception):
@@ -423,11 +428,14 @@ class StringUtils:
     def getIndentations(self, code: list[str]) -> list[int]:
         """Returns a list of indentation levels for each line in the given code.
         The indentation level is the number of four spaces at the start of the line."""
-        indentations = []
+        indentations = [0]
         for i, line in enumerate(code):
-            indentations.append(self.getIndentation(line, i))
+            if line.strip() == "":
+                indentations.append(indentations[i-1])
+            else:
+                indentations.append((len(line) - len(line.lstrip())) // 4)
 
-        return indentations
+        return indentations[1:]
 
     def findClosingBracketInCode(self, bracket: str, pos: Position,
                                  fallback: type[StringNotFound_Fallback] = StringNotFound_ErrorFirstLine,
@@ -601,6 +609,9 @@ class StringUtils:
     @staticmethod
     def check_colon(line: "list[Token]", transpiler: 'Transpiler') -> 'list[Token]':
         # returns line without colon
+        if len(line) == 0:
+            return line
+
         from server.transpiler.tokenizer import Separator
         if line[-1].type != Separator.COLON:
             transpiler.data.newError("Expected ':'", line[-1].location)
@@ -612,6 +623,8 @@ class StringUtils:
         """
         Returns the last line with the same indentation as the given line
         """
+        if start_line >= len(transpiler.location.indentations):
+            return start_line
         indent = transpiler.location.indentations[start_line]
         for i in range(transpiler.location.position.line + 1, len(transpiler.location.indentations)):
             if transpiler.location.indentations[i] < indent:
@@ -650,7 +663,7 @@ class StringUtils:
     @staticmethod
     def next_sysvar():
         Data.sys_var_index += 1
-        return f"__sysvar__{Data.sys_var_index}"
+        return f"_sysvar_{Data.sys_var_index}"
 
 
 import server.transpiler.tokenizer as t
@@ -661,7 +674,6 @@ class Data:
 
     def __init__(self, code: list[str], line_offset: int, strict_mode: bool = False):
         self.code: list[str] = code
-        self.connection_needed: bool = False
         self.code_tokens: 'list[list[Token]]' = []
         self.line_offset: int = line_offset
         self.indentations: list[int] = []
@@ -671,6 +683,10 @@ class Data:
         self.invalid_line_fallback: type[InvalidLine_Fallback] = InvalidLine_Skip
         self.strict_mode: bool = strict_mode  # If true, the transpiler will stop on the first error
         self.in_function: Function = None
+        self.in_loop: int = 0
+        self.current_decorator: str = None
+        self.remote_function_count: int = 0  # the number of functions that can be called from the other platform
+        self.remote_functions: list[Function] = []  # the functions that can be called from the other platform
 
         self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
                           t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,
@@ -685,7 +701,9 @@ class Data:
                                 [t.Bool_Operator.AND], [t.Bool_Operator.OR]]
         self.VALID_NAME_END_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 
-    def newError(self, message: str, range: Range):
+    def newError(self, message: str, range: Range | Position):
+        if type(range) is Position:
+            range = Range.fromPosition(range)
         self.errors.append(Error(message, range))
         if self.strict_mode:
             raise SyntaxError(message)
@@ -696,7 +714,7 @@ class Data:
             if location.start.line != location.end.line:
                 return self.code[location.start.line][location.start.col:] + "".join(
                     self.code[location.start.line + 1:location.end.line]) + \
-                       self.code[location.end.line][:location.end.col + 1]
+                    self.code[location.end.line][:location.end.col + 1]
             else:
                 return self.code[location.start.line][location.start.col:location.end.col + 1]
         else:

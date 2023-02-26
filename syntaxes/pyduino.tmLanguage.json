@@ -25,7 +25,7 @@
 			},
 			{
 				"name": "storage.type.pyduino",
-				"match": "\\b(int|float|def)\\b"
+				"match": "\\b(int|float|void|str|bool)\\b"
 			},
 			{
 				"name":"constant.numeric.pyduino",
@@ -34,7 +34,7 @@
 
 			{
 				"name": "support.function.builtin.pyduino.arduino",
-			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay)\\b"
+			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay|millis)\\b"
 			},
 			{
 				"name": "support.function.builtin.pyduino.general",
@@ -50,8 +50,11 @@
 			{
 				"name":"comment.line.number-sign.pyduino",
 				"match":"#.*$" 
+			},
+			{
+				"name":"entity.name.function.decorator.python",
+				"match":"@\\w+"
 			}
-
 			]
 			
 			

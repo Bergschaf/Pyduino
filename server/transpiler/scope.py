@@ -15,7 +15,7 @@ class Scope:
         self.variables: dict[Range, list[Variable]]
         self.functions: list[Function]
 
-        self.variables = {Range(0, 0, end_line=len(self.data.indentations) - 1, complete_line=True, data=data): []}
+        self.variables = {Range(0, 0, end_line=len(data.code) - 1, complete_line=True, data=data): []}
         self.functions = []
 
         for i in range(1, len(self.data.indentations)):
@@ -30,6 +30,7 @@ class Scope:
                 else:
                     end = len(self.data.indentations) - 1
                 self.variables[Range(start, 0, end_line=end, complete_line=True, data=data)] = []
+        x = 0
 
     def get_Variable(self, name: str, position: Position) -> 'Variable':
         for i in self.variables:
@@ -37,6 +38,13 @@ class Scope:
                 for j in self.variables[i]:
                     if j.name == name:
                         return j
+        return False
+
+    def get_Function(self, name: str, position: Position) -> 'Function':
+        for i in self.functions:
+            if i.name == name:
+                if position.is_bigger(i.position):
+                    return i
         return False
 
     def add_Variable(self, variable: 'Variable', position: 'Position'):
@@ -48,10 +56,7 @@ class Scope:
         function.position = position
         self.functions.append(function)
 
-    def get_Function(self, name: str, position: Position) -> Function | bool:
-        for i in self.functions:
-            if i.name == name:
-                if position.is_bigger(i.position):
-                    return i
-        return False
-
+    def add_functions(self, functions: list['Function']):
+        for f in functions:
+            f.position = Position(0, 0)
+        self.functions.extend(functions)
