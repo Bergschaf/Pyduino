@@ -185,7 +185,7 @@ class Arduino {
                 continue;
             }
 
-            //cout << "read: " << (int)static_cast<u_char>(dataBuffer[0]) << endl;
+            //cout << "read: " << dataBuffer[0] << " | " << (int)static_cast<u_char>(dataBuffer[0]) << endl;
             if (dataBuffer[0] != StartCharacter && dataBuffer[0] != ResponseStartCharacter) {
                 continue;
             }
@@ -193,7 +193,7 @@ class Arduino {
             bool request = dataBuffer[0] == StartCharacter;
             while (true) {
                 readResult = SP->ReadData(dataBuffer, 1);
-                //cout << "read: " << (int)static_cast<u_char>(dataBuffer[0]) << "  request: " << request<< endl;
+                //cout << "read: " << dataBuffer[0] << " | "<< (int)static_cast<u_char>(dataBuffer[0]) << "  request: " << request<< endl;
                 if (readResult == 0) {
                     continue;
                 }
@@ -256,6 +256,12 @@ public:
             outgoingData[i + 3] = data[i];
         }
         outgoingData[size + 3] = ResponseEndCharacter;
+
+        //cout << "send response: ";
+        //for (int i = 0; i < size+4; ++i) {
+        //    cout << " ( " << outgoingData[i] << " | " << (int)(static_cast<u_char>(outgoingData[i])) << " ) ";
+        //}
+        //cout << endl;
 
         SP->WriteData(outgoingData, size + 4);
     }

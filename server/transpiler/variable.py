@@ -490,7 +490,7 @@ class PyduinoString(PyduinoType):
         return False, f"Cannot add {other} to string"
 
     def to_string(self):
-        return True, PyduinoString(f"String({self.name})")
+        return True, PyduinoString(f"{self.name}")
 
     def to_bool(self):
         return True, PyduinoBool(f"({self.name} != \"\")")
@@ -574,7 +574,7 @@ class PyduinoArray(PyduinoType):
         to_string = item.to_string()[1].name
 
         return True, PyduinoString(
-            f"[](auto arr,int len) -> string {{string str = \"[\"; for (int i = 0; i < len; i++) {{str += {to_string}; if (i != len - 1) str += \", \";}} str += \"]\"; return str;}}( {self.name}, {self.len()[1].name} )")
+            f"[]({self.item.c_typename()}* arr,int len) -> string {{string str = \"[\"; for (int i = 0; i < len; i++) {{str += {to_string}; if (i != len - 1) str += \", \";}} str += \"]\"; return str;}}( {self.name}, {self.len()[1].name} )")
 
 
     def to_bool(self):

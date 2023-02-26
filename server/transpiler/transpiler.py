@@ -254,10 +254,14 @@ class Transpiler:
                 main.scope.add_functions(definition_main.scope.functions)
                 main.data.remote_functions.extend(definition_main.data.remote_functions)
                 main.data.errors.extend(definition_main.data.errors)
+                if definition_main.connection_needed:
+                    main.connection_needed = True
             if board:
                 board.scope.add_functions(definition_board.scope.functions)
                 board.data.remote_functions.extend(definition_board.data.remote_functions)
                 board.data.errors.extend(definition_board.data.errors)
+                if definition_board.connection_needed:
+                    board.connection_needed = True
 
         if board:
             board.transpileTo(len(board.data.code))

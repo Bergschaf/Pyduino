@@ -66,7 +66,7 @@ class Control:
 
             if line[0].type == Keyword.ELIF and data.indentations[index] == data.indentations[if_position]:
 
-                instruction = StringUtils.check_colon(instruction, transpiler)
+                instruction = StringUtils.check_colon(line, transpiler)
 
                 condition = Control.do_condition(instruction[1:], transpiler, "elif")
 

@@ -50,10 +50,12 @@ class Function:
                         code.append(f"temp_buffer[{i}] = data[{current_size}];")
                         current_size += 1
 
-                    code.append(f"{arg.type.c_typename()} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
+                    code.append(
+                        f"{arg.type.c_typename()} {arg.name} = {arg.type.bytes_to_type('temp_buffer')[1].name};")
 
             if not self.return_type.is_type(PyduinoVoid()):
-                code.append(f"{self.return_type.c_typename()} result = {self.on_call(self.args, self.name, transpiler)};")
+                code.append(
+                    f"{self.return_type.c_typename()} result = {self.on_call(self.args, self.name, transpiler)};")
                 self.return_type.name = "result"
 
                 code.append(f"char *temp_buffer_2;")
@@ -123,6 +125,7 @@ class Function:
                     code.append(f"return {self.return_type.bytes_to_type('temp_buffer2')[1].name};}}")
                 else:
                     code.append(f"}}")
+            transpiler.connection_needed = True
             self.code = code
 
     @staticmethod
@@ -296,13 +299,11 @@ class Function:
             transpiler.data.code_done.append(func.on_call(args_c, func.name, transpiler) + ";")
             return True
         else:
-            # var = transpiler.utils.next_sysvar()
-            # transpiler.data.code_done.append(
-            # ä    f"{func.return_type} {var} = {func.on_call(args_c, func.name, transpiler)};")
-            # return Variable(var, func.return_type, instruction[0].location)
-            call = func.on_call(args_c, func.name, transpiler)
-            type = func.return_type.copy()
-            return Constant(call, type, instruction[0].location)
+            var = transpiler.utils.next_sysvar()
+            transpiler.data.code_done.append(
+                f"{func.return_type.c_typename()} {var} = {func.on_call(args_c, func.name, transpiler)};")
+            return Variable(var, func.return_type, instruction[0].location)
+
 
     @staticmethod
     def check_decorator(instruction: list[Token], transpiler: 'Transpiler') -> bool:

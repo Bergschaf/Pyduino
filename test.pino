@@ -1,7 +1,10 @@
 #main
-int[][] a = [[1,2,3],[4,5,6]]
-str[] s = ["hellod", "d"]
-print(a)
-print(s)
-for i in a:
-    print(len(a),i)
+int x = 10
+if x > 9:
+    print("x is greater than 9")
+
+elif x > 8:
+    print("x is greater than 8")
+
+else:
+    print("x is less than 8")
