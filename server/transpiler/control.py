@@ -1,3 +1,5 @@
+import time
+
 from server.transpiler.pyduino_utils import *
 from server.transpiler.variable import *
 
@@ -195,3 +197,11 @@ class Control:
             transpiler.data.code_done.append(f"for (int {counter_name} = {range_args[0].name}; {counter_name} > {range_args[1].name}; {counter_name} += {range_args[2].name}) {{")
             transpiler.data.code_done.extend(transpiler.data.code_done[len_before:-2])
             transpiler.data.code_done.append("}")
+
+if __name__ == '__main__':
+    def fib(n):
+        return n if n < 2 else fib(n-1) + fib(n-2)
+
+    t1 = time.time()
+    print(fib(40))
+    print("took ", time.time() - t1, " seconds")
