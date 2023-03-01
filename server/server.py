@@ -1,4 +1,5 @@
 import json
+import os.path
 from json import JSONDecodeError
 from lsprotocol.types import (TEXT_DOCUMENT_DID_CHANGE,
                               TEXT_DOCUMENT_DID_OPEN)
@@ -10,6 +11,22 @@ from server.transpiler.transpiler import Transpiler
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
 
+SETTINGS_JSON = """
+{
+    "actionButtons": {
+        "reloadButton": null,
+        "loadNpmCommands": false,
+        "commands": [
+            {
+                "name": "$(triangle-right) Run Pyduino",
+                "cwd": "${extensionInstallFolder:Bergschaf.pyduino}",
+                "command": "env/Scripts/python.exe run.py ${file}",
+                "singleInstance": true
+            }
+        ]
+    },
+    "files.autoSave": "onFocusChange"
+}"""
 
 class PyduinoLanguageServer(LanguageServer):
 
@@ -63,5 +80,15 @@ def did_change(ls, params: DidChangeTextDocumentParams):
 @pyduino_server.feature(TEXT_DOCUMENT_DID_OPEN)
 async def did_open(ls, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
-    ls.show_message('Text Document Did Open')
+    ls.show_message('Pyduino activated')
+
+    text_doc = ls.workspace.get_document(list(ls.workspace.documents.keys())[0])
+    base_path = os.path.dirname(text_doc.path)
+    if not os.path.exists(base_path + "\\\\.vscode"):
+        os.mkdir(base_path + "\\\\.vscode")
+
+    with open(base_path + "\\\\.vscode/settings.json", "w") as f:
+        f.write(SETTINGS_JSON)
+
+
     _validate(ls, params)

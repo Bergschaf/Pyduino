@@ -34,6 +34,12 @@ class Runner:
     def compile(self):
         code_pc, code_board = Transpiler.get_code(self.code.splitlines())
 
+        if not os.path.isdir(TEMP_FOLDER):
+            os.mkdir(TEMP_FOLDER)
+
+        if not os.path.isdir(f"{TEMP_FOLDER}/temp_board"):
+            os.mkdir(f"{TEMP_FOLDER}/temp_board")
+
         if code_pc:
             with open(f"{TEMP_FOLDER}/temp_pc.cpp", "w") as f:
                 f.write(code_pc)
@@ -57,6 +63,11 @@ class Runner:
             f'cmd /c "set PATH=%PATH%;{os.getcwd()}/mingw/MinGW/bin&g++ {path} -o temp_{self.runner_id}.exe')
 
     def get_port(self):
+        if os.path.isfile("temp/port.txt"):
+            with open("temp/port.txt", "r") as f:
+                self.port = f.read()
+            return self.port
+
         if self.port:
             return self.port
 
