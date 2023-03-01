@@ -37,6 +37,9 @@ class Runner:
         if not os.path.isdir(TEMP_FOLDER):
             os.mkdir(TEMP_FOLDER)
 
+        if not os.path.isdir(f"{TEMP_FOLDER}/temp_board"):
+            os.mkdir(f"{TEMP_FOLDER}/temp_board")
+
         if code_pc:
             with open(f"{TEMP_FOLDER}/temp_pc.cpp", "w") as f:
                 f.write(code_pc)
