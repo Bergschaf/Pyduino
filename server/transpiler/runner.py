@@ -34,6 +34,9 @@ class Runner:
     def compile(self):
         code_pc, code_board = Transpiler.get_code(self.code.splitlines())
 
+        if not os.path.isdir(TEMP_FOLDER):
+            os.mkdir(TEMP_FOLDER)
+
         if code_pc:
             with open(f"{TEMP_FOLDER}/temp_pc.cpp", "w") as f:
                 f.write(code_pc)
