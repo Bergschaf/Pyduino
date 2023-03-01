@@ -57,6 +57,11 @@ class Runner:
             f'cmd /c "set PATH=%PATH%;{os.getcwd()}/mingw/MinGW/bin&g++ {path} -o temp_{self.runner_id}.exe')
 
     def get_port(self):
+        if os.path.isfile("temp/port.txt"):
+            with open("temp/port.txt", "r") as f:
+                self.port = f.read()
+            return self.port
+
         if self.port:
             return self.port
 

@@ -40,7 +40,7 @@ public:
             sleep_for(microseconds(1));
             microsecondsWaited++;
             if (microsecondsWaited / 1000 > DataTimeout) {
-                cout << "Error: Timeout while waiting for response  request_id: " << requestID <<  endl;
+                cout << "Error: Timeout while waiting for response  request_id: " << requestID << endl;
                 return;
             }
         }
@@ -48,7 +48,7 @@ public:
             Responses[requestID][0] = 0;
             return;
         }
-        *targetVariable = bytesToType(Responses[requestID]+1);
+        *targetVariable = bytesToType(Responses[requestID] + 1);
         Responses[requestID][0] = 0;
     }
 
@@ -209,11 +209,9 @@ class Arduino {
     }
 
 
-
-
 public:
     char Responses[MaxRequests][MaxRequestsLength]{};
-    char Requests[MaxRequests] {};
+    char Requests[MaxRequests]{};
     char request_id = 0;
 
     Serial *SP;
@@ -221,8 +219,31 @@ public:
 
     void (*do_function)(Arduino, char *, char, char);
 
+    Arduino() {
+        // open "temp/port.txt" and read the port name
+        ifstream portFile("temp/port.txt");
+        string portNamef;
+        portFile >> portNamef;
+        portFile.close();
+        const char* portName = portNamef.c_str();
+        SP = new Serial(portName);
+        if (SP->IsConnected()) {
+            cout << "Connected to " << portName << endl;
+        } else {
+            cout << "Error: Could not connect to " << portName << endl;
+        }
+
+        if (Handshake()) {
+            cout << "Handshake successful" << endl;
+        } else {
+            cout << "Error: Handshake failed" << endl;
+        }
+        listenerThread = new thread(listener, this, SP);
+
+    }
+
     char next_request_id() {
-        while(true) {
+        while (true) {
             for (int i = 0; i < MaxRequests; ++i) {
                 if (Requests[i] == 0) {
                     Requests[i] = 1;
@@ -279,23 +300,6 @@ public:
         SP->WriteData(outgoingData, size + 5);
     }
 
-    Arduino() {
-        char portName[] = "COM5";
-        SP = new Serial(portName);
-        if (SP->IsConnected()) {
-            cout << "Connected to " << portName << endl;
-        } else {
-            cout << "Error: Could not connect to " << portName << endl;
-        }
-
-        if (Handshake()) {
-            cout << "Handshake successful" << endl;
-        } else {
-            cout << "Error: Handshake failed" << endl;
-        }
-        listenerThread = new thread(listener, this, SP);
-
-    }
 
     int analogRead(int pin) {
         char data[2] = {0, static_cast<char>(pin)};
@@ -314,7 +318,7 @@ public:
         bool result;
         delete new Promise<bool>(&result, bytesToBool, id, Responses);
         Requests[id] = 0;
-        return (int)result;
+        return (int) result;
     }
 
     void analogWrite(int pin, int value) {
@@ -334,7 +338,7 @@ public:
             value = 1;
             cout << "Warning: digitalWrite value to high, setting to 1" << endl;
         }
-        if(value == 1){
+        if (value == 1) {
             value = 255;
         }
         analogWrite(pin, value);

@@ -62,7 +62,7 @@ function startLangServer(command, args, cwd) {
     return new node_1.LanguageClient(command, serverOptions, getClientOptions());
 }
 function activate(context) {
-    if (context.extensionMode === vscode_1.ExtensionMode.Development) {
+    if (false) { //if (context.extensionMode === ExtensionMode.Development) {
         // Development - Run the server manually
         client = startLangServerTCP(2087);
         console.log("Development mode");
