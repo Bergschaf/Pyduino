@@ -4,6 +4,13 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/env" />
+      <excludeFolder url="file://$MODULE_DIR$/cmake-build-debug/CMakeFiles/3.24.2/CompilerIdC/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/cmake-build-debug/CMakeFiles/3.24.2/CompilerIdCXX/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/cmake-build-debug/CMakeFiles/CMakeTmp" />
+      <excludeFolder url="file://$MODULE_DIR$/cmake-build-debug/CMakeFiles/pkgRedirects" />
+      <excludeFolder url="file://$MODULE_DIR$/cmake-build-debug/CMakeFiles/Pyduino.dir" />
+      <excludeFolder url="file://$MODULE_DIR$/mingw/MinGW" />
+      <excludeFolder url="file://$MODULE_DIR$/server/transpiler/.pytest_cache/v" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

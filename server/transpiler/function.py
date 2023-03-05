@@ -410,7 +410,7 @@ class Builtin(Function):
     @staticmethod
     def digitalRead(args: list[Variable], name: str, transpiler: 'Transpiler'):
         if transpiler.mode == "board":
-            return f"digitalRead(digitalPorts[{args[0].name}])"
+            return f"digitalRead({args[0].name})"
         else:
             transpiler.connection_needed = True
             return f"arduino.digitalRead({args[0].name})"
