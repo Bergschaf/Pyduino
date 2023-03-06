@@ -90,5 +90,6 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
     with open(base_path + "\\\\.vscode/settings.json", "w") as f:
         f.write(SETTINGS_JSON)
 
+    ls.show_message('Pyduino Running')
 
     _validate(ls, params)
