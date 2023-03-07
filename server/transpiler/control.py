@@ -81,7 +81,7 @@ class Control:
             else:
                 break
 
-        if line[0].type == Keyword.ELSE and data.indentations[index] == data.indentations[if_position]:
+        if line[0].type == Keyword.ELSE and data.indentations[index] == data.indentations[if_position - 1]:
             StringUtils.check_colon(line, transpiler)
             data.code_done.append("else {")
             end_line = StringUtils.get_indentation_range(index + 1, transpiler)
