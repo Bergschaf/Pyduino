@@ -5,3 +5,4 @@ cmake-build-debug
 pygls.log
 temp_0.exe
 test.pino
+*.pyc

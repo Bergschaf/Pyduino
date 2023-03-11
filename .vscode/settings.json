@@ -26,6 +26,7 @@
     },
     "python.analysis.typeCheckingMode": "off",
     "cmake.configureOnOpen": false,
-    "window.title": "${dirty}${activeEditorShort}${separator}${folderPath}${separator}${appName}"
+    "window.title": "${dirty}${activeEditorShort}${separator}${folderPath}${separator}${appName}",
+    "C_Cpp.errorSquiggles": "disabled"
 
 }
