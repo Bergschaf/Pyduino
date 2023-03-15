@@ -1,5 +1,6 @@
 from server.transpiler.pyduino_utils import *
 
+
 # AST here
 class TokenType:
     def __init__(self, code, name):
@@ -12,6 +13,30 @@ class Token:
         self.type = type
         self.value = value
         self.location = location
+
+    @staticmethod
+    def tokenize_range(transpiler: 'Transpiler', string: list[str], start: Position) -> Indent:
+        indent = Indent(Range.fromPosition(start), [], None, 0)
+        for i, line in enumerate(string):
+            pos = Position(start.line + i, 0)
+            level = transpiler.utils.getIndentation(line)
+            if level > indent.level:
+                indent = Indent(Range.fromPosition(pos), [], indent, level)
+            elif level < indent.level:
+                while indent.level > level:
+                    indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
+                    indent.parent.inside.append([indent])
+                    indent = indent.parent
+            indent.inside.append(Token.tokenize(line, pos))
+
+        if level < indent.level:
+            while indent.level > level:
+                indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
+                indent.parent.inside.append([indent])
+                indent = indent.parent
+        indent.location.end = Position(pos.line, len(string[i]) - 1)
+        return indent
+
 
     @staticmethod
     def tokenize(string: str, start: Position) -> list['Token']:
@@ -109,8 +134,20 @@ class Token:
         return f"{self.type.name}{f' {self.value} ' if self.value is not None else ''} ({self.location})"
 
 
+class Indent(Token):
+    INDENT = TokenType("INDENT", "INDENT")
+
+    def __init__(self, location: Range, inside: list[list['Token']], parent: Indent, level=0):
+        self.inside = inside
+        self.parent = parent
+        self.level = level
+        super().__init__(self.INDENT, location, None)
+
+
 class Operator(Token):
-    def __init__(self, type: TokenType, location: Range, _):
+    def __init__(self, type: TokenType, location: Range, _, left=None, right=None):
+        self.left = left
+        self.right = right
         super().__init__(type, location, None)
 
 

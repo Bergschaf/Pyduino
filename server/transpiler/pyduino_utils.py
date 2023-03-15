@@ -415,7 +415,7 @@ class StringUtils:
         self.data: Data = data
         self.location: CurrentLocation = location
 
-    def getIndentation(self, line: str, line_id: int) -> int:
+    def getIndentation(self, line: str) -> int:
         """Returns the indentation level of the given line.
         The indentation level is the number of four spaces at the start of the line.
         location_updated should be True if the current location has been updated to the start of the line.
