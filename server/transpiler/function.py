@@ -418,7 +418,7 @@ class Builtin(Function):
     @staticmethod
     def digitalWrite(args: list[Variable], name: str, transpiler: 'Transpiler'):
         if transpiler.mode == "board":
-            return f"digitalWrite({args[0].name}, {args[1].name})"
+            return f"analogWrite({args[0].name}, {args[1].name} * 255)"
         else:
             transpiler.connection_needed = True
             return f"arduino.digitalWrite({args[0].name}, {args[1].name})"

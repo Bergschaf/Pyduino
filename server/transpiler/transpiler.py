@@ -293,6 +293,11 @@ class Transpiler:
 
             if main:
                 board.connection_needed = True if main.connection_needed else board.connection_needed
+            else:
+                if board.connection_needed:
+                    code_main = '''#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"\nint main(){\nArduino arduino = Arduino();
+                    arduino.listenerThread->join();return 0;}'''
+
             code_board = board.finish()
 
         return code_main, code_board

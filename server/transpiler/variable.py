@@ -748,7 +748,7 @@ class Value:
                         transpiler.data.newError(f"Variable {value[0].value} not defined", value[0].location)
                         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
-        transpiler.data.newError(f"Invalid value {value[0]}", value[0].location)
+        transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
