@@ -39,6 +39,12 @@ class Control:
         return instruction.name
 
     @staticmethod
+    def check_indent(transpiler: 'Transpiler', condition_type: str):
+        line = next(transpiler.current_indent.enumerator)
+
+
+
+    @staticmethod
     def do_if(instruction: list[Token], transpiler: 'Transpiler'):
 
         location, data = transpiler.location, transpiler.data
@@ -50,10 +56,8 @@ class Control:
         data.code_done.append(f"if ({condition}) {{")
 
         # Get the lentgh of the if-statement (identent part)
-        if_position = location.position.line  # the position of the if-statement
-        end_line = StringUtils.get_indentation_range(if_position + 1, transpiler)
+        if_position = transpiler.current_indent_id
 
-        transpiler.transpileTo(end_line)
 
         data.code_done.append("}")
 

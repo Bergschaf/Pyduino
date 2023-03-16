@@ -15,11 +15,18 @@ class Token:
         self.location = location
 
     @staticmethod
-    def tokenize_range(transpiler: 'Transpiler', string: list[str], start: Position) -> Indent:
+    def get_indentation(line: str):
+        i = len(line) - len(line.lstrip())
+        if i % 4 != 0:
+            return i // 4 + 1
+        return i // 4
+
+    @staticmethod
+    def tokenize_range(string: list[str], start: 'Position') -> 'Indent':
         indent = Indent(Range.fromPosition(start), [], None, 0)
         for i, line in enumerate(string):
             pos = Position(start.line + i, 0)
-            level = transpiler.utils.getIndentation(line)
+            level = Token.get_indentation(line)
             if level > indent.level:
                 indent = Indent(Range.fromPosition(pos), [], indent, level)
             elif level < indent.level:
@@ -29,17 +36,15 @@ class Token:
                     indent = indent.parent
             indent.inside.append(Token.tokenize(line, pos))
 
-        if level < indent.level:
-            while indent.level > level:
-                indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
-                indent.parent.inside.append([indent])
-                indent = indent.parent
+        while indent.level > 0:
+            indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
+            indent.parent.inside.append([indent])
+            indent = indent.parent
         indent.location.end = Position(pos.line, len(string[i]) - 1)
         return indent
 
-
     @staticmethod
-    def tokenize(string: str, start: Position) -> list['Token']:
+    def tokenize(string: str, start: 'Position') -> list['Token']:
         bracket_levels = [0, 0, 0]
         last_space = start
         last_bracket = start
@@ -104,7 +109,7 @@ class Token:
         return isinstance(value, Token)
 
     @staticmethod
-    def get_token(string: str, range: Range) -> 'Token':
+    def get_token(string: str, range: 'Range') -> 'Token':
 
         range = Range.fromPositions(range.start.add_col(len(string) - len(string.lstrip())),
                                     range.end.add_col(-len(string) + len(string.rstrip())))
@@ -137,11 +142,15 @@ class Token:
 class Indent(Token):
     INDENT = TokenType("INDENT", "INDENT")
 
-    def __init__(self, location: Range, inside: list[list['Token']], parent: Indent, level=0):
+    def __init__(self, location: Range, inside: list[list['Token']], parent: 'Indent', level=0):
         self.inside = inside
         self.parent = parent
         self.level = level
+        self.enumerator = enumerate(self.inside)
         super().__init__(self.INDENT, location, None)
+
+    def __repr__(self):
+        return f"INDENT {self.level} {self.inside}"
 
 
 class Operator(Token):
@@ -270,4 +279,4 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print([str(t) for t in Token.tokenize("int x = (42 + 2) * 3", Position(0, 0))])
+    print(Token.tokenize_range(["int x = (42 + 2) * 3", "    int x = 0"], Position(0, 0)))

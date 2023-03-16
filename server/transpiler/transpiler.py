@@ -21,11 +21,8 @@ class Transpiler:
 
         self.utils: StringUtils = StringUtils(self.location, self.data, self)
 
-
-
-        self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
-        self.data.indentations = self.utils.getIndentations(self.data.code)
-        self.location.indentations = self.data.indentations
+        self.parent_indent = Token.tokenize_range(code, Position(line_offset, 0))
+        self.current_indent = self.parent_indent
 
         self.data.enumerator = enumerate(self.data.code_tokens)
 
@@ -38,25 +35,22 @@ class Transpiler:
                        Function.check_return, Function.check_call,
                        Function.check_decorator]  # the functions to check for different instruction types
 
-    def next_line(self):
-        index, line = next(self.data.enumerator)
-        self.location.next_line()
-        self.do_line(line)
-
     def copy(self):
         return Transpiler(self.data.code, self.mode, self.definition, self.data.line_offset)
 
-    def transpileTo(self, line: int):
+    def transpileRange(self, indent: Indent):
         """
         Transpiles up to the given line
         """
-        while self.location.position.line < line:
+        while True:
             try:
-                self.next_line()
+
+                line, id = next(indent.enumerator)
+                self.current_indent = indent
+                self.location.next_line()
+                self.do_line(line)
             except StopIteration:
-                print("Stop Iteration")
-                # The end of the code is reached
-                break
+                return
             except EndOfFileError:
                 print("EOF")
                 # The end of the code is reached
@@ -72,6 +66,7 @@ class Transpiler:
             #    break
 
     def do_line(self, line: list[Token]):
+
         if Separator.HASHTAG in [t.type for t in line]:
             line = line[:[t.type for t in line].index(Separator.HASHTAG)]
 
@@ -81,6 +76,11 @@ class Transpiler:
         if line[-1].type == Separator.SEMICOLON:
             line = line[:-1]
             self.data.newError("We don't do that here", line[-1].location)
+
+        if line[0].type == Indent.INDENT:
+            self.data.newError("Unexpected indent", line[0].location)
+            self.transpileRange(line[0])
+            return
 
         if self.definition and self.data.in_function is None:
             if not Function.check_definition(line, self):
@@ -115,10 +115,10 @@ class Transpiler:
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
             code.append("typedef int py_int;")
-            code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
-            code.append("std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
-
-
+            code.append(
+                "std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
+            code.append(
+                "std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
 
             for f in self.scope.functions:
                 if f.called:
@@ -174,7 +174,6 @@ class Transpiler:
                 code.append("void setup() {")
                 code.extend(self.data.code_done)
                 code.append("} \nvoid loop() { }")
-
 
         return "\n".join(code)
 
