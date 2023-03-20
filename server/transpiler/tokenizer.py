@@ -191,7 +191,7 @@ class Decorator(Token):
     DECORATORS = [MAIN, BOARD, UNKNOWN]
 
 
-NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
+NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ";"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
     "+": (Math_Operator.PLUS, Math_Operator),
@@ -211,6 +211,7 @@ TOKENS = {
     "not": (Bool_Operator.NOT, Bool_Operator),
     ",": (Separator.COMMA, Separator),
     ":": (Separator.COLON, Separator),
+    ";": (Separator.SEMICOLON, Separator),
     "#": (Separator.HASHTAG, Separator),
     "=": (Separator.ASSIGN, Separator),
     "if": (Keyword.IF, Keyword),
