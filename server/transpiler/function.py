@@ -1,5 +1,5 @@
 from server.transpiler.variable import *
-
+from server.transpiler.control import Control
 
 class Function:
     @staticmethod
@@ -191,7 +191,7 @@ class Function:
                                              arg_name.location)
                 last_comma = i
                 var = Variable(arg_name.value, datatype, arg_name.location)
-                transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
+                transpiler.scope.add_Variable(var)
                 arguments.append(var)
 
         func = Function(name.value, return_type, arguments, decorator=decorator)
@@ -202,10 +202,9 @@ class Function:
         transpiler.data.code_done.append(
             f"{return_type.c_typename()} {name.value}({', '.join([f'{arg.type.c_typename()} {arg.name}' for arg in arguments])}) {{")
 
-        end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
         transpiler.data.in_function = func
-        transpiler.transpileTo(end_line)
+        Control.check_indent(transpiler,"Function")
         transpiler.data.in_function = prev
         transpiler.data.code_done.append("}")
         func.code = transpiler.data.code_done[code_done_start_index:]

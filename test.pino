@@ -1,5 +1,5 @@
 #main
 
 print("Hello World")
-for i in range(100):
+for i in range(10,-13,-2):
     print(i)

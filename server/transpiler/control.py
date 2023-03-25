@@ -198,7 +198,7 @@ class Control:
             counter = Variable(counter_name, iterable.type.item, left[0].location)
 
         end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
-        transpiler.scope.add_Variable(counter, left[0].location.start.add_line(1))
+        transpiler.scope.add_Variable(counter)
 
         transpiler.data.in_loop += 1
         len_before = len(transpiler.data.code_done)

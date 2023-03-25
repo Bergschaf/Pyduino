@@ -24,7 +24,7 @@ class Transpiler:
         self.parent_indent = Token.tokenize_range(code, Position(line_offset, 0))
         self.current_indent = self.parent_indent
 
-        self.scope: Scope = Scope(self.data, self.location)
+        self.scope: Scope = Scope(self)
 
         Builtin.add_builtins(self)
 

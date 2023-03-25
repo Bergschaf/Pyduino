@@ -8,14 +8,14 @@ from server.transpiler.pyduino_utils import *
 
 
 class Scope:
-    def __init__(self, transpiler: Transpiler):
+    def __init__(self, transpiler: 'Transpiler'):
         self.transpiler = transpiler
         self.functions = []
 
 
     def get_Variable(self, name: str) -> 'Variable':
         indent = self.transpiler.current_indent
-        while indent.level > 0:
+        while indent:
             for i in indent.variables:
                 if i.name == name:
                     return i
