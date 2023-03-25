@@ -1,5 +1,5 @@
 #main
 
-print("Hello World")
-for i in range(10,-13,-2):
-    print(i)
+float a  = 2.7222
+int b = int(a)
+print(b)

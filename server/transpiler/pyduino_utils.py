@@ -122,7 +122,7 @@ class Error:
                 end=lsp.Position(line=self.range.end.line + transpiler.data.line_offset, character=self.range.end.col),
             ),
             message=self.message,
-            severity=lsp.DiagnosticSeverity.Error,  # TODO THANK YOU GITHUB COPILOT
+            severity=lsp.DiagnosticSeverity.Error,
             source="pyduino",
         )
 

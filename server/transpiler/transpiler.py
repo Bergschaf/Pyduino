@@ -16,7 +16,7 @@ class Transpiler:
         self.mode = mode
         self.definition = definition
         self.connection_needed = False
-        self.data: Data = Data(code, line_offset)
+        self.data: Data = Data(code, 0)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
 
         self.utils: StringUtils = StringUtils(self.location, self.data, self)

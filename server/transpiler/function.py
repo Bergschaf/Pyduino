@@ -248,6 +248,9 @@ class Function:
         if instruction[1].type != Brackets.ROUND:
             return False
 
+        if instruction[0].type == Datatype.INT:
+            instruction[0] = Token(Word.IDENTIFIER,instruction[0].location, "int")
+
         if instruction[0].type != Word.IDENTIFIER:
             return False
 
@@ -345,7 +348,8 @@ class Builtin(Function):
             Builtin("digitalRead", PyduinoInt(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalRead),
             Builtin("digitalWrite", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)),
                                                     Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalWrite),
-            Builtin("random", PyduinoInt(), [], Builtin.random, pythonic_overload=True)
+            Builtin("random", PyduinoInt(), [], Builtin.random, pythonic_overload=True),
+            Builtin("int", PyduinoInt(), [Variable("args", PyduinoAny(), Range(0, 0))], Builtin.int),
 
         ])
 
@@ -438,6 +442,16 @@ class Builtin(Function):
         else:
             transpiler.data.newError("random() takes 1 or 2 arguments", Range.fromPositions(args[0].location.start, args[-1].location.end))
             return False
+
+    @staticmethod
+    def int(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        possible, value = args[0].type.to_int()
+        if not possible:
+            transpiler.data.newError(value, args[0].location)
+            return False
+
+        return value.name
+
 
 if __name__ == '__main__':
 
