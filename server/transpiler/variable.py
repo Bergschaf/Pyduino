@@ -806,7 +806,7 @@ class Variable(Value):
         else:
             c_code = f"{variable.type.c_typename()} {name.value} = {c_value};"
 
-        transpiler.scope.add_Variable(variable, variable.location.start)
+        transpiler.scope.add_Variable(variable)
         transpiler.data.code_done.append(c_code)
         return True
 
@@ -883,7 +883,7 @@ class Variable(Value):
         if left[0].type != Word.IDENTIFIER:
             transpiler.data.newError(f"{left[0].value} is not a valid variable name", left[0].location)
 
-        variable = transpiler.scope.get_Variable(left[0].value, left[0].location.start)
+        variable = transpiler.scope.get_Variable(left[0].value)
         if not variable:
             transpiler.data.newError(f"Variable '{left[0].value}' is not defined", left[0].location)
             transpiler.data.invalid_line_fallback.fallback(transpiler)

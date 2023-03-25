@@ -1,2 +1,5 @@
 #main
-analogRead(0);
+
+print("Hello World")
+for i in range(100):
+    print(i)

@@ -33,13 +33,16 @@ class Token:
                 while indent.level > level:
                     indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
                     indent.parent.inside.append([indent])
+                    indent.finish()
                     indent = indent.parent
             indent.inside.append(Token.tokenize(line, pos))
 
         while indent.level > 0:
             indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
             indent.parent.inside.append([indent])
+            indent.finish()
             indent = indent.parent
+        indent.finish()
         indent.location.end = Position(pos.line, len(string[i]) - 1)
         return indent
 
@@ -139,6 +142,7 @@ class Token:
         return f"{self.type.name}{f' {self.value} ' if self.value is not None else ''} ({self.location})"
 
 
+
 class Indent(Token):
     INDENT = TokenType("INDENT", "INDENT")
 
@@ -146,8 +150,13 @@ class Indent(Token):
         self.inside = inside
         self.parent = parent
         self.level = level
-        self.enumerator = enumerate(self.inside)
+        self.enumerator = None
+        self.index = 0
+        self.variables = []
         super().__init__(self.INDENT, location, None)
+
+    def finish(self):
+        self.enumerator = enumerate(self.inside)
 
     def __repr__(self):
         return f"INDENT {self.level} {self.inside}"
