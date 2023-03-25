@@ -37,8 +37,8 @@ class PyduinoLanguageServer(LanguageServer):
 pyduino_server = PyduinoLanguageServer('Pyduino', 'v0.1')
 
 
-def get_diagnostics(ls):
-    text_doc = ls.workspace.get_document(list(ls.workspace.documents.keys())[0])
+def get_diagnostics(ls, params):
+    text_doc = ls.workspace.get_document(params.text_document.uri)
     source = text_doc.source
     errors = Transpiler.get_diagnostics(source.splitlines())
     return errors
@@ -47,7 +47,7 @@ def get_diagnostics(ls):
 def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
     print("enter valiudate")
-    diagnostics = get_diagnostics(ls)
+    diagnostics = get_diagnostics(ls, params)
     print("diagnostics", diagnostics)
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
