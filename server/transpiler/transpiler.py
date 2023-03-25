@@ -54,7 +54,7 @@ class Transpiler:
             try:
                 self.next_line()
             except StopIteration:
-                print("Stop Iteration")
+                #print("Stop Iteration")
                 # The end of the code is reached
                 break
             except EndOfFileError:
@@ -65,11 +65,11 @@ class Transpiler:
                 print("Invalid Line")
                 # The line is invalid, so it is skipped
                 pass
-            # except Exception as e: TODO remove comment
-            #    print("Something went wrong, line: ", self.location.position.line)
-            #    # Something went wrong
-            #    print(e)
-            #    break
+            except Exception as e:
+                print("Something went wrong, line: ", self.location.position.line)
+                # Something went wrong
+                print(e)
+                break
 
     def do_line(self, line: list[Token]):
         if Separator.HASHTAG in [t.type for t in line]:
@@ -111,14 +111,13 @@ class Transpiler:
                 code.append('#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"')
             code.append("#include <iostream>")
             code.append("#include <string>")
+            code.append("#include <stdlib.h>")
             code.append("using namespace std;")
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
             code.append("typedef int py_int;")
             code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
             code.append("std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
-
-
 
             for f in self.scope.functions:
                 if f.called:
@@ -202,7 +201,7 @@ class Transpiler:
                     main_code = code[line_offset_main:]
                 break
 
-            elif code[0] == "#board" or code[0] == "# board":
+            if code[i] == "#board" or code[i] == "# board":
                 definition_code = code[:i]
                 line_offset_board = i + 1
                 for i in range(len(code)):

@@ -47,7 +47,7 @@ def get_diagnostics(ls, params):
 def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
     print("enter valiudate")
-    diagnostics = get_diagnostics(ls, params)
+    diagnostics = get_diagnostics(ls, params)    
     print("diagnostics", diagnostics)
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)

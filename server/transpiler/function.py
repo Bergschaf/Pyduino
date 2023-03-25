@@ -346,6 +346,7 @@ class Builtin(Function):
             Builtin("digitalRead", PyduinoInt(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalRead),
             Builtin("digitalWrite", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)),
                                                     Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalWrite),
+            Builtin("random", PyduinoInt(), [], Builtin.random, pythonic_overload=True)
 
         ])
 
@@ -423,6 +424,21 @@ class Builtin(Function):
             transpiler.connection_needed = True
             return f"arduino.digitalWrite({args[0].name}, {args[1].name})"
 
+    @staticmethod
+    def random(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if len(args) == 1:
+            if transpiler.mode == "board":
+                return f"random({args[0].name})"
+            else:
+                return f"rand() % {args[0].name}"
+        elif len(args) == 2:
+            if transpiler.mode == "board":
+                return f"random({args[0].name}, {args[1].name})"
+            else:
+                return f"rand() % ({args[1].name} - {args[0].name}) + {args[0].name}"
+        else:
+            transpiler.data.newError("random() takes 1 or 2 arguments", Range.fromPositions(args[0].location.start, args[-1].location.end))
+            return False
 
 if __name__ == '__main__':
 
