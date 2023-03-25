@@ -1,5 +1,4 @@
-#main
 
-float a  = 2.7222
-int b = int(a)
-print(b)
+
+#main
+print("Hello World")

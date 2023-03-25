@@ -33,7 +33,6 @@ class Transpiler:
                        Function.check_return, Function.check_call,
                        Function.check_decorator]  # the functions to check for different instruction types
 
-
     def copy(self):
         return Transpiler(self.data.code, self.mode, self.definition, self.data.line_offset)
 
@@ -51,7 +50,7 @@ class Transpiler:
                 self.current_indent.index = id
                 self.do_line(line)
             except StopIteration:
-                print("Stop Iteration")
+                #print("Stop Iteration")
                 return
             except EndOfFileError:
                 print("EOF")
@@ -61,11 +60,11 @@ class Transpiler:
                 print("Invalid Line")
                 # The line is invalid, so it is skipped
                 pass
-            # except Exception as e: TODO remove comment
-            #    print("Something went wrong, line: ", self.location.position.line)
-            #    # Something went wrong
-            #    print(e)
-            #    break
+            except Exception as e:  # TODO remove comment
+                print("Something went wrong, line: ", self.location.position.line)
+                # Something went wrong
+                print(e)
+                break
 
     def do_line(self, line: list[Token]):
 
@@ -118,10 +117,10 @@ class Transpiler:
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
             code.append("typedef int py_int;")
-            code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
-            code.append("std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
-
-
+            code.append(
+                "std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
+            code.append(
+                "std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
 
             for f in self.scope.functions:
                 if f.called:
