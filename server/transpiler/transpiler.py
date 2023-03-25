@@ -113,14 +113,15 @@ class Transpiler:
                 code.append('#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"')
             code.append("#include <iostream>")
             code.append("#include <string>")
+            code.append("#include <stdlib.h>")
             code.append("using namespace std;")
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
             code.append("typedef int py_int;")
-            code.append(
-                "std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
-            code.append(
-                "std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
+            code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
+            code.append("std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
+
+
 
             for f in self.scope.functions:
                 if f.called:
@@ -203,7 +204,7 @@ class Transpiler:
                     main_code = code[line_offset_main:]
                 break
 
-            elif code[0] == "#board" or code[0] == "# board":
+            if code[i] == "#board" or code[i] == "# board":
                 definition_code = code[:i]
                 line_offset_board = i + 1
                 for i in range(len(code)):
