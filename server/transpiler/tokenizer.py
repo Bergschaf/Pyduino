@@ -1,6 +1,7 @@
 from server.transpiler.pyduino_utils import *
 
 
+# AST here
 class TokenType:
     def __init__(self, code, name):
         self.code = code
@@ -14,7 +15,41 @@ class Token:
         self.location = location
 
     @staticmethod
-    def tokenize(string: str, start: Position) -> list['Token']:
+    def get_indentation(line: str):
+        i = len(line) - len(line.lstrip())
+        if i % 4 != 0:
+            return i // 4 + 1
+        return i // 4
+
+    @staticmethod
+    def tokenize_range(string: list[str], start: 'Position') -> 'Indent':
+        indent = Indent(Range.fromPosition(start), [], None, 0)
+        for i, line in enumerate(string):
+            if line.strip() == "":
+                continue
+            pos = Position(start.line + i, 0)
+            level = Token.get_indentation(line)
+            if level > indent.level:
+                indent = Indent(Range.fromPosition(pos), [], indent, level)
+            elif level < indent.level:
+                while indent.level > level:
+                    indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
+                    indent.parent.inside.append([indent])
+                    indent.finish()
+                    indent = indent.parent
+            indent.inside.append(Token.tokenize(line, pos))
+
+        while indent.level > 0:
+            indent.location.end = Position(pos.line - 1, len(string[i - 1]) - 1)
+            indent.parent.inside.append([indent])
+            indent.finish()
+            indent = indent.parent
+        indent.finish()
+        indent.location.end = Position(pos.line, len(string[i]) - 1)
+        return indent
+
+    @staticmethod
+    def tokenize(string: str, start: 'Position') -> list['Token']:
         bracket_levels = [0, 0, 0]
         last_space = start
         last_bracket = start
@@ -79,7 +114,7 @@ class Token:
         return isinstance(value, Token)
 
     @staticmethod
-    def get_token(string: str, range: Range) -> 'Token':
+    def get_token(string: str, range: 'Range') -> 'Token':
 
         range = Range.fromPositions(range.start.add_col(len(string) - len(string.lstrip())),
                                     range.end.add_col(-len(string) + len(string.rstrip())))
@@ -109,8 +144,30 @@ class Token:
         return f"{self.type.name}{f' {self.value} ' if self.value is not None else ''} ({self.location})"
 
 
+
+class Indent(Token):
+    INDENT = TokenType("INDENT", "INDENT")
+
+    def __init__(self, location: Range, inside: list[list['Token']], parent: 'Indent', level=0):
+        self.inside = inside
+        self.parent = parent
+        self.level = level
+        self.enumerator = None
+        self.index = 0
+        self.variables = []
+        super().__init__(self.INDENT, location, None)
+
+    def finish(self):
+        self.enumerator = enumerate(self.inside)
+
+    def __repr__(self):
+        return f"INDENT {self.level} {self.inside}"
+
+
 class Operator(Token):
-    def __init__(self, type: TokenType, location: Range, _):
+    def __init__(self, type: TokenType, location: Range, _, left=None, right=None):
+        self.left = left
+        self.right = right
         super().__init__(type, location, None)
 
 
@@ -191,7 +248,7 @@ class Decorator(Token):
     DECORATORS = [MAIN, BOARD, UNKNOWN]
 
 
-NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ":"]
+NO_SPACE_TOKENS_LEN1 = ["+", "-", "*", "/", "%", ",", ":", "<", ">", "=", ";"]
 NO_SPACE_TOKENS_LEN2 = ["==", ">=", "<=", "!=", "//"]
 TOKENS = {
     "+": (Math_Operator.PLUS, Math_Operator),
@@ -211,6 +268,7 @@ TOKENS = {
     "not": (Bool_Operator.NOT, Bool_Operator),
     ",": (Separator.COMMA, Separator),
     ":": (Separator.COLON, Separator),
+    ";": (Separator.SEMICOLON, Separator),
     "#": (Separator.HASHTAG, Separator),
     "=": (Separator.ASSIGN, Separator),
     "if": (Keyword.IF, Keyword),
@@ -232,4 +290,4 @@ TOKENS = {
 }
 
 if __name__ == '__main__':
-    print([str(t) for t in Token.tokenize("int x = (42 + 2) * 3", Position(0, 0))])
+    print(Token.tokenize_range(["int x = (42 + 2) * 3", "    int x = 0"], Position(0, 0)))

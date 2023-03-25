@@ -1,24 +1,5 @@
-#board
+#main
 
-int time = 0
-int[] ports = [11,10,9,6,5,3]
-int[] werte = [0,10,150,200,100,10]
-int[] up = [1, 1, 1, 0, 0, 0]
-
-while True:
-    for i in range(6):
-        if up[i]:
-            if werte[i] > 254:
-                up[i] = 0
-        else:
-            if werte[i] < 1:
-                up[i] = 1
-        if up[i]:
-            werte[i] = werte[i] + 1
-        else:
-            werte[i] = werte[i] - 1
-
-        analogWrite(ports[i], werte[i])
-    delay(10)
-
-
+float a  = 2.7222
+int b = int(a)
+print(b)

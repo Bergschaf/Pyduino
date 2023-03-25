@@ -1,5 +1,5 @@
 from server.transpiler.variable import *
-
+from server.transpiler.control import Control
 
 class Function:
     @staticmethod
@@ -191,7 +191,7 @@ class Function:
                                              arg_name.location)
                 last_comma = i
                 var = Variable(arg_name.value, datatype, arg_name.location)
-                transpiler.scope.add_Variable(var, transpiler.location.position.add_line(1))
+                transpiler.scope.add_Variable(var)
                 arguments.append(var)
 
         func = Function(name.value, return_type, arguments, decorator=decorator)
@@ -202,10 +202,9 @@ class Function:
         transpiler.data.code_done.append(
             f"{return_type.c_typename()} {name.value}({', '.join([f'{arg.type.c_typename()} {arg.name}' for arg in arguments])}) {{")
 
-        end_line = StringUtils.get_indentation_range(transpiler.location.position.line + 1, transpiler)
         prev = transpiler.data.in_function
         transpiler.data.in_function = func
-        transpiler.transpileTo(end_line)
+        Control.check_indent(transpiler,"Function")
         transpiler.data.in_function = prev
         transpiler.data.code_done.append("}")
         func.code = transpiler.data.code_done[code_done_start_index:]
@@ -248,6 +247,9 @@ class Function:
 
         if instruction[1].type != Brackets.ROUND:
             return False
+
+        if instruction[0].type == Datatype.INT:
+            instruction[0] = Token(Word.IDENTIFIER,instruction[0].location, "int")
 
         if instruction[0].type != Word.IDENTIFIER:
             return False
@@ -346,6 +348,8 @@ class Builtin(Function):
             Builtin("digitalRead", PyduinoInt(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalRead),
             Builtin("digitalWrite", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)),
                                                     Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalWrite),
+            Builtin("random", PyduinoInt(), [], Builtin.random, pythonic_overload=True),
+            Builtin("int", PyduinoInt(), [Variable("args", PyduinoAny(), Range(0, 0))], Builtin.int),
 
         ])
 
@@ -418,10 +422,35 @@ class Builtin(Function):
     @staticmethod
     def digitalWrite(args: list[Variable], name: str, transpiler: 'Transpiler'):
         if transpiler.mode == "board":
-            return f"digitalWrite({args[0].name}, {args[1].name})"
+            return f"analogWrite({args[0].name}, {args[1].name} * 255)"
         else:
             transpiler.connection_needed = True
             return f"arduino.digitalWrite({args[0].name}, {args[1].name})"
+
+    @staticmethod
+    def random(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        if len(args) == 1:
+            if transpiler.mode == "board":
+                return f"random({args[0].name})"
+            else:
+                return f"rand() % {args[0].name}"
+        elif len(args) == 2:
+            if transpiler.mode == "board":
+                return f"random({args[0].name}, {args[1].name})"
+            else:
+                return f"rand() % ({args[1].name} - {args[0].name}) + {args[0].name}"
+        else:
+            transpiler.data.newError("random() takes 1 or 2 arguments", Range.fromPositions(args[0].location.start, args[-1].location.end))
+            return False
+
+    @staticmethod
+    def int(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        possible, value = args[0].type.to_int()
+        if not possible:
+            transpiler.data.newError(value, args[0].location)
+            return False
+
+        return value.name
 
 
 if __name__ == '__main__':

@@ -16,20 +16,15 @@ class Transpiler:
         self.mode = mode
         self.definition = definition
         self.connection_needed = False
-        self.data: Data = Data(code, line_offset)
+        self.data: Data = Data(code, 0)
         self.location: CurrentLocation = CurrentLocation(code, self.data.indentations)
 
         self.utils: StringUtils = StringUtils(self.location, self.data, self)
 
+        self.parent_indent = Token.tokenize_range(code, Position(line_offset, 0))
+        self.current_indent = self.parent_indent
 
-
-        self.data.code_tokens = [Token.tokenize(line, Position(i, 0)) for i, line in enumerate(self.data.code)]
-        self.data.indentations = self.utils.getIndentations(self.data.code)
-        self.location.indentations = self.data.indentations
-
-        self.data.enumerator = enumerate(self.data.code_tokens)
-
-        self.scope: Scope = Scope(self.data, self.location)
+        self.scope: Scope = Scope(self)
 
         Builtin.add_builtins(self)
 
@@ -38,25 +33,26 @@ class Transpiler:
                        Function.check_return, Function.check_call,
                        Function.check_decorator]  # the functions to check for different instruction types
 
-    def next_line(self):
-        index, line = next(self.data.enumerator)
-        self.location.next_line()
-        self.do_line(line)
 
     def copy(self):
         return Transpiler(self.data.code, self.mode, self.definition, self.data.line_offset)
 
-    def transpileTo(self, line: int):
+    def transpile(self):
+        self.transpileRange(self.parent_indent)
+
+    def transpileRange(self, indent: Indent):
         """
         Transpiles up to the given line
         """
-        while self.location.position.line < line:
+        while True:
             try:
-                self.next_line()
+                id, line = next(indent.enumerator)
+                self.current_indent = indent
+                self.current_indent.index = id
+                self.do_line(line)
             except StopIteration:
                 print("Stop Iteration")
-                # The end of the code is reached
-                break
+                return
             except EndOfFileError:
                 print("EOF")
                 # The end of the code is reached
@@ -72,6 +68,7 @@ class Transpiler:
             #    break
 
     def do_line(self, line: list[Token]):
+
         if Separator.HASHTAG in [t.type for t in line]:
             line = line[:[t.type for t in line].index(Separator.HASHTAG)]
 
@@ -81,6 +78,11 @@ class Transpiler:
         if line[-1].type == Separator.SEMICOLON:
             line = line[:-1]
             self.data.newError("We don't do that here", line[-1].location)
+
+        if line[0].type == Indent.INDENT:
+            self.data.newError("Unexpected indent", line[0].location)
+            self.transpileRange(line[0])
+            return
 
         if self.definition and self.data.in_function is None:
             if not Function.check_definition(line, self):
@@ -111,6 +113,7 @@ class Transpiler:
                 code.append('#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"')
             code.append("#include <iostream>")
             code.append("#include <string>")
+            code.append("#include <stdlib.h>")
             code.append("using namespace std;")
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
@@ -175,7 +178,6 @@ class Transpiler:
                 code.extend(self.data.code_done)
                 code.append("} \nvoid loop() { }")
 
-
         return "\n".join(code)
 
     @staticmethod
@@ -202,7 +204,7 @@ class Transpiler:
                     main_code = code[line_offset_main:]
                 break
 
-            elif code[0] == "#board" or code[0] == "# board":
+            if code[i] == "#board" or code[i] == "# board":
                 definition_code = code[:i]
                 line_offset_board = i + 1
                 for i in range(len(code)):
@@ -248,8 +250,8 @@ class Transpiler:
             definition_board = definition_main.copy()
             definition_board.mode = "board"
 
-            definition_main.transpileTo(len(definition_main.data.code))
-            definition_board.transpileTo(len(definition_board.data.code))
+            definition_main.transpile()
+            definition_board.transpile()
             if main:
                 main.scope.add_functions(definition_main.scope.functions)
                 main.data.remote_functions.extend(definition_main.data.remote_functions)
@@ -264,9 +266,9 @@ class Transpiler:
                     board.connection_needed = True
 
         if board:
-            board.transpileTo(len(board.data.code))
+            board.transpile()
         if main:
-            main.transpileTo(len(main.data.code))
+            main.transpile()
 
             if main.data.errors:
                 print("Errors in main:")
@@ -284,7 +286,7 @@ class Transpiler:
             code_main = main.finish()
 
         if board:
-            board.transpileTo(len(board.data.code))
+            board.transpile()
 
             if board.data.errors:
                 print("Errors in board:")
@@ -293,6 +295,11 @@ class Transpiler:
 
             if main:
                 board.connection_needed = True if main.connection_needed else board.connection_needed
+            else:
+                if board.connection_needed:
+                    code_main = '''#include "../server/transpiler/SerialCommunication/Serial_PC.cpp"\nint main(){\nArduino arduino = Arduino();
+                    arduino.listenerThread->join();return 0;}'''
+
             code_board = board.finish()
 
         return code_main, code_board
@@ -305,8 +312,8 @@ class Transpiler:
             definition_board = definition_main.copy()
             definition_board.mode = "board"
 
-            definition_main.transpileTo(len(definition_main.data.code))
-            definition_board.transpileTo(len(definition_board.data.code))
+            definition_main.transpile()
+            definition_board.transpile()
             diagnostics.extend([e.get_Diagnostic(definition_main) for e in definition_main.data.errors])
             if main:
                 main.scope.add_functions(definition_main.scope.functions)
@@ -315,10 +322,10 @@ class Transpiler:
                 board.scope.add_functions(definition_board.scope.functions)
 
         if main:
-            main.transpileTo(len(main.data.code))
+            main.transpile()
             diagnostics.extend([e.get_Diagnostic(main) for e in main.data.errors])
         if board:
-            board.transpileTo(len(board.data.code))
+            board.transpile()
             diagnostics.extend([e.get_Diagnostic(board) for e in board.data.errors])
         return diagnostics
 

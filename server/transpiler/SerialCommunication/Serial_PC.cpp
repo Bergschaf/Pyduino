@@ -238,6 +238,7 @@ public:
         } else {
             cout << "Error: Handshake failed" << endl;
         }
+        system("cls");
         listenerThread = new thread(listener, this, SP);
 
     }

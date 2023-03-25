@@ -706,7 +706,7 @@ class Value:
             v = value[0]
             if v.type == Word.IDENTIFIER:
                 # check if it is a variable
-                var = transpiler.scope.get_Variable(v.value, v.location.start)
+                var = transpiler.scope.get_Variable(v.value)
                 if var:
                     return var
 
@@ -733,7 +733,7 @@ class Value:
             if value[0].type == Word.IDENTIFIER:
                 if all([v.type == Brackets.SQUARE for v in value[1:]]):
                     # it is a getitem
-                    var = transpiler.scope.get_Variable(value[0].value, value[0].location.start)
+                    var = transpiler.scope.get_Variable(value[0].value)
                     indices = [Value.do_value(b.inside, transpiler) for b in value[1:]]
                     if var:
                         for i in range(len(indices) - 1, -1, -1):
@@ -748,7 +748,7 @@ class Value:
                         transpiler.data.newError(f"Variable {value[0].value} not defined", value[0].location)
                         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
-        transpiler.data.newError(f"Invalid value {value[0]}", value[0].location)
+        transpiler.data.newError(f"Invalid value {value[0].value}", value[0].location)
         transpiler.data.invalid_line_fallback.fallback(transpiler)
 
 
@@ -789,7 +789,7 @@ class Variable(Value):
 
         variable = Variable(name.value, value.type, value.location)
 
-        if transpiler.scope.get_Variable(name.value, variable.location.start):
+        if transpiler.scope.get_Variable(name.value):
             transpiler.data.newError(f"Variable '{name}' is already defined", variable.location)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
             return True
@@ -806,7 +806,7 @@ class Variable(Value):
         else:
             c_code = f"{variable.type.c_typename()} {name.value} = {c_value};"
 
-        transpiler.scope.add_Variable(variable, variable.location.start)
+        transpiler.scope.add_Variable(variable)
         transpiler.data.code_done.append(c_code)
         return True
 
@@ -821,7 +821,7 @@ class Variable(Value):
                                          Range.fromPositions(instruction[2].location.start,
                                                              instruction[-1].location.end))
 
-            variable = transpiler.scope.get_Variable(instruction[0].value, instruction[0].location.start)
+            variable = transpiler.scope.get_Variable(instruction[0].value)
             if variable:
                 possible, var = variable.type.plus_plus()
                 if not possible:
@@ -851,7 +851,7 @@ class Variable(Value):
                 if not i:
                     transpiler.data.newError(f"Invalid index", i.location)
 
-            var = transpiler.scope.get_Variable(left[0].value, left[0].location.start)
+            var = transpiler.scope.get_Variable(left[0].value)
             if not var:
                 transpiler.data.newError(f"Variable '{left[0].value}' is not defined", left[0].location)
                 transpiler.data.invalid_line_fallback.fallback(transpiler)
@@ -883,7 +883,7 @@ class Variable(Value):
         if left[0].type != Word.IDENTIFIER:
             transpiler.data.newError(f"{left[0].value} is not a valid variable name", left[0].location)
 
-        variable = transpiler.scope.get_Variable(left[0].value, left[0].location.start)
+        variable = transpiler.scope.get_Variable(left[0].value)
         if not variable:
             transpiler.data.newError(f"Variable '{left[0].value}' is not defined", left[0].location)
             transpiler.data.invalid_line_fallback.fallback(transpiler)
