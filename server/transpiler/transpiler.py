@@ -50,20 +50,20 @@ class Transpiler:
                 self.current_indent = indent
                 self.current_indent.index = id
             except StopIteration:
-                print("Stop Iteration")
+                #print("Stop Iteration")
                 return
 
             else:
                 try:
                     self.do_line(line)
                 except InvalidLineError:
-                    print("Invalid Line")
+                    #print("Invalid Line")
                     # The line is invalid, so it is skipped
                     pass
                 except Exception as e:  # TODO remove comment
-                    print("Something went wrong, line: ", self.location.position.line)
+                    #print("Something went wrong, line: ", self.location.position.line)
                     # Something went wrong
-                    print(e)
+                    #print(e)
                     continue
 
 
