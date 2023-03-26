@@ -43,28 +43,29 @@ class Transpiler:
         """
         Transpiles up to the given line
         """
+        i = 0
         while True:
             try:
                 id, line = next(indent.enumerator)
                 self.current_indent = indent
                 self.current_indent.index = id
-                self.do_line(line)
             except StopIteration:
-                #print("Stop Iteration")
+                print("Stop Iteration")
                 return
-            except EndOfFileError:
-                print("EOF")
-                # The end of the code is reached
-                break
-            except InvalidLineError:
-                print("Invalid Line")
-                # The line is invalid, so it is skipped
-                pass
-            except Exception as e:  # TODO remove comment
-                print("Something went wrong, line: ", self.location.position.line)
-                # Something went wrong
-                print(e)
-                break
+
+            else:
+                try:
+                    self.do_line(line)
+                except InvalidLineError:
+                    print("Invalid Line")
+                    # The line is invalid, so it is skipped
+                    pass
+                except Exception as e:  # TODO remove comment
+                    print("Something went wrong, line: ", self.location.position.line)
+                    # Something went wrong
+                    print(e)
+                    continue
+
 
     def do_line(self, line: list[Token]):
 

@@ -1,6 +1,61 @@
 #board
-lcd_createCustomChar("0000011111000001111100000111110000011111", 0)
-lcd_setCursor(0, 0)
-lcd_print("Hello World")
-lcd_setCursor(0, 1)
-lcd_writeCustomChar(0)
+
+int nothing = 0
+int man = 1
+int score = 0
+int[] blocks = [2,3,4,5,6]
+int last_time = 0
+bool auto_mode = False
+bool man_up = False
+
+bool jump_pressed = False
+bool mode_pressed = False
+
+int time = 100
+int[] upper = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+int[] lower = [man,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0]
+
+while True:
+    int ms = millis()
+    while last_time + time > ms:
+        ms = millis()
+        if digitalRead(13) == 1 and jump_pressed == False:
+            jump_pressed = True
+            if man_up:
+                man_up = False
+                lcd_setCursor(0,0)
+                lcd_writeCustomChar(0)
+                lcd_setCursor(0,1)
+                lcd_writeCustomChar(man)
+            else:
+                man_up = True
+                lcd_setCursor(0,1)
+                lcd_writeCustomChar(0)
+                lcd_setCursor(0,0)
+                lcd_writeCustomChar(man)
+
+        if digitalRead(13) != 1:
+            jump_pressed = False
+
+        if digitalRead(12) == 1 and mode_pressed == False:
+            mode_pressed = True
+            if auto_mode:
+                auto_mode = False
+            else:
+                auto_mode = True
+
+        if digitalRead(12) != 1:
+            mode_pressed = False
+
+
+    last_time = millis()
+    if auto_mode == False:
+        score = score + 1
+
+    if score % 20 == 0 and time > 40 and auto_mode == False:
+        time = time - 1
+
+    # Print the score to the upper right corner
+
+    lcd_clear()
+
