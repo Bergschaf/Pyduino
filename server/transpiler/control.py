@@ -64,7 +64,9 @@ class Control:
 
         condition = Control.do_condition(instruction[1:], transpiler, "if")
 
+
         data.code_done.append(f"if ({condition}) {{")
+
 
         # Get the lentgh of the if-statement (identent part)
         Control.check_indent(transpiler, "if")

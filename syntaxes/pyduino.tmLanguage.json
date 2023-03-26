@@ -34,7 +34,7 @@
 
 			{
 				"name": "support.function.builtin.pyduino.arduino",
-			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay|millis|random|lcd_print|lcd_setCursor|lcd_clear)\\b"
+			    "match": "\\b(print|analogWrite|analogRead|digitalWrite|digitalRead|delay|millis|random|lcd_print|lcd_setCursor|lcd_clear|lcd_createCustomChar|lcd_writeCustomChar)\\b"
 			},
 			{
 				"name": "support.function.builtin.pyduino.general",
