@@ -37,6 +37,7 @@ Instruction + Value:
     l (108) : print (Value Chars)
     m (109) : function (Function ID (1 Byte), args)
     n (110) : builtinFunction (zum arduino) (Function ID (1 Byte), args)
+    o (111) : LCD Funktonen (Function ID (1 Byte), args) (1: lcd.setCursor, 2: lcd.print, 3: lcd.clear)
 
 Builtin IDs:
     0: analogRead

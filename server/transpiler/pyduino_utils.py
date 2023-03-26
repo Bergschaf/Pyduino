@@ -687,6 +687,7 @@ class Data:
         self.current_decorator: str = None
         self.remote_function_count: int = 0  # the number of functions that can be called from the other platform
         self.remote_functions: list[Function] = []  # the functions that can be called from the other platform
+        self.lcd_needed = False
 
         self.OPERATORS = [t.Math_Operator.PLUS, t.Math_Operator.MINUS, t.Math_Operator.MULTIPLY,
                           t.Math_Operator.DIVIDE, t.Math_Operator.MODULO, t.Compare_Operator.EQUAL,

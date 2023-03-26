@@ -1,4 +1,6 @@
-
-
-#main
-print("Hello World")
+#board
+lcd_createCustomChar("0000011111000001111100000111110000011111", 0)
+lcd_setCursor(0, 0)
+lcd_print("Hello World")
+lcd_setCursor(0, 1)
+lcd_writeCustomChar(0)

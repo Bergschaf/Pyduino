@@ -27,6 +27,13 @@
     "python.analysis.typeCheckingMode": "off",
     "cmake.configureOnOpen": false,
     "window.title": "${dirty}${activeEditorShort}${separator}${folderPath}${separator}${appName}",
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        "algorithm": "cpp",
+        "xstring": "cpp",
+        "*.tcc": "cpp",
+        "string": "cpp",
+        "rope": "cpp"
+    }
 
 }

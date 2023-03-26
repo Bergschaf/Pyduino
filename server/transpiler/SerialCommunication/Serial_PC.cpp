@@ -345,5 +345,37 @@ public:
         analogWrite(pin, value);
     }
 
+    void lcd_print(char *text) {
+        cout << "lcd_print: " << text << " (not implemented)" << endl;
+        char id = next_request_id();
+        int size = strlen(text) + 1;
+        char data[size];
+        data[0] = 2;
+        for (int i = 1; i < size; ++i) {
+            data[i] = text[i-1];
+        }
+        send_request('o',data , strlen(text) + 1, id);
+        delete new Promise<int>(nullptr, nullptr, id, Responses);
+        Requests[id] = 0;
+    }
+
+    void lcd_setCursor(int x, int y) {
+        cout << "lcd_setCursor: " << x << " " << y << " (not implemented)" << endl;
+        char id = next_request_id();
+        char data[3] = {1, static_cast<char>(x), static_cast<char>(y)};
+        send_request('o', data, 3, id);
+        delete new Promise<int>(nullptr, nullptr, id, Responses);
+        Requests[id] = 0;
+    }
+
+    void lcd_clear() {
+        cout << "lcd_clear: (not implemented)" << endl;
+        char id = next_request_id();
+        char data[1] = {3};
+        send_request('o', data, 1, id);
+        delete new Promise<int>(nullptr, nullptr, id, Responses);
+        Requests[id] = 0;
+    }
+
 };
 
