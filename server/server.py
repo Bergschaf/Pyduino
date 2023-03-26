@@ -22,6 +22,12 @@ SETTINGS_JSON = """
                 "cwd": "${extensionInstallFolder:Bergschaf.pyduino}",
                 "command": "env/Scripts/python.exe run.py ${file}",
                 "singleInstance": true
+            },
+            { 
+                "name": "$(sync) Refresh Port",
+                "cwd": "${extensionInstallFolder:Bergschaf.pyduino}",
+                "command": "rm temp/port.txt",
+                "singleInstance": true
             }
         ]
     },
