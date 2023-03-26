@@ -112,9 +112,29 @@ class Control:
 
         transpiler.data.code_done.append(f"while ({condition}) {{")
 
+        transpiler.data.in_loop += 1
         Control.check_indent(transpiler, "while")
+        transpiler.data.in_loop -= 1
 
         transpiler.data.code_done.append("}")
+
+    @staticmethod
+    def check_break_continue(instruction: list[Token], transpiler: 'Transpiler'):
+        if instruction[0].type != Keyword.BREAK and instruction[0].type != Keyword.CONTINUE:
+            return False
+
+        if len(instruction) > 1:
+            transpiler.data.newError(f"Unexpected token '{instruction[1].value}'", instruction[1].location)
+
+        if transpiler.data.in_loop == 0:
+            transpiler.data.newError(f"{instruction[0].type.code} statement must be in a loop", instruction[0].location)
+
+        if instruction[0].type == Keyword.BREAK:
+            transpiler.data.code_done.append("break;")
+        else:
+            transpiler.data.code_done.append("continue;")
+        return True
+
 
     @staticmethod
     def do_for(line: list[Token], transpiler: 'Transpiler'):

@@ -28,7 +28,7 @@ class Transpiler:
 
         Builtin.add_builtins(self)
 
-        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,
+        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,Control.check_break_continue,
                        Function.check_definition,
                        Function.check_return, Function.check_call,
                        Function.check_decorator]  # the functions to check for different instruction types
