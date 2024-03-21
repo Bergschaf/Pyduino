@@ -8,7 +8,7 @@ It is designed to be easy to learn and use, and is a great way to get started wi
 - The PC can access Arduino's pins and sensors
 - The is able to print output to the PC console
 - They can run independently or together
-- VS Code Extension do develop and run Pyduino programs
+- VS Code Extension to develop and run Pyduino programs
 
 The language works by transpiling the Pyduino code to C++ and the compiling it to run on the Arduino and on the PC.	
 To exchange data or call functions between the PC and the Arduino, the serial port is used. The PC uses a separate listener
