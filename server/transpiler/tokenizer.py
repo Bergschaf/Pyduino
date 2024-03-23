@@ -24,6 +24,7 @@ class Token:
     @staticmethod
     def tokenize_range(string: list[str], start: 'Position') -> 'Indent':
         indent = Indent(Range.fromPosition(start), [], None, 0)
+        pos = start
         for i, line in enumerate(string):
             if line.strip() == "":
                 continue

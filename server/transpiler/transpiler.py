@@ -28,11 +28,10 @@ class Transpiler:
 
         Builtin.add_builtins(self)
 
-        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,
+        self.checks = [Variable.check_assignment, Variable.check_definition, Control.check_condition,Control.check_break_continue,
                        Function.check_definition,
                        Function.check_return, Function.check_call,
                        Function.check_decorator]  # the functions to check for different instruction types
-
 
     def copy(self):
         return Transpiler(self.data.code, self.mode, self.definition, self.data.line_offset)
@@ -44,28 +43,29 @@ class Transpiler:
         """
         Transpiles up to the given line
         """
+        i = 0
         while True:
             try:
                 id, line = next(indent.enumerator)
                 self.current_indent = indent
                 self.current_indent.index = id
-                self.do_line(line)
             except StopIteration:
-                print("Stop Iteration")
+                #print("Stop Iteration")
                 return
-            except EndOfFileError:
-                print("EOF")
-                # The end of the code is reached
-                break
-            except InvalidLineError:
-                print("Invalid Line")
-                # The line is invalid, so it is skipped
-                pass
-            # except Exception as e: TODO remove comment
-            #    print("Something went wrong, line: ", self.location.position.line)
-            #    # Something went wrong
-            #    print(e)
-            #    break
+
+            else:
+                try:
+                    self.do_line(line)
+                except InvalidLineError:
+                    #print("Invalid Line")
+                    # The line is invalid, so it is skipped
+                    pass
+                except Exception as e:  # TODO remove comment
+                    #print("Something went wrong, line: ", self.location.position.line)
+                    # Something went wrong
+                    #print(e)
+                    continue
+
 
     def do_line(self, line: list[Token]):
 
@@ -118,10 +118,10 @@ class Transpiler:
             code.append(f"#include <chrono>")
             code.append("#include <thread>")
             code.append("typedef int py_int;")
-            code.append("std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
-            code.append("std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
-
-
+            code.append(
+                "std::string String(int value) { return std::to_string(value); }\nstd::string String(float value) { return std::to_string(value); }\nstd::string String(std::string value) { return \"\\\"\" + value  + \"\\\"\"; }")
+            code.append(
+                "std::string String(char value) { return \"'\" + std::to_string(value) + \"'\"; }\nstd::string String(bool value) { return std::to_string(value); }")
 
             for f in self.scope.functions:
                 if f.called:
@@ -162,19 +162,48 @@ class Transpiler:
                 with open("server/transpiler/SerialCommunication/Serial_Arduino/No_Connection_Arduino.ino") as f:
                     code.extend(f.readlines())
 
+            if self.data.lcd_needed:
+                code.append("#include <Wire.h>")
+                code.append("#include <LiquidCrystal_I2C.h>")
+                code.append("LiquidCrystal_I2C lcd(0x27, 16, 2);")
+                code.append("""void createCustomChar(String input, int charIndex){
+                  if(input.length() != 40){
+                    // invalid Char
+                    return;
+                  }
+                  byte customChar[8];
+                
+                    for(int i = 0; i < 8; i++){
+                        String byteString = input.substring(i*5, i*5+5);
+                        byteString.replace("0", " ");
+                        byteString.replace("1", "0");
+                        byteString.replace(" ", "1");
+                        customChar[i] = strtol(byteString.c_str(), NULL, 2);
+                    }
+                    lcd.createChar(charIndex,customChar);
+                }""")
+
             for f in self.scope.functions:
                 if f.called:
                     code.extend(f.code)
 
             if self.connection_needed:
                 code.append("void setup() {\n Serial.begin(256000); \nHandshake();\ndelay(10);")
-                for line in self.data.code_done:
+
+                if self.data.lcd_needed:
+                    code.append("lcd.init();lcd.backlight();")
+
+                for i, line in enumerate(self.data.code_done):
                     code.append(line)
-                    code.append("checkSerial();")
+                    if i + 1 < len(self.data.code_done):
+                        if not self.data.code_done[i+1].startswith("else"):
+                            code.append("checkSerial();")
                 code.append("} \n void loop() { checkSerial(); }")
 
             else:
                 code.append("void setup() {")
+                if self.data.lcd_needed:
+                    code.append("lcd.init();lcd.backlight();")
                 code.extend(self.data.code_done)
                 code.append("} \nvoid loop() { }")
 

@@ -250,6 +250,10 @@ class Function:
 
         if instruction[0].type == Datatype.INT:
             instruction[0] = Token(Word.IDENTIFIER,instruction[0].location, "int")
+        elif instruction[0].type == Datatype.FLOAT:
+            instruction[0] = Token(Word.IDENTIFIER,instruction[0].location, "float")
+        elif instruction[0].type == Datatype.STRING:
+            instruction[0] = Token(Word.IDENTIFIER,instruction[0].location, "str")
 
         if instruction[0].type != Word.IDENTIFIER:
             return False
@@ -350,6 +354,13 @@ class Builtin(Function):
                                                     Variable("args", PyduinoInt(), Range(0, 0))], Builtin.digitalWrite),
             Builtin("random", PyduinoInt(), [], Builtin.random, pythonic_overload=True),
             Builtin("int", PyduinoInt(), [Variable("args", PyduinoAny(), Range(0, 0))], Builtin.int),
+            Builtin("str", PyduinoString(), [Variable("args", PyduinoAny(), Range(0, 0))], Builtin.str),
+
+            Builtin("lcd_print", PyduinoVoid(), [Variable("args", PyduinoString(), Range(0, 0))], Builtin.lcd_print),
+            Builtin("lcd_setCursor", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0)), Variable("args",PyduinoInt(), Range(0,0))], Builtin.lcd_setCursor),
+            Builtin("lcd_clear", PyduinoVoid(), [], Builtin.lcd_clear),
+            Builtin("lcd_createCustomChar", PyduinoVoid(), [Variable("args", PyduinoString(), Range(0, 0)), Variable("args",PyduinoInt(), Range(0,0))], Builtin.lcd_createCustomChar),
+            Builtin("lcd_writeCustomChar", PyduinoVoid(), [Variable("args", PyduinoInt(), Range(0, 0))], Builtin.lcd_writeCustomChar),
 
         ])
 
@@ -451,6 +462,63 @@ class Builtin(Function):
             return False
 
         return value.name
+
+    @staticmethod
+    def str(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        possible, value = args[0].type.to_string()
+
+        if not possible:
+            transpiler.data.newError(value, args[0].location)
+            return False
+
+        return value.name
+
+    @staticmethod
+    def lcd_print(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        transpiler.data.lcd_needed = True
+        if transpiler.mode == "board":
+            return f"lcd.print({args[0].name})"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.lcd_print({args[0].name})"
+
+    @staticmethod
+    def lcd_setCursor(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        transpiler.data.lcd_needed = True
+        if transpiler.mode == "board":
+            return f"lcd.setCursor({args[0].name}, {args[1].name})"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.lcd_setCursor({args[0].name}, {args[1].name})"
+
+    @staticmethod
+    def lcd_clear(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        transpiler.data.lcd_needed = True
+        if transpiler.mode == "board":
+            return f"lcd.clear()"
+        else:
+            transpiler.connection_needed = True
+            return f"arduino.lcd_clear()"
+
+    @staticmethod
+    def lcd_createCustomChar(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        transpiler.data.lcd_needed = True
+        if transpiler.mode == "board":
+            return f"createCustomChar({args[0].name}, {args[1].name})"
+        else:
+            transpiler.connection_needed = True
+            transpiler.data.newError("lcd_createCustomChar() is not yet implemented for the PC", args[0].location)
+            return
+            #return f"arduino.lcd_createCustomChar({args[0].name}, {args[1].name})"
+
+    @staticmethod
+    def lcd_writeCustomChar(args: list[Variable], name: str, transpiler: 'Transpiler'):
+        transpiler.data.lcd_needed = True
+        if transpiler.mode == "board":
+            return f"lcd.write({args[0].name})"
+        else:
+            transpiler.connection_needed = True
+            #return f"arduino.lcd_writeChar({args[0].name})"
 
 
 if __name__ == '__main__':

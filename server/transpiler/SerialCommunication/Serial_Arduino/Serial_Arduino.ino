@@ -169,6 +169,7 @@ void decodeRequest(const byte *data, int size) {
       sendResponse(requestID, new char[1]{ ' ' }, 1);
     }
   }
+
 }
 
 void decodeSerial(const byte *data, int size, bool request) {

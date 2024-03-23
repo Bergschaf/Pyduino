@@ -226,7 +226,7 @@ class PyduinoBool(PyduinoType):
         return True, PyduinoBool(f"!{self.name}")
 
     def to_string(self):
-        return True, PyduinoString(f"std::to_string({self.name})")
+        return True, PyduinoString(f"String({self.name})")
 
     def to_int(self):
         return True, PyduinoInt(f"({self.name} ? 1 : 0)")

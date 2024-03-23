@@ -11,6 +11,7 @@ from server.transpiler.transpiler import Transpiler
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
 
+CWD = os.getcwd().replace("\\","\\\\")
 SETTINGS_JSON = """
 {
     "actionButtons": {
@@ -19,8 +20,15 @@ SETTINGS_JSON = """
         "commands": [
             {
                 "name": "$(triangle-right) Run Pyduino",
-                "cwd": "${extensionInstallFolder:Bergschaf.pyduino}",
+                "cwd": \"""" + CWD + """\",
                 "command": "env/Scripts/python.exe run.py ${file}",
+                "singleInstance": true,
+                "focus": true
+            },
+            { 
+                "name": "$(sync) Refresh Port",
+                "cwd":  \"""" + CWD + """\",
+                "command": "rm temp/port.txt",
                 "singleInstance": true
             }
         ]
@@ -88,7 +96,7 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
         os.mkdir(base_path + "\\\\.vscode")
 
     with open(base_path + "\\\\.vscode/settings.json", "w") as f:
-        f.write(SETTINGS_JSON)
+        f.write(SETTINGS_JSON) # TODO keep settings
 
     ls.show_message('Pyduino Running')
 
